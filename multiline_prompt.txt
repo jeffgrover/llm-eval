@@ -1,0 +1,7 @@
+This is a test prompt
+with multiple
+lines
+to verify that newlines are preserved
+in the report.
+
+Please just print "Newline test successful".

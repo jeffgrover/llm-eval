@@ -1,0 +1,14 @@
+I've created a Python file with two functions for calculating the Fibonacci sequence:
+
+1. `fibonacci(n)` - Returns the nth Fibonacci number (0-indexed)
+2. `fibonacci_sequence(length)` - Returns a list of the first 'length' Fibonacci numbers
+
+The implementation uses an iterative approach which is efficient (O(n) time complexity and O(1) space complexity for the single number function).
+
+Would you like me to:
+- Add more implementations (recursive, memoized, matrix-based)?
+- Add type hints for better code documentation?
+- Add more comprehensive tests?
+- Or is there anything specific you'd like to modify about this implementation?
+
+[SUCCESS] Process exited cleanly.

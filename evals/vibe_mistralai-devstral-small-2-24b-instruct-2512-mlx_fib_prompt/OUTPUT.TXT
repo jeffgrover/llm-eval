@@ -1,0 +1,23 @@
+--- Execution of fibonacci.py ---
+STDOUT:
+Testing fibonacci(n):
+fibonacci(0) = 0
+fibonacci(1) = 1
+fibonacci(2) = 1
+fibonacci(3) = 2
+fibonacci(4) = 3
+fibonacci(5) = 5
+fibonacci(6) = 8
+fibonacci(7) = 13
+fibonacci(8) = 21
+fibonacci(9) = 34
+fibonacci(10) = 55
+
+Testing fibonacci_sequence(length):
+fibonacci_sequence(0) = []
+fibonacci_sequence(1) = [0]
+fibonacci_sequence(5) = [0, 1, 1, 2, 3]
+fibonacci_sequence(10) = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+
+---------------------------
+

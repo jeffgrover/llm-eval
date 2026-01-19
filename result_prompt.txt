@@ -1,0 +1,1 @@
+Write a simple Python script called 'result.py' that prints "Hello from the generated script!" and the current date/time. Do not wrap it in markdown code blocks, just provide the raw code if possible, or ensure 'result.py' is created.
