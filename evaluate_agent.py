@@ -69,6 +69,47 @@ class MetadataCollector:
                 if mem_match: info["Memory"] = mem_match.group(1)
             except Exception:
                 pass
+        elif sys.platform == "linux":
+            try:
+                # Try to get detailed Linux distribution info using lsb_release
+                cmd = ["lsb_release", "-a"]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                output = result.stdout
+                
+                # Parse for Description field
+                # Example output:
+                #   Distributor ID: Ubuntu
+                #   Description:    Ubuntu 22.04.3 LTS
+                #   Release:        22.04
+                #   Codename:       jammy
+                for line in output.splitlines():
+                    if line.strip().startswith("Description:"):
+                        description = line.split(":", 1)[1].strip()
+                        info["System"] = description  # Override the generic "Linux"
+                        break  # Use first description found
+                
+            except Exception:
+                pass
+            
+            try:
+                # Try to get GPU info on Linux using lshw
+                cmd = ["lshw", "-C", "display"]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                output = result.stdout
+                
+                # Parse vendor and product lines
+                # Example output:
+                #   product: NVIDIA Corporation
+                #   vendor: NVIDIA Corporation
+                for line in output.splitlines():
+                    if line.strip().startswith("vendor:"):
+                        vendor = line.split(":", 1)[1].strip()
+                        info["GPU Vendor"] = vendor
+                    elif line.strip().startswith("product:"):
+                        product = line.split(":", 1)[1].strip()
+                        info["GPU Model"] = product
+            except Exception:
+                pass
         return info
 
     @staticmethod
@@ -92,7 +133,7 @@ class MetadataCollector:
         except Exception:
             versions["LM Studio CLI Version"] = "Unknown"
 
-        # LM Studio App Version (Mac only via mdls)
+        # LM Studio App Version (Mac or Linux via file detection)
         if platform.system() == "Darwin":
             try:
                 # mdls -name kMDItemVersion '/Applications/LM Studio.app'
@@ -108,6 +149,36 @@ class MetadataCollector:
                     versions["LM Studio App Version"] = "Unknown"
             except Exception:
                 versions["LM Studio App Version"] = "Not Found / Error"
+        elif platform.system() == "Linux":
+            try:
+                # Look for LM Studio AppImages in /opt
+                # Pattern: /opt/LM-Studio-0.3.39-2-x64.AppImage
+                # Extract version from filename (everything between "LM-Studio-" and ".AppImage")
+                import glob
+                app_images = glob.glob("/opt/LM-Studio-*.AppImage")
+                
+                if app_images:
+                    # Sort by version to get the highest version
+                    # Version pattern: 0.3.39-2-x64 (we want to sort numerically)
+                    def extract_version(app_image_path):
+                        # Extract everything between "LM-Studio-" and the first "-" after it
+                        match = re.search(r'LM-Studio-([^-]+)', app_image_path)
+                        if match:
+                            return match.group(1)
+                        return ""
+                    
+                    # Sort by version (using natural sorting for numbers)
+                    app_images.sort(key=lambda x: [int(part) if part.isdigit() else part 
+                                                     for part in extract_version(x).split('.')])
+                    
+                    latest_app = app_images[-1]  # Last one after sort
+                    version = extract_version(latest_app)
+                    versions["LM Studio App Version"] = version if version else "Unknown"
+                else:
+                    versions["LM Studio App Version"] = "Not Found"
+            except Exception as e:
+                print(f"[-] Error detecting LM Studio version on Linux: {e}")
+                versions["LM Studio App Version"] = "Error"
         
         # Agent Version
         try:
