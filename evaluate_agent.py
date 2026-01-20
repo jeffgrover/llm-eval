@@ -71,6 +71,32 @@ class MetadataCollector:
                 pass
         elif sys.platform == "linux":
             try:
+                # Try to get machine manufacturer from DMI
+                vendor_path = "/sys/devices/virtual/dmi/id/sys_vendor"
+                if os.path.exists(vendor_path):
+                    with open(vendor_path, 'r') as f:
+                        vendor = f.read().strip()
+                        info["Machine"] = vendor  # Override generic "x86_64"
+                
+            except Exception:
+                pass
+            
+            try:
+                # Try to get CPU model from lscpu
+                cmd = ["lscpu"]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                output = result.stdout
+                
+                # Parse for Model Name line
+                # Example output: "Model name:	Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz"
+                model_match = re.search(r"Model name:\s*(.+)", output, re.MULTILINE)
+                if model_match:
+                    info["Processor"] = model_match.group(1).strip()
+                
+            except Exception:
+                pass
+            
+            try:
                 # Try to get detailed Linux distribution info using lsb_release
                 cmd = ["lsb_release", "-a"]
                 result = subprocess.run(cmd, capture_output=True, text=True)
@@ -92,22 +118,57 @@ class MetadataCollector:
                 pass
             
             try:
-                # Try to get GPU info on Linux using lshw
-                cmd = ["lshw", "-C", "display"]
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                output = result.stdout
+                # Try to get GPU info on Linux using lspci (more detailed, no sudo needed)
+                # First, find all GPU device addresses
+                gpu_devices_cmd = ["lspci"]
+                gpu_result = subprocess.run(gpu_devices_cmd, capture_output=True, text=True)
                 
-                # Parse vendor and product lines
-                # Example output:
-                #   product: NVIDIA Corporation
-                #   vendor: NVIDIA Corporation
-                for line in output.splitlines():
-                    if line.strip().startswith("vendor:"):
-                        vendor = line.split(":", 1)[1].strip()
-                        info["GPU Vendor"] = vendor
-                    elif line.strip().startswith("product:"):
-                        product = line.split(":", 1)[1].strip()
-                        info["GPU Model"] = product
+                gpu_addresses = []
+                for line in gpu_result.stdout.splitlines():
+                    if "VGA compatible controller" in line or "3D controller" in line:
+                        # Extract device address (first field)
+                        parts = line.strip().split()
+                        if parts:
+                            gpu_addresses.append(parts[0])
+                
+                # Query detailed info for each GPU
+                gpu_count = 0
+                for addr in gpu_addresses:
+                    try:
+                        detail_cmd = ["lspci", "-v", "-s", addr]
+                        detail_result = subprocess.run(detail_cmd, capture_output=True, text=True)
+                        
+                        # Parse the output for VGA or 3D controller lines
+                        for line in detail_result.stdout.splitlines():
+                            if "VGA compatible controller" in line or "3D controller" in line:
+                                # Extract the full GPU description
+                                parts = line.split(":", 2)
+                                if len(parts) >= 3:
+                                    gpu_info = parts[2].strip()
+                                    gpu_count += 1
+                                    
+                                    # Store in info dict with numbered keys
+                                    if gpu_count == 1:
+                                        info["GPU Model"] = gpu_info
+                                    else:
+                                        info[f"GPU {gpu_count}"] = gpu_info
+                                    break  # Only need first match per device
+                    except Exception:
+                        continue
+                
+                # If no GPUs found via lspci, try the old lshw method as fallback
+                if gpu_count == 0:
+                    cmd = ["lshw", "-C", "display"]
+                    result = subprocess.run(cmd, capture_output=True, text=True)
+                    output = result.stdout
+                    
+                    for line in output.splitlines():
+                        if line.strip().startswith("vendor:"):
+                            vendor = line.split(":", 1)[1].strip()
+                            info["GPU Vendor"] = vendor
+                        elif line.strip().startswith("product:"):
+                            product = line.split(":", 1)[1].strip()
+                            info["GPU Model"] = product
             except Exception:
                 pass
         return info
@@ -449,6 +510,20 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
                 frame.src = filename;
             }}
 
+            function loadHTMLPreview(filename, b64) {{
+                const frame = document.getElementById('preview-frame');
+                document.querySelectorAll('.file-list-item').forEach(el => el.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+                
+                try {{
+                    const decoded = atob(b64);
+                    // Don't escape HTML tags - we want to render the HTML content
+                    frame.srcdoc = decoded;
+                }} catch (e) {{
+                    frame.srcdoc = '<html><body><p>Error decoding preview: ' + e + '</p></body></html>';
+                }}
+            }}
+
             function loadSource(filename, b64) {{
                 const frame = document.getElementById('preview-frame');
                 document.querySelectorAll('.file-list-item').forEach(el => el.classList.remove('active'));
@@ -517,12 +592,15 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
         is_image = art.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg'))
         
         if is_html:
-            # Add Preview item
-            html_content += f"""
-            <div class="file-list-item" onclick="loadFile('{art}', 'html')">
-                {art} <span class="badge">Preview</span>
-            </div>
-            """
+            # Add Preview item with base64 content for proper HTML rendering
+            try:
+                b64_content = base64.b64encode((work_dir / art).read_bytes()).decode()
+                html_content += f"""
+                <div class="file-list-item" onclick="loadHTMLPreview('{art}', '{b64_content}')">
+                    {art} <span class="badge">Preview</span>
+                </div>
+                """
+            except: pass
             # Add Source item
             try:
                 b64_content = base64.b64encode((work_dir / art).read_bytes()).decode()
