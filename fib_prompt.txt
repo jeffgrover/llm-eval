@@ -1,1 +1,1 @@
-Write a Python function to calculate the Fibonacci sequence.
+Use agentic tools to create a simple command-line python program that prints out the first N fibonacci numbers of the sequence, separated by commas.  (Default to printing 100 if no parameter specified).  Also create a README file that describes how to run it.

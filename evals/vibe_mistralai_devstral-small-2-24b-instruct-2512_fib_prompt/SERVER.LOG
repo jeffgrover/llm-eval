@@ -1,0 +1,330 @@
+Streaming logs from LM Studio
+
+[2026-01-24 21:46:16][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 2 messages.
+[2026-01-24 21:46:17][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:46:17][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 10.8%
+[2026-01-24 21:46:27][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 21.7%
+[2026-01-24 21:46:37][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 32.5%
+[2026-01-24 21:46:48][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 43.4%
+[2026-01-24 21:46:59][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 54.2%
+[2026-01-24 21:47:10][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 65.1%
+[2026-01-24 21:47:22][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 75.9%
+[2026-01-24 21:47:34][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 86.8%
+[2026-01-24 21:47:47][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 97.6%
+[2026-01-24 21:48:00][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:48:03][INFO][mistralai_devstral-small-2-24b-instruct-2512] Start to generate a tool call...
+[2026-01-24 21:48:04][INFO][mistralai_devstral-small-2-24b-instruct-2512] Tool name generated: todo
+[2026-01-24 21:48:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated a tool call.
+[2026-01-24 21:48:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: [todo(action="write", todos=[{"id":"1","content":"Create a...")]
+[2026-01-24 21:48:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-zinku02nnbdrjvcf9218go",
+  "object": "chat.completion",
+  "created": 1769316376,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "619217909",
+            "function": {
+              "name": "todo",
+              "arguments": "{\"action\":\"write\",\"todos\":[{\"id\":\"1\",\"content\":\"Create a Python program that prints the first N Fibonacci numbers separated by commas (default to 100)\",\"status\":\"pending\",\"priority\":\"high\"},{\"id\":\"2\",\"content\":\"Create a README file describing how to run the program\",\"status\":\"pending\",\"priority\":\"medium\"}]}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 4720,
+    "completion_tokens": 94,
+    "total_tokens": 4814
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
+[2026-01-24 21:48:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 4 messages.
+[2026-01-24 21:48:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:48:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:48:30][INFO][mistralai_devstral-small-2-24b-instruct-2512] Start to generate a tool call...
+[2026-01-24 21:48:31][INFO][mistralai_devstral-small-2-24b-instruct-2512] Tool name generated: todo
+[2026-01-24 21:48:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated a tool call.
+[2026-01-24 21:48:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: [todo(action="write", todos=[{"id":"1","content":"Create a...")]
+[2026-01-24 21:48:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-gicjszpjozk0bqnc82uup1j",
+  "object": "chat.completion",
+  "created": 1769316504,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "175509803",
+            "function": {
+              "name": "todo",
+              "arguments": "{\"action\":\"write\",\"todos\":[{\"id\":\"1\",\"content\":\"Create a Python program that prints the first N Fibonacci numbers separated by commas (default to 100)\",\"status\":\"in_progress\",\"priority\":\"high\"},{\"id\":\"2\",\"content\":\"Create a README file describing how to run the program\",\"status\":\"pending\",\"priority\":\"medium\"}]}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 4942,
+    "completion_tokens": 95,
+    "total_tokens": 5037
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
+[2026-01-24 21:48:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 6 messages.
+[2026-01-24 21:48:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:48:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 64.1%
+[2026-01-24 21:48:54][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:48:56][INFO][mistralai_devstral-small-2-24b-instruct-2512] Start to generate a tool call...
+[2026-01-24 21:48:58][INFO][mistralai_devstral-small-2-24b-instruct-2512] Tool name generated: write_file
+[2026-01-24 21:50:06][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated a tool call.
+[2026-01-24 21:50:06][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: [write_file(path="fibonacci.py", content="#!/usr/bin/env python3\n\"\"\...")]
+[2026-01-24 21:50:06][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-1cm3hfgj7pvtu5taeu7oq",
+  "object": "chat.completion",
+  "created": 1769316531,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "682685282",
+            "function": {
+              "name": "write_file",
+              "arguments": "{\"path\":\"fibonacci.py\",\"content\":\"#!/usr/bin/env python3\\n\\\"\\\"\\\"\\nA simple command-line program that prints the first N Fibonacci numbers.\\n\\\"\\\"\\\"\\n\\ndef generate_fibonacci(n):\\n    \\\"\\\"\\\"Generate the first n Fibonacci numbers.\\\"\\\"\\\"\\n    if n <= 0:\\n        return []\\n    elif n == 1:\\n        return [0]\\n    elif n == 2:\\n        return [0, 1]\\n    \\n    fib_sequence = [0, 1]\\n    for i in range(2, n):\\n        next_num = fib_sequence[-1] + fib_sequence[-2]\\n        fib_sequence.append(next_num)\\n    \\n    return fib_sequence\\n\\ndef main():\\n    import sys\\n    \\n    # Default to 100 if no argument is provided\\n    try:\\n        n = int(sys.argv[1]) if len(sys.argv) > 1 else 100\\n    except ValueError:\\n        print(\\\"Error: Please provide a valid integer for N.\\\")\\n        sys.exit(1)\\n    \\n    fib_sequence = generate_fibonacci(n)\\n    print(','.join(map(str, fib_sequence)))\\n\\nif __name__ == \\\"__main__\\\":\\n    main()\"}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5167,
+    "completion_tokens": 304,
+    "total_tokens": 5471
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
+[2026-01-24 21:50:06][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 8 messages.
+[2026-01-24 21:50:06][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:50:06][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 53.3%
+[2026-01-24 21:50:12][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:50:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Start to generate a tool call...
+[2026-01-24 21:50:19][INFO][mistralai_devstral-small-2-24b-instruct-2512] Tool name generated: bash
+[2026-01-24 21:50:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated a tool call.
+[2026-01-24 21:50:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: [bash(command="chmod +x fibonacci.py")]
+[2026-01-24 21:50:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-ac95s1996glm90nykwbgn",
+  "object": "chat.completion",
+  "created": 1769316606,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "134457847",
+            "function": {
+              "name": "bash",
+              "arguments": "{\"command\":\"chmod +x fibonacci.py\"}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5774,
+    "completion_tokens": 16,
+    "total_tokens": 5790
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
+[2026-01-24 21:50:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 10 messages.
+[2026-01-24 21:50:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:50:22][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:50:23][INFO][mistralai_devstral-small-2-24b-instruct-2512] Start to generate a tool call...
+[2026-01-24 21:50:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Tool name generated: todo
+[2026-01-24 21:50:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated a tool call.
+[2026-01-24 21:50:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: [todo(action="write", todos=[{"id":"1","content":"Create a...")]
+[2026-01-24 21:50:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-qpiu2t6envc40zs9ujh3zy",
+  "object": "chat.completion",
+  "created": 1769316621,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "938374242",
+            "function": {
+              "name": "todo",
+              "arguments": "{\"action\":\"write\",\"todos\":[{\"id\":\"1\",\"content\":\"Create a Python program that prints the first N Fibonacci numbers separated by commas (default to 100)\",\"status\":\"completed\",\"priority\":\"high\"},{\"id\":\"2\",\"content\":\"Create a README file describing how to run the program\",\"status\":\"in_progress\",\"priority\":\"medium\"}]}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5807,
+    "completion_tokens": 95,
+    "total_tokens": 5902
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
+[2026-01-24 21:50:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 12 messages.
+[2026-01-24 21:50:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:50:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:50:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Start to generate a tool call...
+[2026-01-24 21:50:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Tool name generated: write_file
+[2026-01-24 21:51:46][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated a tool call.
+[2026-01-24 21:51:46][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: [write_file(path="README.md", content="# Fibonacci Sequence Generato...")]
+[2026-01-24 21:51:46][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-axc3asikmfsgwqodw4k95",
+  "object": "chat.completion",
+  "created": 1769316645,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "256731031",
+            "function": {
+              "name": "write_file",
+              "arguments": "{\"path\":\"README.md\",\"content\":\"# Fibonacci Sequence Generator\\n\\nA simple command-line Python program that prints the first N Fibonacci numbers separated by commas.\\n\\n## Usage\\n\\n### Default (prints first 100 Fibonacci numbers)\\n```bash\\npython3 fibonacci.py\\n```\\n\\n### Custom number of Fibonacci numbers\\n```bash\\npython3 fibonacci.py 20\\n```\\n\\nThis will print the first 20 Fibonacci numbers separated by commas.\\n\\n## Examples\\n\\n### Print first 10 Fibonacci numbers:\\n```bash\\n$ python3 fibonacci.py 10\\n0,1,1,2,3,5,8,13,21,34\\n```\\n\\n### Print first 5 Fibonacci numbers:\\n```bash\\n$ python3 fibonacci.py 5\\n0,1,1,2,3\\n```\\n\\n## Requirements\\n\\n- Python 3.x\\n\\n## License\\n\\nThis is a simple utility program with no specific license restrictions.\"}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 6034,
+    "completion_tokens": 235,
+    "total_tokens": 6269
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
+[2026-01-24 21:51:46][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 14 messages.
+[2026-01-24 21:51:46][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:51:46][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:51:56][INFO][mistralai_devstral-small-2-24b-instruct-2512] Start to generate a tool call...
+[2026-01-24 21:51:57][INFO][mistralai_devstral-small-2-24b-instruct-2512] Tool name generated: todo
+[2026-01-24 21:52:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated a tool call.
+[2026-01-24 21:52:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: [todo(action="write", todos=[{"id":"1","content":"Create a...")]
+[2026-01-24 21:52:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-wfhmw4hgx9wwv46am12tq",
+  "object": "chat.completion",
+  "created": 1769316706,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "594908172",
+            "function": {
+              "name": "todo",
+              "arguments": "{\"action\":\"write\",\"todos\":[{\"id\":\"1\",\"content\":\"Create a Python program that prints the first N Fibonacci numbers separated by commas (default to 100)\",\"status\":\"completed\",\"priority\":\"high\"},{\"id\":\"2\",\"content\":\"Create a README file describing how to run the program\",\"status\":\"completed\",\"priority\":\"medium\"}]}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 6527,
+    "completion_tokens": 94,
+    "total_tokens": 6621
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
+[2026-01-24 21:52:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 16 messages.
+[2026-01-24 21:52:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-01-24 21:52:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 27.1%
+[2026-01-24 21:52:20][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-01-24 21:52:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Model generated tool calls: []
+[2026-01-24 21:52:24][INFO][mistralai_devstral-small-2-24b-instruct-2512] Generated prediction: {
+  "id": "chatcmpl-cr0flj4vqb4ibk3yltypb",
+  "object": "chat.completion",
+  "created": 1769316738,
+  "model": "mistralai_devstral-small-2-24b-instruct-2512",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Task completed!",
+        "tool_calls": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 6753,
+    "completion_tokens": 4,
+    "total_tokens": 6757
+  },
+  "stats": {},
+  "system_fingerprint": "mistralai_devstral-small-2-24b-instruct-2512"
+}
