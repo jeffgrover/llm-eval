@@ -1,0 +1,94 @@
+Streaming logs from LM Studio
+
+[2026-02-04 14:43:44][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 2 messages.
+[2026-02-04 14:43:44][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:43:44][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:43:44][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 4.2%
+[2026-02-04 14:43:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 8.4%
+[2026-02-04 14:43:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 12.5%
+[2026-02-04 14:43:46][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 16.7%
+[2026-02-04 14:43:47][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 20.9%
+[2026-02-04 14:43:48][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 25.1%
+[2026-02-04 14:43:49][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 29.2%
+[2026-02-04 14:43:49][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 33.4%
+[2026-02-04 14:43:50][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 37.6%
+[2026-02-04 14:43:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 41.8%
+[2026-02-04 14:43:52][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 46.0%
+[2026-02-04 14:43:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 50.1%
+[2026-02-04 14:43:54][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 54.3%
+[2026-02-04 14:43:55][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 58.5%
+[2026-02-04 14:43:56][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 62.7%
+[2026-02-04 14:43:57][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 66.8%
+[2026-02-04 14:43:59][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 71.0%
+[2026-02-04 14:44:00][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 75.2%
+[2026-02-04 14:44:01][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 79.4%
+[2026-02-04 14:44:02][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 83.6%
+[2026-02-04 14:44:03][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 87.7%
+[2026-02-04 14:44:05][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 91.9%
+[2026-02-04 14:44:06][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 96.1%
+[2026-02-04 14:44:07][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:44:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:44:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 4 messages.
+[2026-02-04 14:44:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:44:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:44:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:44:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:44:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 6 messages.
+[2026-02-04 14:44:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:44:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:44:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:47:16][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:47:16][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 8 messages.
+[2026-02-04 14:47:16][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:47:16][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:47:16][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:47:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:49:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 10 messages.
+[2026-02-04 14:49:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:49:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:49:18][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:49:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:49:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 12 messages.
+[2026-02-04 14:49:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:49:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:49:21][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:49:25][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:49:25][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 14 messages.
+[2026-02-04 14:49:25][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:49:25][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:49:25][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 37.0%
+[2026-02-04 14:49:27][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 74.1%
+[2026-02-04 14:49:28][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:49:32][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:49:32][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 16 messages.
+[2026-02-04 14:49:32][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:49:32][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:49:32][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 32.1%
+[2026-02-04 14:49:34][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 64.2%
+[2026-02-04 14:49:36][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 96.2%
+[2026-02-04 14:49:38][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:49:40][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:49:40][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 18 messages.
+[2026-02-04 14:49:40][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:49:41][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:49:41][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 10.8%
+[2026-02-04 14:49:43][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 21.7%
+[2026-02-04 14:49:45][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 32.5%
+[2026-02-04 14:49:47][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 43.3%
+[2026-02-04 14:49:49][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 54.1%
+[2026-02-04 14:49:51][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 65.0%
+[2026-02-04 14:49:53][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 75.8%
+[2026-02-04 14:49:55][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 86.6%
+[2026-02-04 14:49:57][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 97.5%
+[2026-02-04 14:49:59][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:50:01][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:50:01][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 20 messages.
+[2026-02-04 14:50:01][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:50:01][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:50:01][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:50:28][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response
+[2026-02-04 14:50:28][INFO][mistralai_devstral-small-2-24b-instruct-2512] Running chat completion on conversation with 22 messages.
+[2026-02-04 14:50:28][INFO][mistralai_devstral-small-2-24b-instruct-2512] Streaming response...
+[2026-02-04 14:50:28][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 0.0%
+[2026-02-04 14:50:28][INFO][mistralai_devstral-small-2-24b-instruct-2512] Prompt processing progress: 100.0%
+[2026-02-04 14:50:28][INFO][mistralai_devstral-small-2-24b-instruct-2512] Finished streaming response

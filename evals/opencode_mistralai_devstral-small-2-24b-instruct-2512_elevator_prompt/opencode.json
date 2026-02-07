@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "local": {
+      "options": {
+        "baseURL": "http://localhost:1234/v1"
+      },
+      "models": {
+        "mistralai_devstral-small-2-24b-instruct-2512": {}
+      }
+    }
+  },
+  "model": "local/mistralai_devstral-small-2-24b-instruct-2512"
+}
