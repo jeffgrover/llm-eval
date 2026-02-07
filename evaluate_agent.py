@@ -30,7 +30,8 @@ def load_lms_model(model_key: str):
 
     print(f"[*] Loading model '{model_key}' into LM Studio...")
     # Using --gpu=max to ensure best performance
-    cmd = ["lms", "load", model_key, "--gpu=max", "-y"]
+    # cmd = ["lms", "load", model_key, "--gpu=max", "-y"]
+    cmd = ["lms", "load", model_key, "-y"]
     
     try:
         subprocess.run(cmd, check=True, text=True)
@@ -916,14 +917,18 @@ class OpenCodeRunner(AgentRunner):
     def configure_agent(self):
         # OpenCode supports opencode.json
         config = {
-            "providers": {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
                 "local": {
-                    "type": "openai",
-                    "baseUrl": LM_STUDIO_API_URL,
-                    "model": self.model_name
+                    "options": {
+                        "baseURL": LM_STUDIO_API_URL
+                    },
+                    "models": {
+                        self.model_name: {}
+                    }
                 }
             },
-            "defaultProvider": "local"
+            "model": f"local/{self.model_name}"
         }
         with open(self.work_dir / "opencode.json", "w") as f:
             json.dump(config, f, indent=2)
@@ -934,7 +939,7 @@ class OpenCodeRunner(AgentRunner):
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
             
-        cmd = ["opencode", "-p", prompt_content]
+        cmd = ["opencode", "run", "--model", f"local/{self.model_name}", prompt_content]
         self._run_process(cmd)
 
 class CrushRunner(AgentRunner):
