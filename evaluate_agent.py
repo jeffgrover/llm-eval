@@ -185,13 +185,18 @@ class MetadataCollector:
         # LM Studio CLI Version
         try:
             lms_out = subprocess.check_output(["lms", "version"], text=True).strip()
-            # Extract clean version, e.g. "v0.0.47"
-            m = re.search(r"lms - LM Studio CLI - (v[\d.]+)", lms_out)
+            # New format: "CLI commit: <hash>"
+            m = re.search(r"CLI commit:\s*([a-f0-9]+)", lms_out)
             if m:
                 versions["LM Studio CLI Version"] = m.group(1)
             else:
-                # Fallback to just the last line or raw output if unexpected
-                versions["LM Studio CLI Version"] = lms_out.splitlines()[-1] if lms_out else "Unknown"
+                # Fallback for older versions: "lms - LM Studio CLI - v0.0.47"
+                m_old = re.search(r"lms - LM Studio CLI - (v[\d.]+)", lms_out)
+                if m_old:
+                    versions["LM Studio CLI Version"] = m_old.group(1)
+                else:
+                    # Generic fallback
+                    versions["LM Studio CLI Version"] = lms_out.splitlines()[-1] if lms_out else "Unknown"
         except Exception:
             versions["LM Studio CLI Version"] = "Unknown"
 
@@ -263,18 +268,38 @@ class MetadataCollector:
             with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
                 
-            # Regex to find JSON usage blocks: "usage": { "prompt_tokens": 123, ... }
-            # usage matches might be multiline
-            # We look for the specific pattern that appears in LMS logs
-            # pattern: "usage":\s*\{\s*"prompt_tokens":\s*(\d+),\s*"completion_tokens":\s*(\d+),\s*"total_tokens":\s*(\d+)\s*\}
-            pattern = re.compile(r'"usage":\s*\{\s*"prompt_tokens":\s*(\d+),\s*"completion_tokens":\s*(\d+),\s*"total_tokens":\s*(\d+)\s*\}')
-            
-            matches = pattern.findall(content)
-            for match in matches:
-                p_tok, c_tok, t_tok = map(int, match)
-                usage["prompt_tokens"] += p_tok
-                usage["completion_tokens"] += c_tok
-                usage["total_tokens"] += t_tok
+            # Attempt to parse from JSON 'usage' blocks (LMS 0.3.x style)
+            json_pattern = re.compile(r'"usage":\s*({[^}]+})', re.DOTALL)
+            json_matches = json_pattern.findall(content)
+
+            if json_matches:
+                for match in json_matches:
+                    try:
+                        usage_data = json.loads(match)
+                        usage["prompt_tokens"] += usage_data.get("prompt_tokens", 0)
+                        usage["completion_tokens"] += usage_data.get("completion_tokens", 0)
+                        usage["total_tokens"] += usage_data.get("total_tokens", 0)
+                    except json.JSONDecodeError:
+                        # Fallback for malformed JSON within the matched block
+                        p_tok = re.search(r'"prompt_tokens":\s*(\d+)', match)
+                        c_tok = re.search(r'"completion_tokens":\s*(\d+)', match)
+                        t_tok = re.search(r'"total_tokens":\s*(\d+)', match)
+                        if p_tok: usage["prompt_tokens"] += int(p_tok.group(1))
+                        if c_tok: usage["completion_tokens"] += int(c_tok.group(1))
+                        if t_tok: usage["total_tokens"] += int(t_tok.group(1))
+            else:
+                # Fallback to parse from new "prompt eval time" and "eval time" lines (LMS 0.4.x style)
+                # prompt eval time = 39839.08 ms / 12147 tokens
+                prompt_tokens_match = re.search(r'prompt eval time =.* (\d+) tokens', content)
+                if prompt_tokens_match:
+                    usage["prompt_tokens"] = int(prompt_tokens_match.group(1))
+                
+                # eval time = 2157.18 ms / 48 tokens
+                completion_tokens_match = re.search(r'^\s*eval time =.* (\d+) tokens', content, re.MULTILINE)
+                if completion_tokens_match:
+                    usage["completion_tokens"] = int(completion_tokens_match.group(1))
+                    
+                usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
                 
         except Exception as e:
             print(f"[-] Error parsing token usage: {e}")
@@ -864,7 +889,13 @@ class AgentRunner:
                 log_file.write(line)
                 log_file.flush()
                 
-            process.wait()
+            try:
+                process.wait(timeout=900) # Wait with a timeout
+            except subprocess.TimeoutExpired:
+                print(f"[-] Agent process timed out after 900 seconds.")
+                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
+                process.kill() # Terminate the process
+                process.wait() # Wait for it to actually terminate
             
             if process.returncode != 0:
                 print(f"[-] Agent finished with error code {process.returncode}")
@@ -914,32 +945,93 @@ class VibeRunner(AgentRunner):
         self._run_process(cmd)
 
 class OpenCodeRunner(AgentRunner):
-    def configure_agent(self):
-        # OpenCode supports opencode.json
-        config = {
-            "$schema": "https://opencode.ai/config.json",
-            "provider": {
-                "local": {
+                "lmstudio": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "LM Studio (local)",
+>>>>>>> origin/main
                     "options": {
                         "baseURL": LM_STUDIO_API_URL
                     },
                     "models": {
+<<<<<<< HEAD
                         self.model_name: {}
                     }
                 }
             },
             "model": f"local/{self.model_name}"
+=======
+                        self.model_name: {
+                            "name": self.model_name
+                        }
+                    }
+                }
+            },
+            "model": f"lmstudio/{self.model_name}"
+>>>>>>> origin/main
+        }
+=======
+    def configure_agent(self):
+        # OpenCode supports opencode.json
+        config = {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+                "lmstudio": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "LM Studio (local)",
+                    "options": {
+                        "baseURL": LM_STUDIO_API_URL
+                    },
+                    "models": {
+                        self.model_name: {
+                            "name": self.model_name
+                        }
+                    }
+                }
+            },
+            "model": f"lmstudio/{self.model_name}"
+        }
+=======
+                "lmstudio": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "LM Studio (local)",
+>>>>>>> origin/main
+                    "options": {
+                        "baseURL": LM_STUDIO_API_URL
+                    },
+                    "models": {
+<<<<<<< HEAD
+                        self.model_name: {}
+                    }
+                }
+            },
+            "model": f"local/{self.model_name}"
+=======
+                        self.model_name: {
+                            "name": self.model_name
+                        }
+                    }
+                }
+            },
+            "model": f"lmstudio/{self.model_name}"
+>>>>>>> origin/main
         }
         with open(self.work_dir / "opencode.json", "w") as f:
             json.dump(config, f, indent=2)
 
+        cmd = ["opencode", "run", prompt_content]
+>>>>>>> origin/main
+        self._run_process(cmd)
+=======
     def execute_agent(self):
-        # OpenCode: `opencode -p "content"`
-        # It reads opencode.json from CWD usually, or we might need to specify --project .
+        # OpenCode: `opencode run "content"`
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
             
-        cmd = ["opencode", "run", "--model", f"local/{self.model_name}", prompt_content]
+        cmd = ["opencode", "run", prompt_content]
+        self._run_process(cmd)
+=======
+        cmd = ["opencode", "run", prompt_content]
+>>>>>>> origin/main
         self._run_process(cmd)
 
 class CrushRunner(AgentRunner):
