@@ -30,8 +30,7 @@ def load_lms_model(model_key: str):
 
     print(f"[*] Loading model '{model_key}' into LM Studio...")
     # Using --gpu=max to ensure best performance
-    # cmd = ["lms", "load", model_key, "--gpu=max", "-y"]
-    cmd = ["lms", "load", model_key, "-y"]
+    cmd = ["lms", "load", model_key, "--gpu=max", "-y"]
     
     try:
         subprocess.run(cmd, check=True, text=True)
@@ -945,31 +944,6 @@ class VibeRunner(AgentRunner):
         self._run_process(cmd)
 
 class OpenCodeRunner(AgentRunner):
-                "lmstudio": {
-                    "npm": "@ai-sdk/openai-compatible",
-                    "name": "LM Studio (local)",
->>>>>>> origin/main
-                    "options": {
-                        "baseURL": LM_STUDIO_API_URL
-                    },
-                    "models": {
-<<<<<<< HEAD
-                        self.model_name: {}
-                    }
-                }
-            },
-            "model": f"local/{self.model_name}"
-=======
-                        self.model_name: {
-                            "name": self.model_name
-                        }
-                    }
-                }
-            },
-            "model": f"lmstudio/{self.model_name}"
->>>>>>> origin/main
-        }
-=======
     def configure_agent(self):
         # OpenCode supports opencode.json
         config = {
@@ -990,48 +964,15 @@ class OpenCodeRunner(AgentRunner):
             },
             "model": f"lmstudio/{self.model_name}"
         }
-=======
-                "lmstudio": {
-                    "npm": "@ai-sdk/openai-compatible",
-                    "name": "LM Studio (local)",
->>>>>>> origin/main
-                    "options": {
-                        "baseURL": LM_STUDIO_API_URL
-                    },
-                    "models": {
-<<<<<<< HEAD
-                        self.model_name: {}
-                    }
-                }
-            },
-            "model": f"local/{self.model_name}"
-=======
-                        self.model_name: {
-                            "name": self.model_name
-                        }
-                    }
-                }
-            },
-            "model": f"lmstudio/{self.model_name}"
->>>>>>> origin/main
-        }
         with open(self.work_dir / "opencode.json", "w") as f:
             json.dump(config, f, indent=2)
 
-        cmd = ["opencode", "run", prompt_content]
->>>>>>> origin/main
-        self._run_process(cmd)
-=======
     def execute_agent(self):
         # OpenCode: `opencode run "content"`
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
             
         cmd = ["opencode", "run", prompt_content]
-        self._run_process(cmd)
-=======
-        cmd = ["opencode", "run", prompt_content]
->>>>>>> origin/main
         self._run_process(cmd)
 
 class CrushRunner(AgentRunner):
