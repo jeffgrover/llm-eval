@@ -174,77 +174,78 @@ class MetadataCollector:
         return info
 
     @staticmethod
-    def get_software_versions(agent_binary: str) -> Dict[str, str]:
+    def get_software_versions(agent_binary: str, non_local: bool = False) -> Dict[str, str]:
         def strip_ansi(text: str) -> str:
             ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
             return ansi_escape.sub('', text)
 
         versions = {}
         
-        # LM Studio CLI Version
-        try:
-            lms_out = subprocess.check_output(["lms", "version"], text=True).strip()
-            # New format: "CLI commit: <hash>"
-            m = re.search(r"CLI commit:\s*([a-f0-9]+)", lms_out)
-            if m:
-                versions["LM Studio CLI Version"] = m.group(1)
-            else:
-                # Fallback for older versions: "lms - LM Studio CLI - v0.0.47"
-                m_old = re.search(r"lms - LM Studio CLI - (v[\d.]+)", lms_out)
-                if m_old:
-                    versions["LM Studio CLI Version"] = m_old.group(1)
-                else:
-                    # Generic fallback
-                    versions["LM Studio CLI Version"] = lms_out.splitlines()[-1] if lms_out else "Unknown"
-        except Exception:
-            versions["LM Studio CLI Version"] = "Unknown"
-
-        # LM Studio App Version (Mac or Linux via file detection)
-        if platform.system() == "Darwin":
+        if not non_local:
+            # LM Studio CLI Version
             try:
-                # mdls -name kMDItemVersion '/Applications/LM Studio.app'
-                # Output: kMDItemVersion = "0.3.39"
-                mdls_out = subprocess.check_output(
-                    ["mdls", "-name", "kMDItemVersion", "/Applications/LM Studio.app"], 
-                    text=True
-                ).strip()
-                m_app = re.search(r'kMDItemVersion\s*=\s*"(.*?)"', mdls_out)
-                if m_app:
-                    versions["LM Studio App Version"] = m_app.group(1)
+                lms_out = subprocess.check_output(["lms", "version"], text=True).strip()
+                # New format: "CLI commit: <hash>"
+                m = re.search(r"CLI commit:\s*([a-f0-9]+)", lms_out)
+                if m:
+                    versions["LM Studio CLI Version"] = m.group(1)
                 else:
-                    versions["LM Studio App Version"] = "Unknown"
+                    # Fallback for older versions: "lms - LM Studio CLI - v0.0.47"
+                    m_old = re.search(r"lms - LM Studio CLI - (v[\d.]+)", lms_out)
+                    if m_old:
+                        versions["LM Studio CLI Version"] = m_old.group(1)
+                    else:
+                        # Generic fallback
+                        versions["LM Studio CLI Version"] = lms_out.splitlines()[-1] if lms_out else "Unknown"
             except Exception:
-                versions["LM Studio App Version"] = "Not Found / Error"
-        elif platform.system() == "Linux":
-            try:
-                # Look for LM Studio AppImages in /opt
-                # Pattern: /opt/LM-Studio-0.3.39-2-x64.AppImage
-                # Extract version from filename (everything between "LM-Studio-" and ".AppImage")
-                import glob
-                app_images = glob.glob("/opt/LM-Studio-*.AppImage")
-                
-                if app_images:
-                    # Sort by version to get the highest version
-                    # Version pattern: 0.3.39-2-x64 (we want to sort numerically)
-                    def extract_version(app_image_path):
-                        # Extract everything between "LM-Studio-" and the first "-" after it
-                        match = re.search(r'LM-Studio-([^-]+)', app_image_path)
-                        if match:
-                            return match.group(1)
-                        return ""
+                versions["LM Studio CLI Version"] = "Unknown"
+
+            # LM Studio App Version (Mac or Linux via file detection)
+            if platform.system() == "Darwin":
+                try:
+                    # mdls -name kMDItemVersion '/Applications/LM Studio.app'
+                    # Output: kMDItemVersion = "0.3.39"
+                    mdls_out = subprocess.check_output(
+                        ["mdls", "-name", "kMDItemVersion", "/Applications/LM Studio.app"], 
+                        text=True
+                    ).strip()
+                    m_app = re.search(r'kMDItemVersion\s*=\s*"(.*?)"', mdls_out)
+                    if m_app:
+                        versions["LM Studio App Version"] = m_app.group(1)
+                    else:
+                        versions["LM Studio App Version"] = "Unknown"
+                except Exception:
+                    versions["LM Studio App Version"] = "Not Found / Error"
+            elif platform.system() == "Linux":
+                try:
+                    # Look for LM Studio AppImages in /opt
+                    # Pattern: /opt/LM-Studio-0.3.39-2-x64.AppImage
+                    # Extract version from filename (everything between "LM-Studio-" and ".AppImage")
+                    import glob
+                    app_images = glob.glob("/opt/LM-Studio-*.AppImage")
                     
-                    # Sort by version (using natural sorting for numbers)
-                    app_images.sort(key=lambda x: [int(part) if part.isdigit() else part 
-                                                     for part in extract_version(x).split('.')])
-                    
-                    latest_app = app_images[-1]  # Last one after sort
-                    version = extract_version(latest_app)
-                    versions["LM Studio App Version"] = version if version else "Unknown"
-                else:
-                    versions["LM Studio App Version"] = "Not Found"
-            except Exception as e:
-                print(f"[-] Error detecting LM Studio version on Linux: {e}")
-                versions["LM Studio App Version"] = "Error"
+                    if app_images:
+                        # Sort by version to get the highest version
+                        # Version pattern: 0.3.39-2-x64 (we want to sort numerically)
+                        def extract_version(app_image_path):
+                            # Extract everything between "LM-Studio-" and the first "-" after it
+                            match = re.search(r'LM-Studio-([^-]+)', app_image_path)
+                            if match:
+                                return match.group(1)
+                            return ""
+                        
+                        # Sort by version (using natural sorting for numbers)
+                        app_images.sort(key=lambda x: [int(part) if part.isdigit() else part 
+                                                         for part in extract_version(x).split('.')])
+                        
+                        latest_app = app_images[-1]  # Last one after sort
+                        version = extract_version(latest_app)
+                        versions["LM Studio App Version"] = version if version else "Unknown"
+                    else:
+                        versions["LM Studio App Version"] = "Not Found"
+                except Exception as e:
+                    print(f"[-] Error detecting LM Studio version on Linux: {e}")
+                    versions["LM Studio App Version"] = "Error"
         
         # Agent Version
         try:
@@ -257,51 +258,78 @@ class MetadataCollector:
         return versions
 
     @staticmethod
-    def get_token_usage(log_path: Path) -> Dict[str, int]:
-        """Parses SERVER.LOG for token usage statistics."""
+    def get_token_usage(log_path: Path, chat_log_path: Optional[Path] = None) -> Dict[str, int]:
+        """Parses server logs or agent chat logs for token usage statistics."""
         usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-        if not log_path.exists():
-            return usage
-            
-        try:
-            with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-                
-            # Attempt to parse from JSON 'usage' blocks (LMS 0.3.x style)
-            json_pattern = re.compile(r'"usage":\s*({[^}]+})', re.DOTALL)
-            json_matches = json_pattern.findall(content)
-
-            if json_matches:
-                for match in json_matches:
-                    try:
-                        usage_data = json.loads(match)
-                        usage["prompt_tokens"] += usage_data.get("prompt_tokens", 0)
-                        usage["completion_tokens"] += usage_data.get("completion_tokens", 0)
-                        usage["total_tokens"] += usage_data.get("total_tokens", 0)
-                    except json.JSONDecodeError:
-                        # Fallback for malformed JSON within the matched block
-                        p_tok = re.search(r'"prompt_tokens":\s*(\d+)', match)
-                        c_tok = re.search(r'"completion_tokens":\s*(\d+)', match)
-                        t_tok = re.search(r'"total_tokens":\s*(\d+)', match)
-                        if p_tok: usage["prompt_tokens"] += int(p_tok.group(1))
-                        if c_tok: usage["completion_tokens"] += int(c_tok.group(1))
-                        if t_tok: usage["total_tokens"] += int(t_tok.group(1))
-            else:
-                # Fallback to parse from new "prompt eval time" and "eval time" lines (LMS 0.4.x style)
-                # prompt eval time = 39839.08 ms / 12147 tokens
-                prompt_tokens_match = re.search(r'prompt eval time =.* (\d+) tokens', content)
-                if prompt_tokens_match:
-                    usage["prompt_tokens"] = int(prompt_tokens_match.group(1))
-                
-                # eval time = 2157.18 ms / 48 tokens
-                completion_tokens_match = re.search(r'^\s*eval time =.* (\d+) tokens', content, re.MULTILINE)
-                if completion_tokens_match:
-                    usage["completion_tokens"] = int(completion_tokens_match.group(1))
+        
+        # Try server log first (LM Studio)
+        if log_path and log_path.exists():
+            try:
+                with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
                     
-                usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+                # Attempt to parse from JSON 'usage' blocks (LMS 0.3.x style)
+                json_pattern = re.compile(r'"usage":\s*({[^}]+})', re.DOTALL)
+                json_matches = json_pattern.findall(content)
+
+                if json_matches:
+                    for match in json_matches:
+                        try:
+                            usage_data = json.loads(match)
+                            usage["prompt_tokens"] += usage_data.get("prompt_tokens", 0)
+                            usage["completion_tokens"] += usage_data.get("completion_tokens", 0)
+                            usage["total_tokens"] += usage_data.get("total_tokens", 0)
+                        except json.JSONDecodeError:
+                            # Fallback for malformed JSON within the matched block
+                            p_tok = re.search(r'"prompt_tokens":\s*(\d+)', match)
+                            c_tok = re.search(r'"completion_tokens":\s*(\d+)', match)
+                            t_tok = re.search(r'"total_tokens":\s*(\d+)', match)
+                            if p_tok: usage["prompt_tokens"] += int(p_tok.group(1))
+                            if c_tok: usage["completion_tokens"] += int(c_tok.group(1))
+                            if t_tok: usage["total_tokens"] += int(t_tok.group(1))
+                else:
+                    # Fallback to parse from new "prompt eval time" and "eval time" lines (LMS 0.4.x style)
+                    prompt_tokens_match = re.search(r'prompt eval time =.* (\d+) tokens', content)
+                    if prompt_tokens_match:
+                        usage["prompt_tokens"] = int(prompt_tokens_match.group(1))
+                    
+                    completion_tokens_match = re.search(r'^\s*eval time =.* (\d+) tokens', content, re.MULTILINE)
+                    if completion_tokens_match:
+                        usage["completion_tokens"] = int(completion_tokens_match.group(1))
+                        
+                    usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+            except Exception as e:
+                print(f"[-] Error parsing server log token usage: {e}")
+
+        # If we still have no tokens, or want to supplement, try chat log (Agent output)
+        if usage["total_tokens"] == 0 and chat_log_path and chat_log_path.exists():
+            try:
+                with open(chat_log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
                 
-        except Exception as e:
-            print(f"[-] Error parsing token usage: {e}")
+                # Heuristics for common agent token reporting patterns
+                # Example: "Tokens: 123 prompt, 45 completion"
+                # Example: "Usage: prompt_tokens=121, completion_tokens=40"
+                patterns = [
+                    (r'prompt_tokens["\']?\s*[:=]\s*(\d+)', r'completion_tokens["\']?\s*[:=]\s*(\d+)'),
+                    (r'(\d+)\s+prompt tokens', r'(\d+)\s+completion tokens'),
+                    (r'Tokens used:\s*(\d+)\s*input,\s*(\d+)\s*output', None)
+                ]
+                
+                for p_pat, c_pat in patterns:
+                    pm = re.search(p_pat, content, re.IGNORECASE)
+                    if pm:
+                        usage["prompt_tokens"] = int(pm.group(1))
+                        if c_pat:
+                            cm = re.search(c_pat, content, re.IGNORECASE)
+                            if cm: usage["completion_tokens"] = int(cm.group(1))
+                        elif pm.lastindex >= 2:
+                            usage["completion_tokens"] = int(pm.group(2))
+                        
+                        usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+                        if usage["total_tokens"] > 0: break
+            except Exception:
+                pass
             
         return usage
 
@@ -318,7 +346,6 @@ class MetadataCollector:
                 lines = f.readlines()
                 
             # Regex for timestamp: [YYYY-MM-DD HH:MM:SS]
-            # [2026-01-18 18:10:43]
             ts_pattern = re.compile(r'^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]')
             
             in_block = False
@@ -343,26 +370,20 @@ class MetadataCollector:
                         block_start_time = current_ts
                 else:
                     if in_block:
-                        # Block ended on previous meaningful line (or this line indicates end of block context)
-                        # We use the timestamp of this line as the end, effectively
-                        # Actually, if we just stopped seeing it, the processing finished between the last "progress" line and this line.
-                        # Let's count duration from block_start to the current timestamp
                         if block_start_time:
                             total_duration += (current_ts - block_start_time).total_seconds()
                         in_block = False
                         block_start_time = None
             
-            # If log ends while in block
             if in_block and block_start_time and last_timestamp:
                  total_duration += (last_timestamp - block_start_time).total_seconds()
-
         except Exception as e:
             print(f"[-] Error calculating prompt processing time: {e}")
             
         return total_duration
 
     @staticmethod
-    def parse_model_info(model_key: str) -> Dict[str, str]:
+    def parse_model_info(model_key: str, non_local: bool = False) -> Dict[str, str]:
         # Basic Info
         info = {"Full Name": model_key}
         
@@ -374,37 +395,22 @@ class MetadataCollector:
         elif "7b" in model_key.lower():
             info["Parameters"] = "7B"
             
-        # Parse lms ls output for detailed info
-        try:
-            # Check lms ls for details
-            # Output format: ID  PARAMS  ARCH  SIZE  [STATUS]
-            ls_output = subprocess.check_output(["lms", "ls"], text=True)
-            for line in ls_output.splitlines():
-                if "LOADED" in line:
-                    # This is likely the loaded model
-                    # Split by multiple spaces
-                    parts = re.split(r'\s{2,}', line.strip())
-                    # parts might be: [ID, PARAMS, ARCH, SIZE, STATUS] or variations
-                    # We expect at least PARAMS, ARCH, SIZE before the loaded checkmark
-                    # Example: ['mistralai...', '24B', 'mistral3', '12.54 GB', '✓ LOADED']
-                    
-                    # We can try to map based on known columns or position from end
-                    # Since LOADED is at the end, previous 3 should be Size, Arch, Params
-                    if len(parts) >= 4:
-                        # parts[-1] is "✓ LOADED"
-                        # parts[-2] is Size
-                        # parts[-3] is Arch
-                        # parts[-4] is Params
-                        info["Size"] = parts[-2]
-                        info["Architecture"] = parts[-3]
-                        info["Parameters"] = parts[-4] 
-                        
-                        # Also get full name if possible, though we have model_key
-                        if len(parts) >= 5:
-                             info["Full Name"] = parts[0]
-                    break
-        except Exception:
-            pass # Fallback to heuristic
+        if not non_local:
+            # Parse lms ls output for detailed info
+            try:
+                ls_output = subprocess.check_output(["lms", "ls"], text=True)
+                for line in ls_output.splitlines():
+                    if "LOADED" in line:
+                        parts = re.split(r'\s{2,}', line.strip())
+                        if len(parts) >= 4:
+                            info["Size"] = parts[-2]
+                            info["Architecture"] = parts[-3]
+                            info["Parameters"] = parts[-4] 
+                            if len(parts) >= 5:
+                                 info["Full Name"] = parts[0]
+                        break
+            except Exception:
+                pass
             
         # Try to extract quantization (e.g., Q4, Q8)
         quant = re.search(r"(Q\d+[a-zA-Z0-9_]*)", model_key, re.IGNORECASE)
@@ -682,11 +688,12 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
 # --- Agent Runners ---
 
 class AgentRunner:
-    def __init__(self, agent_name: str, model_name: str, prompt_file: Path, headless: bool):
+    def __init__(self, agent_name: str, model_name: str, prompt_file: Path, headless: bool, non_local: bool = False):
         self.agent_name = agent_name
         self.model_name = model_name
         self.prompt_file = prompt_file
         self.headless = headless
+        self.non_local = non_local
         
         # Binary to name mapping
         self.binary_map = {
@@ -712,14 +719,18 @@ class AgentRunner:
     def get_env_vars(self) -> Dict[str, str]:
         """Returns the environment variables needed for the agent to talk to localhost."""
         env = os.environ.copy()
-        # Standard OpenAI-compatible env vars
-        env["OPENAI_API_BASE"] = LM_STUDIO_API_URL
-        env["OPENAI_BASE_URL"] = LM_STUDIO_API_URL
-        env["OPENAI_API_KEY"] = "lm-studio"  # Usually ignored but required
+        if not self.non_local:
+            # Standard OpenAI-compatible env vars
+            env["OPENAI_API_BASE"] = LM_STUDIO_API_URL
+            env["OPENAI_BASE_URL"] = LM_STUDIO_API_URL
+            env["OPENAI_API_KEY"] = "lm-studio"  # Usually ignored but required
         return env
 
     def start_server_logger(self):
         """Starts streaming server logs to file."""
+        if self.non_local:
+            return
+
         log_path = self.work_dir / SERVER_LOG_FILENAME
         print(f"[*] Starting server log stream to: {log_path}")
         
@@ -815,9 +826,12 @@ class AgentRunner:
 
         metadata = {
             "Hardware": MetadataCollector.get_hardware_info(),
-            "Software": MetadataCollector.get_software_versions(self.agent_binary),
-            "Model": MetadataCollector.parse_model_info(self.model_name),
-            "Tokens": MetadataCollector.get_token_usage(self.work_dir / SERVER_LOG_FILENAME),
+            "Software": MetadataCollector.get_software_versions(self.agent_binary, self.non_local),
+            "Model": MetadataCollector.parse_model_info(self.model_name, self.non_local),
+            "Tokens": MetadataCollector.get_token_usage(
+                self.work_dir / SERVER_LOG_FILENAME, 
+                self.work_dir / CHAT_SESSION_FILENAME
+            ),
             "PromptTime": MetadataCollector.get_prompt_processing_time(self.work_dir / SERVER_LOG_FILENAME)
         }
         
@@ -945,6 +959,9 @@ class VibeRunner(AgentRunner):
 
 class OpenCodeRunner(AgentRunner):
     def configure_agent(self):
+        if self.non_local:
+            return
+
         # OpenCode supports opencode.json
         config = {
             "$schema": "https://opencode.ai/config.json",
@@ -1006,6 +1023,7 @@ def main():
     parser.add_argument("--agent", required=True, choices=["gemini", "claude", "vibe", "opencode", "crush"], help="Agent to evaluate (vibe = Mistral Vibe)")
     parser.add_argument("--prompt-file", required=True, type=Path, help="Path to the initial prompt file")
     parser.add_argument("--headless", action="store_true", default=True, help="Run in headless mode (default: True)")
+    parser.add_argument("--non-local", action="store_true", help="Disable LM Studio-related functionality and use default inference providers")
     
     args = parser.parse_args()
     
@@ -1013,8 +1031,9 @@ def main():
         print(f"[-] Prompt file not found: {args.prompt_file}")
         sys.exit(1)
 
-    # 1. Load Model
-    load_lms_model(args.model)
+    # 1. Load Model (Local only)
+    if not args.non_local:
+        load_lms_model(args.model)
     
     # 2. Get Runner
     runner_cls = get_runner(args.agent)
@@ -1022,7 +1041,7 @@ def main():
         print(f"[-] Unknown agent: {args.agent}")
         sys.exit(1)
         
-    runner = runner_cls(args.agent, args.model, args.prompt_file, args.headless)
+    runner = runner_cls(args.agent, args.model, args.prompt_file, args.headless, args.non_local)
     
     # 3. Run
     runner.run()
