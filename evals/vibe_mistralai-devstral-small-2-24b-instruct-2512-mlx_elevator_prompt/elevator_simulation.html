@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Elevator Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+        #controls h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .control-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3>Elevator Controls</h3>
+        <div class="control-item">
+            <strong>Current Floor:</strong> <span id="current-floor">0</span>
+        </div>
+        <div class="control-item">
+            <strong>Go to Floor:</strong><br>
+            <button onclick="moveElevatorToFloor(0)">1</button>
+            <button onclick="moveElevatorToFloor(1)">2</button>
+            <button onclick="moveElevatorToFloor(2)">3</button>
+            <button onclick="moveElevatorToFloor(3)">4</button>
+            <button onclick="moveElevatorToFloor(4)">5</button>
+            <button onclick="moveElevatorToFloor(5)">6</button>
+        </div>
+        <div class="control-item">
+            <strong>Actions:</strong><br>
+            <button onclick="boardPeople()">Board People</button>
+            <button onclick="exitPeople()">Exit People</button>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.min.js"></script>
+    <script>
+        // Main scene setup
+        let scene, camera, renderer, controls;
+        let clock = new THREE.Clock();
+        
+        // Building structure
+        const building = {
+            floors: [],
+            walls: []
+        };
+        
+        // Elevator system
+        const elevator = {
+            car: null,
+            doors: [],
+            currentFloor: 0,
+            targetFloor: 0,
+            isMoving: false,
+            peopleInside: [],
+            peopleWaiting: []
+        };
+        
+        // People data
+        const people = {
+            models: [],
+            walkingAnimations: {}
+        };
+        
+        // Initialize scene
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(20, 15, 30);
+            camera.lookAt(0, 10, 0);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            
+            // Add orbit controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.2;
+        }
+        
+        // Create building floors and walls
+        function createBuilding() {
+            const floorCount = 6;
+            const floorHeight = 3.5;
+            const buildingWidth = 20;
+            const buildingDepth = 15;
+            
+            // Create ground floor (solid)
+            const ground = new THREE.Mesh(
+                new THREE.BoxGeometry(buildingWidth * 1.2, 0.5, buildingDepth * 1.2),
+                new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 })
+            );
+            ground.position.y = -0.25;
+            scene.add(ground);
+            
+            // Create roof (solid)
+            const roof = new THREE.Mesh(
+                new THREE.BoxGeometry(buildingWidth * 1.2, 0.5, buildingDepth * 1.2),
+                new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 })
+            );
+            roof.position.y = (floorCount * floorHeight) + 0.25;
+            scene.add(roof);
+            
+            // Create floors (transparent)
+            for (let i = 0; i < floorCount; i++) {
+                const floor = new THREE.Mesh(
+                    new THREE.BoxGeometry(buildingWidth, 0.3, buildingDepth),
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0xcccccc, 
+                        transparent: true,
+                        opacity: 0.3,
+                        roughness: 0.8
+                    })
+                );
+                floor.position.y = i * floorHeight;
+                building.floors.push(floor);
+                scene.add(floor);
+            }
+            
+            // Create walls (semi-transparent)
+            const wallMaterials = [
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xaaaaaa, 
+                    transparent: true,
+                    opacity: 0.2,
+                    roughness: 0.8
+                }),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xaaaaaa, 
+                    transparent: true,
+                    opacity: 0.2,
+                    roughness: 0.8
+                })
+            ];
+            
+            // Front wall (positive Z)
+            const frontWall = new THREE.Mesh(
+                new THREE.BoxGeometry(buildingWidth, floorCount * floorHeight + 0.5, 0.3),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xaaaaaa, 
+                    transparent: true,
+                    opacity: 0.2
+                })
+            );
+            frontWall.position.set(0, floorCount * floorHeight / 2, buildingDepth/2 - 0.15);
+            building.walls.push(frontWall);
+            scene.add(frontWall);
+            
+            // Back wall (negative Z)
+            const backWall = new THREE.Mesh(
+                new THREE.BoxGeometry(buildingWidth, floorCount * floorHeight + 0.5, 0.3),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xaaaaaa, 
+                    transparent: true,
+                    opacity: 0.2
+                })
+            );
+            backWall.position.set(0, floorCount * floorHeight / 2, -buildingDepth/2 + 0.15);
+            building.walls.push(backWall);
+            scene.add(backWall);
+            
+            // Left wall (negative X)
+            const leftWall = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, floorCount * floorHeight + 0.5, buildingDepth),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xaaaaaa, 
+                    transparent: true,
+                    opacity: 0.2
+                })
+            );
+            leftWall.position.set(-buildingWidth/2 + 0.15, floorCount * floorHeight / 2, 0);
+            building.walls.push(leftWall);
+            scene.add(leftWall);
+            
+            // Right wall (positive X)
+            const rightWall = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, floorCount * floorHeight + 0.5, buildingDepth),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xaaaaaa, 
+                    transparent: true,
+                    opacity: 0.2
+                })
+            );
+            rightWall.position.set(buildingWidth/2 - 0.15, floorCount * floorHeight / 2, 0);
+            building.walls.push(rightWall);
+            scene.add(rightWall);
+        }
+        
+        // Create elevator shaft cutout
+        function createElevatorShaft() {
+            const shaftWidth = 4;
+            const shaftDepth = 3.5;
+            
+            // Create the elevator shaft (empty space)
+            for (let i = 0; i < building.floors.length; i++) {
+                // Add doors to each floor
+                const doorWidth = 2.5;
+                const doorHeight = 3;
+                
+                // Left door
+                const leftDoor = new THREE.Mesh(
+                    new THREE.BoxGeometry(doorWidth/2, doorHeight, 0.3),
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0x666666, 
+                        transparent: true,
+                        opacity: 0.7
+                    })
+                );
+                leftDoor.position.set(-doorWidth/4, i * 3.5 + doorHeight/2, buildingDepth/2 - 0.15);
+                leftDoor.userData = { type: 'door', floor: i, side: 'left' };
+                
+                // Right door
+                const rightDoor = new THREE.Mesh(
+                    new THREE.BoxGeometry(doorWidth/2, doorHeight, 0.3),
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0x666666, 
+                        transparent: true,
+                        opacity: 0.7
+                    })
+                );
+                rightDoor.position.set(doorWidth/4, i * 3.5 + doorHeight/2, buildingDepth/2 - 0.15);
+                rightDoor.userData = { type: 'door', floor: i, side: 'right' };
+                
+                elevator.doors.push(leftDoor);
+                elevator.doors.push(rightDoor);
+            }
+        }
+        
+        // Create elevator car
+        function createElevatorCar() {
+            const carWidth = 3.8;
+            const carDepth = 2.8;
+            const carHeight = 3;
+            
+            // Main frame (semi-transparent yellow)
+            const carFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(carWidth, carHeight, carDepth),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xffff00, 
+                    transparent: true,
+                    opacity: 0.5
+                })
+            );
+            carFrame.position.set(0, 3.5/2, buildingDepth/2 - 0.15);
+            elevator.car = carFrame;
+            scene.add(carFrame);
+            
+            // Back wall (solid)
+            const backWall = new THREE.Mesh(
+                new THREE.BoxGeometry(carWidth, carHeight, 0.2),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xdddddd, 
+                    transparent: false,
+                    opacity: 1.0
+                })
+            );
+            backWall.position.set(0, 3.5/2, buildingDepth/2 - 0.15 + 0.1);
+            scene.add(backWall);
+            
+            // Side walls (transparent)
+            const leftSide = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, carHeight, carDepth - 0.3),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xcccccc, 
+                    transparent: true,
+                    opacity: 0.6
+                })
+            );
+            leftSide.position.set(-carWidth/2 + 0.1, 3.5/2, buildingDepth/2 - 0.15);
+            scene.add(leftSide);
+            
+            const rightSide = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, carHeight, carDepth - 0.3),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xcccccc, 
+                    transparent: true,
+                    opacity: 0.6
+                })
+            );
+            rightSide.position.set(carWidth/2 - 0.1, 3.5/2, buildingDepth/2 - 0.15);
+            scene.add(rightSide);
+        }
+        
+        // Create simple 3D person
+        function createPerson(x, z, floorY) {
+            const person = {
+                body: null,
+                head: null,
+                legs: [],
+                arms: []
+            };
+            
+            // Body (torso)
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 1.2, 0.4),
+                new THREE.MeshStandardMaterial({ color: 0x8888ff, roughness: 0.7 })
+            );
+            body.position.set(x, floorY + 1.2/2, z);
+            person.body = body;
+            scene.add(body);
+            
+            // Head
+            const head = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.5, 0.5),
+                new THREE.MeshStandardMaterial({ color: 0xffcc88, roughness: 0.7 })
+            );
+            head.position.set(x, floorY + 1.2/2 + 0.5/2 + 0.3, z);
+            person.head = head;
+            scene.add(head);
+            
+            // Legs (from bottom to top: legs → torso)
+            const leftLeg = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 1.2, 0.4),
+                new THREE.MeshStandardMaterial({ color: 0x8888ff, roughness: 0.7 })
+            );
+            leftLeg.position.set(x - 0.15, floorY + 0.6, z);
+            person.legs.push(leftLeg);
+            scene.add(leftLeg);
+            
+            const rightLeg = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 1.2, 0.4),
+                new THREE.MeshStandardMaterial({ color: 0x8888ff, roughness: 0.7 })
+            );
+            rightLeg.position.set(x + 0.15, floorY + 0.6, z);
+            person.legs.push(rightLeg);
+            scene.add(rightLeg);
+            
+            // Arms (hanging down from shoulders)
+            const leftArm = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 1.0, 0.3),
+                new THREE.MeshStandardMaterial({ color: 0x8888ff, roughness: 0.7 })
+            );
+            leftArm.position.set(x - 0.3, floorY + 1.2/2, z);
+            person.arms.push(leftArm);
+            scene.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 1.0, 0.3),
+                new THREE.MeshStandardMaterial({ color: 0x8888ff, roughness: 0.7 })
+            );
+            rightArm.position.set(x + 0.3, floorY + 1.2/2, z);
+            person.arms.push(rightArm);
+            scene.add(rightArm);
+            
+            person.models = [body, head, leftLeg, rightLeg, leftArm, rightArm];
+            return person;
+        }
+        
+        // Add some people waiting at different floors
+        function addWaitingPeople() {
+            for (let i = 0; i < 6; i++) {
+                const floorY = i * 3.5;
+                
+                // Add 1-2 people per floor
+                for (let j = 0; j < Math.floor(Math.random() * 2) + 1; j++) {
+                    const person = createPerson(-3 + j * 2, buildingDepth/2 - 0.15 - 2, floorY);
+                    person.userData = { type: 'person', waitingAt: i, isWaiting: true, destination: null };
+                    elevator.peopleWaiting.push(person);
+                }
+            }
+        }
+        
+        // UI update functions
+        function updateCurrentFloorDisplay() {
+            document.getElementById('current-floor').textContent = elevator.currentFloor + 1;
+        }
+        
+        function boardPeople() {
+            const currentFloorY = elevator.currentFloor * 3.5;
+            elevator.peopleWaiting.forEach(person => {
+                personBoardElevator(person, currentFloorY);
+            });
+        }
+        
+        function exitPeople() {
+            const exitFloorY = elevator.currentFloor * 3.5;
+            elevator.peopleInside.forEach(person => {
+                personExitElevator(person, exitFloorY);
+            });
+        }
+        
+        // Animation functions
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            controls.update(delta);
+            
+            // Update animations
+            updateDoorAnimations();
+            updatePersonAnimations();
+            
+            // Elevator movement logic
+            if (elevator.isMoving) {
+                const currentY = elevator.car.position.y;
+                const targetY = elevator.targetFloor * 3.5 + 1.75;
+                
+                if (Math.abs(currentY - targetY) > 0.1) {
+                    // Move elevator smoothly
+                    const moveSpeed = 0.05;
+                    if (currentY < targetY) {
+                        elevator.car.position.y += moveSpeed;
+                    } else {
+                        elevator.car.position.y -= moveSpeed;
+                    }
+                } else {
+                    // Reached target floor
+                    elevator.currentFloor = elevator.targetFloor;
+                    elevator.isMoving = false;
+                    
+                    // Close doors after short delay
+                    setTimeout(() => {
+                        doorAnimationState.targetOpen = 0;
+                        doorAnimationState.isOpening = true;
+                    }, 1000);
+                }
+            }
+            
+            // Update UI
+            updateCurrentFloorDisplay();
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Door animation system
+        let doorAnimationState = { openAmount: 0, isOpening: false, targetOpen: 0 };
+        
+        function updateDoorAnimations() {
+            const speed = 0.05;
+            
+            if (doorAnimationState.isOpening) {
+                doorAnimationState.openAmount += speed;
+                if (doorAnimationState.openAmount >= doorAnimationState.targetOpen) {
+                    doorAnimationState.openAmount = doorAnimationState.targetOpen;
+                    doorAnimationState.isOpening = false;
+                }
+            } else {
+                doorAnimationState.openAmount -= speed;
+                if (doorAnimationState.openAmount <= 0) {
+                    doorAnimationState.openAmount = 0;
+                }
+            }
+            
+            // Update all doors
+            for (let i = 0; i < elevator.doors.length; i++) {
+                const door = elevator.doors[i];
+                if (door.userData.floor === elevator.currentFloor) {
+                    const openAmount = doorAnimationState.openAmount;
+                    if (door.userData.side === 'left') {
+                        door.position.x = -1.25 + (openAmount * 0.6);
+                    } else {
+                        door.position.x = 1.25 - (openAmount * 0.6);
+                    }
+                }
+            }
+        }
+        
+        // Elevator movement system
+        function moveElevatorToFloor(targetFloor) {
+            if (elevator.isMoving || elevator.currentFloor === targetFloor) return;
+            
+            elevator.targetFloor = targetFloor;
+            elevator.isMoving = true;
+            
+            // Open doors before moving
+            doorAnimationState.targetOpen = 1.0;
+            doorAnimationState.isOpening = true;
+        }
+        
+        // Person boarding logic
+        function personBoardElevator(person, floorY) {
+            if (person.userData.isWaiting && person.userData.waitingAt === elevator.currentFloor) {
+                // Remove from waiting list
+                const index = elevator.peopleWaiting.indexOf(person);
+                if (index !== -1) {
+                    elevator.peopleWaiting.splice(index, 1);
+                }
+                
+                // Add to elevator
+                person.userData.isWaiting = false;
+                person.userData.isInside = true;
+                elevator.peopleInside.push(person);
+                
+                // Position inside elevator
+                person.models.forEach(part => {
+                    part.position.y = floorY + 1.5; // Position at elevator level
+                });
+            }
+        }
+        
+        // Person exiting logic
+        function personExitElevator(person, floorY) {
+            if (person.userData.isInside && person.userData.destination === elevator.currentFloor) {
+                // Remove from elevator
+                const index = elevator.peopleInside.indexOf(person);
+                if (index !== -1) {
+                    elevator.peopleInside.splice(index, 1);
+                }
+                
+                // Add back to waiting list at destination
+                person.userData.isInside = false;
+                person.userData.isWaiting = true;
+                person.userData.waitingAt = elevator.currentFloor;
+                elevator.peopleWaiting.push(person);
+                
+                // Position outside elevator
+                person.models.forEach(part => {
+                    part.position.y = floorY; // Position at floor level
+                });
+            }
+        }
+        
+        // Person animation system
+        function updatePersonAnimations() {
+            for (let i = 0; i < people.models.length; i++) {
+                const person = people.models[i];
+                
+                if (person.userData && person.userData.isWalking) {
+                    // Simple walking animation
+                    const walkTime = Date.now() * 0.002;
+                    
+                    // Alternating leg swing (from hips/body)
+                    person.legs[0].rotation.x = Math.sin(walkTime) * 0.3;
+                    person.legs[1].rotation.x = Math.sin(walkTime + Math.PI) * 0.3;
+                    
+                    // Move forward (toward positive Z)
+                    person.models.forEach(part => {
+                        part.position.z -= 0.02;
+                    });
+                }
+            }
+        }
+        
+        // Add walking animation to people when boarding/exiting
+        function personBoardElevator(person, floorY) {
+            if (person.userData.isWaiting && person.userData.waitingAt === elevator.currentFloor) {
+                // Remove from waiting list
+                const index = elevator.peopleWaiting.indexOf(person);
+                if (index !== -1) {
+                    elevator.peopleWaiting.splice(index, 1);
+                }
+                
+                // Add to elevator
+                person.userData.isWaiting = false;
+                person.userData.isInside = true;
+                elevator.peopleInside.push(person);
+                
+                // Position inside elevator
+                person.models.forEach(part => {
+                    part.position.y = floorY + 1.5; // Position at elevator level
+                });
+                
+                // Add walking animation for boarding
+                person.userData.isWalking = true;
+            }
+        }
+        
+        function personExitElevator(person, floorY) {
+            if (person.userData.isInside && person.userData.destination === elevator.currentFloor) {
+                // Remove from elevator
+                const index = elevator.peopleInside.indexOf(person);
+                if (index !== -1) {
+                    elevator.peopleInside.splice(index, 1);
+                }
+                
+                // Add back to waiting list at destination
+                person.userData.isInside = false;
+                person.userData.isWaiting = true;
+                person.userData.waitingAt = elevator.currentFloor;
+                elevator.peopleWaiting.push(person);
+                
+                // Position outside elevator
+                person.models.forEach(part => {
+                    part.position.y = floorY; // Position at floor level
+                });
+                
+                // Add walking animation for exiting
+                person.userData.isWalking = true;
+            }
+        }
+        
+        // Initialize everything
+        function init() {
+            initScene();
+            createBuilding();
+            createElevatorShaft();
+            createElevatorCar();
+            addWaitingPeople();
+            
+            // Add some lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+            
+            // Start animation
+            animate();
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Keyboard controls for elevator
+        document.addEventListener('keydown', function(event) {
+            switch(event.key) {
+                case '1':
+                    moveElevatorToFloor(0);
+                    break;
+                case '2':
+                    moveElevatorToFloor(1);
+                    break;
+                case '3':
+                    moveElevatorToFloor(2);
+                    break;
+                case '4':
+                    moveElevatorToFloor(3);
+                    break;
+                case '5':
+                    moveElevatorToFloor(4);
+                    break;
+                case '6':
+                    moveElevatorToFloor(5);
+                    break;
+                case 'b':
+                    // Board people at current floor
+                    const currentFloorY = elevator.currentFloor * 3.5;
+                    elevator.peopleWaiting.forEach(person => {
+                        personBoardElevator(person, currentFloorY);
+                    });
+                    break;
+                case 'e':
+                    // Exit people at current floor
+                    const exitFloorY = elevator.currentFloor * 3.5;
+                    elevator.peopleInside.forEach(person => {
+                        personExitElevator(person, exitFloorY);
+                    });
+                    break;
+            }
+        });
+        
+        // Start the simulation
+        init();
+    </script>
+</body>
+</html>
