@@ -17,6 +17,18 @@ LM_STUDIO_API_URL = "http://localhost:1234/v1"
 EVALS_DIR = Path("evals")
 SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
+CLAUDE_RESULT_FILENAME = "CLAUDE_RESULT.JSON"
+
+# Claude model friendly name -> API model ID mapping
+CLAUDE_MODEL_IDS = {
+    "opus 4.6": "claude-opus-4-6",
+    "sonnet 4.6": "claude-sonnet-4-6",
+    "haiku 4.5": "claude-haiku-4-5-20251001",
+    "opus 4": "claude-opus-4-20250514",
+    "sonnet 4": "claude-sonnet-4-20250514",
+    "sonnet 3.5": "claude-3-5-sonnet-20241022",
+    "haiku 3.5": "claude-3-5-haiku-20241022",
+}
 
 # --- LM Studio Client ---
 
@@ -259,9 +271,54 @@ class MetadataCollector:
 
     @staticmethod
     def get_token_usage(log_path: Path, chat_log_path: Optional[Path] = None) -> Dict[str, int]:
-        """Parses server logs or agent chat logs for token usage statistics."""
+        """Parses server logs, agent chat logs, or Claude result JSON for token usage statistics."""
         usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-        
+
+        # Check for Claude result JSON first (from --output-format stream-json)
+        if chat_log_path:
+            claude_result_path = chat_log_path.parent / CLAUDE_RESULT_FILENAME
+            if claude_result_path.exists():
+                try:
+                    with open(claude_result_path, 'r') as f:
+                        result_data = json.load(f)
+                    # Prefer modelUsage for comprehensive per-model totals
+                    model_usage = result_data.get("modelUsage", {})
+                    if model_usage:
+                        for model_id, model_data in model_usage.items():
+                            usage["prompt_tokens"] += (
+                                model_data.get("inputTokens", 0) +
+                                model_data.get("cacheCreationInputTokens", 0) +
+                                model_data.get("cacheReadInputTokens", 0)
+                            )
+                            usage["completion_tokens"] += model_data.get("outputTokens", 0)
+                            cache_read = model_data.get("cacheReadInputTokens", 0)
+                            if cache_read:
+                                usage["cache_read_tokens"] = cache_read
+                    else:
+                        # Fallback to top-level usage object
+                        usage_data = result_data.get("usage", {})
+                        usage["prompt_tokens"] = (
+                            usage_data.get("input_tokens", 0) +
+                            usage_data.get("cache_creation_input_tokens", 0) +
+                            usage_data.get("cache_read_input_tokens", 0)
+                        )
+                        usage["completion_tokens"] = usage_data.get("output_tokens", 0)
+                        cache_read = usage_data.get("cache_read_input_tokens", 0)
+                        if cache_read:
+                            usage["cache_read_tokens"] = cache_read
+                    usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+                    # Include cost if available
+                    cost = result_data.get("cost_usd") or result_data.get("total_cost_usd")
+                    if cost:
+                        usage["cost_usd"] = cost
+                    num_turns = result_data.get("num_turns")
+                    if num_turns:
+                        usage["num_turns"] = num_turns
+                    if usage["total_tokens"] > 0:
+                        return usage
+                except Exception as e:
+                    print(f"[-] Error parsing Claude result JSON: {e}")
+
         # Try server log first (LM Studio)
         if log_path and log_path.exists():
             try:
@@ -383,10 +440,26 @@ class MetadataCollector:
         return total_duration
 
     @staticmethod
-    def parse_model_info(model_key: str, non_local: bool = False) -> Dict[str, str]:
+    def parse_model_info(model_key: str, non_local: bool = False, agent_name: str = None) -> Dict[str, str]:
         # Basic Info
         info = {"Full Name": model_key}
-        
+
+        # Cloud provider model info for non-local agents
+        if non_local and agent_name:
+            if agent_name == "claude":
+                info["Provider"] = "Anthropic"
+                info["Type"] = "Cloud API"
+                model_id = CLAUDE_MODEL_IDS.get(model_key.lower().strip())
+                if model_id:
+                    info["Model ID"] = model_id
+                elif model_key.startswith("claude-"):
+                    info["Model ID"] = model_key
+                return info
+            elif agent_name == "gemini":
+                info["Provider"] = "Google"
+                info["Type"] = "Cloud API"
+                return info
+
         # Heuristic Defaults
         if "24b" in model_key.lower():
             info["Parameters"] = "24B"
@@ -458,7 +531,19 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
         tps = round(total_output / generation_seconds, 2)
     elif total_output > 0 and duration_seconds > 0:
         tps = round(total_output / duration_seconds, 2)
-    
+
+    # Build optional extra token metric rows (cost, turns from cloud APIs)
+    extra_token_rows = ""
+    cost_usd = tokens.get('cost_usd')
+    if cost_usd:
+        extra_token_rows += f'<div class="token-stat"><span class="label">Cost:</span> <span class="value">${cost_usd:.4f}</span></div>'
+    cache_read = tokens.get('cache_read_tokens')
+    if cache_read:
+        extra_token_rows += f'<div class="token-stat"><span class="label">Cache Read:</span> <span class="value">{cache_read:,}</span></div>'
+    num_turns = tokens.get('num_turns')
+    if num_turns:
+        extra_token_rows += f'<div class="token-stat"><span class="label">Turns:</span> <span class="value">{num_turns}</span></div>'
+
     # Collect artifacts
     artifacts = []
     for p in work_dir.iterdir():
@@ -606,6 +691,7 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
                             <div class="token-stat"><span class="label">Input:</span> <span class="value">{tokens.get('prompt_tokens', 0)}</span></div>
                             <div class="token-stat"><span class="label">Output:</span> <span class="value">{tokens.get('completion_tokens', 0)}</span></div>
                             <div class="token-stat total"><span class="label">Total:</span> <span class="value">{tokens.get('total_tokens', 0)}</span></div>
+                            {extra_token_rows}
                         </div>
                         <div class="token-rate">~{tps} tokens/sec</div>
                     </div>
@@ -827,7 +913,7 @@ class AgentRunner:
         metadata = {
             "Hardware": MetadataCollector.get_hardware_info(),
             "Software": MetadataCollector.get_software_versions(self.agent_binary, self.non_local),
-            "Model": MetadataCollector.parse_model_info(self.model_name, self.non_local),
+            "Model": MetadataCollector.parse_model_info(self.model_name, self.non_local, self.agent_name),
             "Tokens": MetadataCollector.get_token_usage(
                 self.work_dir / SERVER_LOG_FILENAME, 
                 self.work_dir / CHAT_SESSION_FILENAME
@@ -932,12 +1018,110 @@ class GeminiRunner(AgentRunner):
 class ClaudeRunner(AgentRunner):
     def execute_agent(self):
         # Claude Code: `claude -p "content"` (headless)
-        # Also using --dangerously-skip-permissions for true headless
+        # Using --output-format stream-json to capture token usage and cost metrics
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
-            
-        cmd = ["claude", "-p", prompt_content, "--dangerously-skip-permissions"]
-        self._run_process(cmd)
+
+        cmd = ["claude", "-p", prompt_content, "--dangerously-skip-permissions",
+               "--output-format", "stream-json", "--verbose"]
+
+        # Add --model flag if we can resolve the friendly name to a Claude model ID
+        if self.non_local:
+            model_id = CLAUDE_MODEL_IDS.get(self.model_name.lower().strip())
+            if model_id:
+                cmd.extend(["--model", model_id])
+            elif self.model_name.startswith("claude-"):
+                cmd.extend(["--model", self.model_name])
+
+        env = self.get_env_vars()
+        # Remove CLAUDECODE env var to avoid "nested session" error when
+        # this script is itself run from within a Claude Code session
+        env.pop("CLAUDECODE", None)
+        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+        result_json_path = self.work_dir / CLAUDE_RESULT_FILENAME
+
+        print(f"[*] Executing: claude -p <prompt> --dangerously-skip-permissions --output-format stream-json")
+        print(f"[*] Output logging to: {chat_log_path}")
+
+        result_data = None
+
+        with open(chat_log_path, "w") as log_file:
+            process = subprocess.Popen(
+                cmd,
+                cwd=self.work_dir,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+
+            for line in process.stdout:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    event = json.loads(stripped)
+                    event_type = event.get("type", "")
+
+                    if event_type == "assistant":
+                        message = event.get("message", {})
+                        for block in message.get("content", []):
+                            if block.get("type") == "text":
+                                text = block.get("text", "")
+                                sys.stdout.write(text)
+                                sys.stdout.flush()
+                                log_file.write(text)
+                                log_file.flush()
+                            elif block.get("type") == "tool_use":
+                                tool_name = block.get("name", "unknown")
+                                tool_input = block.get("input", {})
+                                if tool_name in ("Write", "Edit"):
+                                    file_path = tool_input.get("file_path", "")
+                                    info_line = f"\n[Tool: {tool_name}] {file_path}\n"
+                                else:
+                                    info_line = f"\n[Tool: {tool_name}]\n"
+                                sys.stdout.write(info_line)
+                                sys.stdout.flush()
+                                log_file.write(info_line)
+                                log_file.flush()
+
+                    elif event_type == "result":
+                        result_data = event
+                        result_text = event.get("result", "")
+                        if result_text:
+                            sys.stdout.write("\n" + result_text + "\n")
+                            sys.stdout.flush()
+                            log_file.write("\n" + result_text + "\n")
+                            log_file.flush()
+
+                except json.JSONDecodeError:
+                    # Non-JSON line, pass through as-is
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    log_file.write(line)
+                    log_file.flush()
+
+            try:
+                process.wait(timeout=900)
+            except subprocess.TimeoutExpired:
+                print(f"[-] Agent process timed out after 900 seconds.")
+                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
+                process.kill()
+                process.wait()
+
+            if process.returncode == 0:
+                print(f"[+] Agent finished successfully.")
+                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+            else:
+                print(f"[-] Agent finished with error code {process.returncode}")
+                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+
+        # Save result JSON for metadata extraction (token usage, cost, turns)
+        if result_data:
+            with open(result_json_path, "w") as f:
+                json.dump(result_data, f, indent=2)
+            print(f"[+] Claude usage data saved to: {result_json_path}")
 
 class VibeRunner(AgentRunner):
     def configure_agent(self):
