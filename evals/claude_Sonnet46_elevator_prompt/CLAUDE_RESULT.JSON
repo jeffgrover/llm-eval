@@ -1,0 +1,54 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 1145371,
+  "duration_api_ms": 1145673,
+  "num_turns": 23,
+  "result": "Everything checks out. Here's a summary of what was built:\n\n---\n\n## Files Created\n\n### `index.html`\n- Loads Three.js `0.128.0` and OrbitControls from jsDelivr CDN in the correct order\n- Speed slider (1x\u201320x) and status bar overlay\n- Empty body \u2014 all 3D content is DOM-injected by scripts\n\n### `person.js`\n- `createPerson()` factory: group origin = feet at `y=0`\n- Body built **bottom\u2192top**: legs \u2192 torso \u2192 head, arms at shoulder\n- **Leg pivots at hip** (`y = LEG_HEIGHT`) with mesh hanging down \u2014 legs swing from correct joint\n- **Arm pivots at shoulder** with arm hanging down\n- `animatePersonWalking(person, dt)` \u2014 sine-wave leg/arm swing on X-axis\n- `resetPersonPose(person)` \u2014 returns all limbs to neutral\n\n### `elevator.js`\nKey design decisions:\n- **Floor surface** `y = i \u00d7 FLOOR_HEIGHT`; floor panel BoxGeometry centred at `y \u2212 ft/2` so its top surface is exactly at floor level\n- **Transparent materials**: all have `depthWrite: false`, `side: THREE.DoubleSide`; elevator meshes have `renderOrder = 1` vs building `renderOrder = 0`\n- **9-state machine**: `MOVING_TO_PICK \u2192 DOOR_OPEN_PICK \u2192 BOARDING \u2192 DOOR_CLOSE_PICK \u2192 MOVING_TO_DROP \u2192 DOOR_OPEN_DROP \u2192 EXITING \u2192 DOOR_CLOSE_DROP \u2192 WAIT`\n- **Parent-child**: person is `elevatorCar.add(person)` after boarding; `scene.add(person)` before exiting \u2014 so person rides with elevator\n- **Doors**: two halves slide outward on X-axis; fully open when gap equals full door width\n- **Waiting zone**: people face elevator (`rotation.y = Math.PI`); walk forward in \u2212Z to board; exit in +Z then rotate back to face elevator",
+  "stop_reason": null,
+  "session_id": "b4b762d1-2995-456e-b656-5b60423e66d5",
+  "total_cost_usd": 2.6333232500000006,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 55795,
+    "cache_read_input_tokens": 879213,
+    "output_tokens": 73750,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55795,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-sonnet-4-6": {
+      "inputTokens": 24,
+      "outputTokens": 73750,
+      "cacheReadInputTokens": 879213,
+      "cacheCreationInputTokens": 55795,
+      "webSearchRequests": 0,
+      "costUSD": 2.6321952500000005,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000
+    },
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 808,
+      "outputTokens": 64,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0011279999999999999,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000
+    }
+  },
+  "permission_denials": [],
+  "uuid": "d6fbb3ab-b0ec-4dc3-998a-dfbc440ab468"
+}
