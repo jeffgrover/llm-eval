@@ -105,7 +105,7 @@ def load_lms_model(model_key: str):
         sys.exit(1)
 
     print(f"[*] Loading model '{model_key}' into LM Studio...")
-    cmd = ["lms", "load", model_key, "--gpu=max", "-y"]
+    cmd = ["lms", "load", model_key, "-y"]
 
     try:
         subprocess.run(cmd, check=True, text=True, timeout=120)
@@ -925,12 +925,13 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
 # --- Agent Runners ---
 
 class AgentRunner:
-    def __init__(self, agent_name: str, model_name: str, prompt_file: Path, headless: bool, non_local: bool = False):
+    def __init__(self, agent_name: str, model_name: str, prompt_file: Path, headless: bool, non_local: bool = False, restore_agent_config: bool = False):
         self.agent_name = agent_name
         self.model_name = model_name
         self.prompt_file = prompt_file
         self.headless = headless
         self.non_local = non_local
+        self.restore_agent_config = restore_agent_config
         
         # Binary to name mapping
         self.binary_map = {
@@ -1361,22 +1362,111 @@ class ClaudeRunner(AgentRunner):
             print(f"[+] Claude usage data saved to: {result_json_path}")
 
 class VibeRunner(AgentRunner):
+    _original_active_model: Optional[str] = None
+
     def configure_agent(self):
-        # Mistral Vibe might need a config file to point to local model
-        # Try generating .vibe/agents/default.toml or similar if needed.
-        # For now, we rely on standard env vars potentially supported by underlying engines,
-        # or we might need to create a specific vibe config.
-        # Research indicated vibe CLI is "model agnostic" but usually uses a toml.
-        # We'll try setting OPENAI_BASE_URL env var as a fallback.
-        pass
+        """Set vibe's active_model to match the --model passed to this script."""
+        if self.non_local:
+            return
+
+        vibe_config_path = Path.home() / ".vibe" / "config.toml"
+        if not vibe_config_path.exists():
+            return
+
+        try:
+            config_text = vibe_config_path.read_text(encoding='utf-8')
+
+            # Find the alias for a [[models]] entry whose name matches our model
+            # TOML parsing without a library: scan for [[models]] blocks
+            target_alias = None
+            in_models_block = False
+            current_name = None
+            current_alias = None
+
+            for line in config_text.splitlines():
+                stripped = line.strip()
+                if stripped == "[[models]]":
+                    # Save previous block if it matched
+                    if in_models_block and current_name and current_alias:
+                        if self.model_name in current_name or current_name in self.model_name:
+                            target_alias = current_alias
+                    in_models_block = True
+                    current_name = None
+                    current_alias = None
+                elif stripped.startswith("[") and in_models_block:
+                    # New non-models section — finalize
+                    if current_name and current_alias:
+                        if self.model_name in current_name or current_name in self.model_name:
+                            target_alias = current_alias
+                    in_models_block = False
+                elif in_models_block:
+                    m = re.match(r'^name\s*=\s*"(.+?)"', stripped)
+                    if m:
+                        current_name = m.group(1)
+                    m = re.match(r'^alias\s*=\s*"(.+?)"', stripped)
+                    if m:
+                        current_alias = m.group(1)
+
+            # Check last block
+            if in_models_block and current_name and current_alias:
+                if self.model_name in current_name or current_name in self.model_name:
+                    target_alias = current_alias
+
+            if not target_alias:
+                print(f"[-] No vibe model alias found matching '{self.model_name}', using current active_model.")
+                return
+
+            # Read current active_model so we can restore it later
+            am_match = re.search(r'^active_model\s*=\s*"(.+?)"', config_text, re.MULTILINE)
+            if am_match:
+                self._original_active_model = am_match.group(1)
+                if self._original_active_model == target_alias:
+                    return  # Already set correctly
+
+            # Update active_model in the config
+            new_config = re.sub(
+                r'^(active_model\s*=\s*)".*?"',
+                f'\\1"{target_alias}"',
+                config_text,
+                count=1,
+                flags=re.MULTILINE
+            )
+            vibe_config_path.write_text(new_config, encoding='utf-8')
+            print(f"[+] Set vibe active_model to '{target_alias}' (was '{self._original_active_model}')")
+
+        except Exception as e:
+            print(f"[-] Failed to configure vibe model: {e}")
+
+    def _restore_vibe_config(self):
+        """Restore vibe's active_model to its original value after the run."""
+        if self._original_active_model is None:
+            return
+        vibe_config_path = Path.home() / ".vibe" / "config.toml"
+        try:
+            config_text = vibe_config_path.read_text(encoding='utf-8')
+            new_config = re.sub(
+                r'^(active_model\s*=\s*)".*?"',
+                f'\\1"{self._original_active_model}"',
+                config_text,
+                count=1,
+                flags=re.MULTILINE
+            )
+            vibe_config_path.write_text(new_config, encoding='utf-8')
+            print(f"[+] Restored vibe active_model to '{self._original_active_model}'")
+        except Exception as e:
+            print(f"[-] Failed to restore vibe config: {e}")
 
     def execute_agent(self):
         # Mistral Vibe: `vibe -p "content"`
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
-            
+
         cmd = ["vibe", "-p", prompt_content]
-        self._run_process(cmd)
+        try:
+            self._run_process(cmd)
+        finally:
+            if self.restore_agent_config:
+                self._restore_vibe_config()
 
 class OpenCodeRunner(AgentRunner):
     def configure_agent(self):
@@ -1445,7 +1535,8 @@ def main():
     parser.add_argument("--prompt-file", required=True, type=Path, help="Path to the initial prompt file")
     parser.add_argument("--headless", action="store_true", default=True, help="Run in headless mode (default: True)")
     parser.add_argument("--non-local", action="store_true", help="Disable LM Studio-related functionality and use default inference providers")
-    
+    parser.add_argument("--restore-agent-config", action="store_true", help="Restore agent config (e.g. vibe active_model) to its original value after the run")
+
     args = parser.parse_args()
     
     if not args.prompt_file.exists():
@@ -1462,7 +1553,7 @@ def main():
         print(f"[-] Unknown agent: {args.agent}")
         sys.exit(1)
         
-    runner = runner_cls(args.agent, args.model, args.prompt_file, args.headless, args.non_local)
+    runner = runner_cls(args.agent, args.model, args.prompt_file, args.headless, args.non_local, args.restore_agent_config)
     
     # 3. Run
     runner.run()
