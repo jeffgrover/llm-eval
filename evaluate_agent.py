@@ -8,16 +8,22 @@ import sys
 import json
 import re
 import platform
+import urllib.request
+import urllib.error
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
 # --- Configuration & Constants ---
 LM_STUDIO_API_URL = "http://localhost:1234/v1"
+LM_STUDIO_REST_BASE = "http://localhost:1234"
 EVALS_DIR = Path("evals")
 SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
 CLAUDE_RESULT_FILENAME = "CLAUDE_RESULT.JSON"
+
+# Tracks whether the lms CLI is responsive (set during model loading)
+_lms_cli_available = True
 
 # Claude model friendly name -> API model ID mapping
 CLAUDE_MODEL_IDS = {
@@ -32,23 +38,81 @@ CLAUDE_MODEL_IDS = {
 
 # --- LM Studio Client ---
 
+def lms_api_request(path: str, method: str = "GET", data: dict = None, timeout: int = 15) -> Optional[dict]:
+    """Makes an HTTP request to the LM Studio REST API. Returns parsed JSON or None on failure."""
+    url = f"{LM_STUDIO_REST_BASE}{path}"
+    try:
+        body = json.dumps(data).encode("utf-8") if data else None
+        req = urllib.request.Request(url, data=body, method=method)
+        req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError, json.JSONDecodeError) as e:
+        print(f"[-] LM Studio API request failed ({method} {path}): {e}")
+        return None
+
+
 def load_lms_model(model_key: str):
-    """Loads a model into LM Studio via the CLI."""
+    """Loads a model into LM Studio, preferring the REST API over the CLI."""
+    global _lms_cli_available
+
+    # Try REST API first
+    models = lms_api_request("/api/v0/models")
+    if models is not None:
+        # REST API is reachable — use it exclusively
+        model_list = models if isinstance(models, list) else models.get("data", models.get("models", []))
+
+        target_loaded = False
+        others_loaded = []
+
+        for m in model_list:
+            model_id = m.get("id", m.get("path", ""))
+            state = m.get("state", "")
+            if model_key in model_id:
+                if state == "loaded":
+                    target_loaded = True
+                    print(f"[+] Model '{model_key}' is already loaded — skipping reload.")
+            elif state == "loaded":
+                others_loaded.append(m)
+
+        # Unload other models first
+        for other in others_loaded:
+            other_id = other.get("id", other.get("path", ""))
+            instance_id = other.get("instance_id", other_id)
+            print(f"[*] Unloading other model: {other_id}")
+            lms_api_request("/api/v1/models/unload", method="POST", data={"model": instance_id})
+
+        if target_loaded:
+            return  # Already loaded, nothing to do
+
+        print(f"[*] Loading model '{model_key}' via REST API...")
+        result = lms_api_request("/api/v1/models/load", method="POST", data={"model": model_key}, timeout=120)
+        if result is not None:
+            print(f"[+] Model '{model_key}' loaded successfully via REST API.")
+            return
+        print("[-] REST API load failed. Falling back to CLI...")
+
+    # Fallback: try the lms CLI (may hang on Windows)
+    print("[*] REST API not available, falling back to lms CLI...")
     print("[*] Unloading any existing models...")
     try:
-        subprocess.run(["lms", "unload", "--all"], check=True, text=True)
-    except subprocess.CalledProcessError:
-        print("[-] Warning: Failed to unload models, attempting to proceed...")
+        subprocess.run(["lms", "unload", "--all"], check=True, text=True, timeout=30)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        print("[-] Warning: Failed to unload models via CLI, attempting to proceed...")
+        _lms_cli_available = False
+    except FileNotFoundError:
+        print("[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped.")
+        sys.exit(1)
 
     print(f"[*] Loading model '{model_key}' into LM Studio...")
-    # Using --gpu=max to ensure best performance
     cmd = ["lms", "load", model_key, "--gpu=max", "-y"]
-    
+
     try:
-        subprocess.run(cmd, check=True, text=True)
+        subprocess.run(cmd, check=True, text=True, timeout=120)
         print(f"[+] Model '{model_key}' loaded successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"[-] Failed to load model: {e}")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        print(f"[-] Failed to load model via CLI: {e}")
+        _lms_cli_available = False
         sys.exit(1)
     except FileNotFoundError:
         print("[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped.")
@@ -183,6 +247,62 @@ class MetadataCollector:
                             info["GPU Model"] = product
             except Exception:
                 pass
+        elif sys.platform == "win32":
+            try:
+                # CPU info via PowerShell
+                cpu_out = subprocess.check_output(
+                    ["powershell", "-NoProfile", "-Command",
+                     "(Get-CimInstance Win32_Processor).Name"],
+                    text=True, timeout=10
+                ).strip()
+                if cpu_out:
+                    info["Processor"] = cpu_out
+            except Exception:
+                pass
+
+            try:
+                # GPU info via PowerShell
+                gpu_out = subprocess.check_output(
+                    ["powershell", "-NoProfile", "-Command",
+                     "(Get-CimInstance Win32_VideoController).Name"],
+                    text=True, timeout=10
+                ).strip()
+                if gpu_out:
+                    # May return multiple lines if multiple GPUs
+                    gpu_lines = [g.strip() for g in gpu_out.splitlines() if g.strip()]
+                    for i, gpu in enumerate(gpu_lines):
+                        if i == 0:
+                            info["GPU Model"] = gpu
+                        else:
+                            info[f"GPU {i+1}"] = gpu
+            except Exception:
+                pass
+
+            try:
+                # RAM via PowerShell
+                ram_out = subprocess.check_output(
+                    ["powershell", "-NoProfile", "-Command",
+                     "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"],
+                    text=True, timeout=10
+                ).strip()
+                if ram_out:
+                    ram_bytes = int(ram_out)
+                    ram_gb = round(ram_bytes / (1024 ** 3))
+                    info["Memory"] = f"{ram_gb} GB"
+            except Exception:
+                pass
+
+            try:
+                # Windows version detail
+                ver_out = subprocess.check_output(
+                    ["powershell", "-NoProfile", "-Command",
+                     "(Get-CimInstance Win32_OperatingSystem).Caption"],
+                    text=True, timeout=10
+                ).strip()
+                if ver_out:
+                    info["System"] = ver_out
+            except Exception:
+                pass
         return info
 
     @staticmethod
@@ -194,9 +314,9 @@ class MetadataCollector:
         versions = {}
         
         if not non_local:
-            # LM Studio CLI Version
+            # LM Studio CLI Version (with timeout to avoid hangs on Windows)
             try:
-                lms_out = subprocess.check_output(["lms", "version"], text=True).strip()
+                lms_out = subprocess.check_output(["lms", "version"], text=True, timeout=10).strip()
                 # New format: "CLI commit: <hash>"
                 m = re.search(r"CLI commit:\s*([a-f0-9]+)", lms_out)
                 if m:
@@ -207,8 +327,9 @@ class MetadataCollector:
                     if m_old:
                         versions["LM Studio CLI Version"] = m_old.group(1)
                     else:
-                        # Generic fallback
                         versions["LM Studio CLI Version"] = lms_out.splitlines()[-1] if lms_out else "Unknown"
+            except subprocess.TimeoutExpired:
+                versions["LM Studio CLI Version"] = "CLI timed out"
             except Exception:
                 versions["LM Studio CLI Version"] = "Unknown"
 
@@ -235,7 +356,7 @@ class MetadataCollector:
                     # Extract version from filename (everything between "LM-Studio-" and ".AppImage")
                     import glob
                     app_images = glob.glob("/opt/LM-Studio-*.AppImage")
-                    
+
                     if app_images:
                         # Sort by version to get the highest version
                         # Version pattern: 0.3.39-2-x64 (we want to sort numerically)
@@ -245,11 +366,11 @@ class MetadataCollector:
                             if match:
                                 return match.group(1)
                             return ""
-                        
+
                         # Sort by version (using natural sorting for numbers)
-                        app_images.sort(key=lambda x: [int(part) if part.isdigit() else part 
+                        app_images.sort(key=lambda x: [int(part) if part.isdigit() else part
                                                          for part in extract_version(x).split('.')])
-                        
+
                         latest_app = app_images[-1]  # Last one after sort
                         version = extract_version(latest_app)
                         versions["LM Studio App Version"] = version if version else "Unknown"
@@ -258,6 +379,20 @@ class MetadataCollector:
                 except Exception as e:
                     print(f"[-] Error detecting LM Studio version on Linux: {e}")
                     versions["LM Studio App Version"] = "Error"
+            elif platform.system() == "Windows":
+                try:
+                    ps_cmd = (
+                        'Get-ItemProperty "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" '
+                        '| Where-Object { $_.DisplayName -like "*LM Studio*" } '
+                        '| Select-Object -ExpandProperty DisplayVersion'
+                    )
+                    ps_out = subprocess.check_output(
+                        ["powershell", "-NoProfile", "-Command", ps_cmd],
+                        text=True, timeout=10
+                    ).strip()
+                    versions["LM Studio App Version"] = ps_out if ps_out else "Not Found"
+                except Exception:
+                    versions["LM Studio App Version"] = "Unknown"
         
         # Agent Version
         try:
@@ -469,19 +604,35 @@ class MetadataCollector:
             info["Parameters"] = "7B"
             
         if not non_local:
-            # Parse lms ls output for detailed info
+            # Query LM Studio REST API for detailed model info
             try:
-                ls_output = subprocess.check_output(["lms", "ls"], text=True)
-                for line in ls_output.splitlines():
-                    if "LOADED" in line:
-                        parts = re.split(r'\s{2,}', line.strip())
-                        if len(parts) >= 4:
-                            info["Size"] = parts[-2]
-                            info["Architecture"] = parts[-3]
-                            info["Parameters"] = parts[-4] 
-                            if len(parts) >= 5:
-                                 info["Full Name"] = parts[0]
-                        break
+                models = lms_api_request("/api/v0/models", timeout=5)
+                if models is not None:
+                    model_list = models if isinstance(models, list) else models.get("data", models.get("models", []))
+                    for m in model_list:
+                        mid = m.get("id", m.get("path", ""))
+                        if model_key in mid:
+                            if m.get("arch"): info["Architecture"] = m["arch"]
+                            if m.get("quantization"): info["Quantization"] = m["quantization"]
+                            if m.get("max_context_length"): info["Max Context"] = str(m["max_context_length"])
+                            if m.get("compatibility_type"): info["Compatibility"] = m["compatibility_type"]
+                            if m.get("publisher"): info["Publisher"] = m["publisher"]
+                            if m.get("state"): info["State"] = m["state"]
+                            if mid: info["Full Name"] = mid
+                            break
+                else:
+                    # Fallback to lms ls CLI
+                    ls_output = subprocess.check_output(["lms", "ls"], text=True, timeout=10)
+                    for line in ls_output.splitlines():
+                        if "LOADED" in line:
+                            parts = re.split(r'\s{2,}', line.strip())
+                            if len(parts) >= 4:
+                                info["Size"] = parts[-2]
+                                info["Architecture"] = parts[-3]
+                                info["Parameters"] = parts[-4]
+                                if len(parts) >= 5:
+                                    info["Full Name"] = parts[0]
+                            break
             except Exception:
                 pass
             
@@ -814,12 +965,19 @@ class AgentRunner:
 
     def start_server_logger(self):
         """Starts streaming server logs to file."""
+        self._run_start_time = datetime.now()
+
         if self.non_local:
+            return
+
+        # Skip if lms CLI is known to be unresponsive (e.g. hangs on Windows)
+        if not _lms_cli_available:
+            print("[*] Skipping lms log stream (CLI unavailable). Will read on-disk server logs instead.")
             return
 
         log_path = self.work_dir / SERVER_LOG_FILENAME
         print(f"[*] Starting server log stream to: {log_path}")
-        
+
         try:
             self.server_log_file = open(log_path, "w")
             self.log_process = subprocess.Popen(
@@ -827,8 +985,84 @@ class AgentRunner:
                 stdout=self.server_log_file,
                 stderr=subprocess.STDOUT
             )
+            # Quick check: if process exits immediately it likely can't connect
+            time.sleep(0.5)
+            if self.log_process.poll() is not None:
+                print("[-] lms log stream exited immediately — will read on-disk server logs instead.")
+                self.server_log_file.close()
+                self.log_process = None
         except Exception as e:
             print(f"[-] Failed to start server logger: {e}")
+
+    def _collect_server_log_from_disk(self):
+        """Reads LM Studio's on-disk server logs as a fallback when lms log stream fails.
+
+        Copies log entries from the run start time onward into SERVER.LOG so that
+        token parsing and prompt processing time work normally.
+        """
+        if self.non_local:
+            return
+
+        log_path = self.work_dir / SERVER_LOG_FILENAME
+
+        # If SERVER.LOG already has useful content (from lms log stream), skip
+        if log_path.exists() and log_path.stat().st_size > 0:
+            try:
+                content = log_path.read_text(encoding='utf-8', errors='ignore')
+                if '"usage"' in content or 'Prompt processing progress' in content:
+                    return  # lms log stream worked fine
+            except Exception:
+                pass
+
+        # Find LM Studio's on-disk log directory
+        lms_log_dir = Path.home() / ".lmstudio" / "server-logs"
+        if not lms_log_dir.exists():
+            print("[-] LM Studio server-logs directory not found, cannot recover token metrics.")
+            return
+
+        start_time = getattr(self, '_run_start_time', None)
+        if not start_time:
+            return
+
+        # Collect log files that could contain entries from our run
+        # Format: ~/.lmstudio/server-logs/YYYY-MM/YYYY-MM-DD.N.log
+        year_month = start_time.strftime("%Y-%m")
+        month_dir = lms_log_dir / year_month
+        if not month_dir.exists():
+            return
+
+        # Find today's log file(s)
+        today_str = start_time.strftime("%Y-%m-%d")
+        log_files = sorted(month_dir.glob(f"{today_str}.*.log"))
+        if not log_files:
+            return
+
+        # Timestamp format in LM Studio logs: [YYYY-MM-DD HH:MM:SS]
+        start_ts_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
+        ts_pattern = re.compile(r'^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]')
+
+        collected_lines = []
+        capturing = False
+
+        for log_file in log_files:
+            try:
+                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        if not capturing:
+                            m = ts_pattern.match(line)
+                            if m and m.group(1) >= start_ts_str:
+                                capturing = True
+                        if capturing:
+                            collected_lines.append(line)
+            except Exception as e:
+                print(f"[-] Error reading LM Studio log {log_file}: {e}")
+
+        if collected_lines:
+            with open(log_path, 'w', encoding='utf-8') as f:
+                f.writelines(collected_lines)
+            print(f"[+] Recovered {len(collected_lines)} lines from LM Studio on-disk logs into SERVER.LOG")
+        else:
+            print("[-] No matching log entries found in LM Studio on-disk logs.")
 
     def stop_server_logger(self):
         """Stops the server log stream."""
@@ -840,9 +1074,12 @@ class AgentRunner:
             except subprocess.TimeoutExpired:
                 self.log_process.kill()
             self.log_process = None
-            
+
         if hasattr(self, 'server_log_file') and self.server_log_file:
             self.server_log_file.close()
+
+        # Fallback: read from LM Studio's on-disk logs if streaming didn't work
+        self._collect_server_log_from_disk()
 
     def run(self):
         """Orchestrates the run."""
@@ -878,7 +1115,7 @@ class AgentRunner:
             
             try:
                 result = subprocess.run(
-                    ["python3", py_file.name],
+                    [sys.executable, py_file.name],
                     cwd=self.work_dir,
                     capture_output=True,
                     text=True,
