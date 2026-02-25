@@ -21,6 +21,7 @@ EVALS_DIR = Path("evals")
 SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
 CLAUDE_RESULT_FILENAME = "CLAUDE_RESULT.JSON"
+GEMINI_RESULT_FILENAME = "GEMINI_RESULT.JSON"
 
 # Tracks whether the lms CLI is responsive (set during model loading)
 _lms_cli_available = True
@@ -454,6 +455,30 @@ class MetadataCollector:
                 except Exception as e:
                     print(f"[-] Error parsing Claude result JSON: {e}")
 
+        # Check for Gemini result JSON
+        if chat_log_path:
+            gemini_result_path = chat_log_path.parent / GEMINI_RESULT_FILENAME
+            if gemini_result_path.exists():
+                try:
+                    with open(gemini_result_path, 'r') as f:
+                        result_data = json.load(f)
+                    stats = result_data.get("stats", {})
+                    if stats:
+                        usage["prompt_tokens"] = stats.get("input_tokens", 0)
+                        usage["completion_tokens"] = stats.get("output_tokens", 0)
+                        usage["total_tokens"] = stats.get("total_tokens", 0)
+                        
+                        cached = stats.get("cached", 0)
+                        if cached:
+                            usage["cache_read_tokens"] = cached
+                        
+                        num_turns = stats.get("tool_calls", None) # approximate depending on use case or could just drop
+                        
+                        if usage["total_tokens"] > 0:
+                            return usage
+                except Exception as e:
+                    print(f"[-] Error parsing Gemini result JSON: {e}")
+
         # Try server log first (LM Studio)
         if log_path and log_path.exists():
             try:
@@ -593,6 +618,7 @@ class MetadataCollector:
             elif agent_name == "gemini":
                 info["Provider"] = "Google"
                 info["Type"] = "Cloud API"
+                info["Model ID"] = model_key
                 return info
 
         # Heuristic Defaults
@@ -1194,9 +1220,10 @@ class AgentRunner:
         """Runs the actual agent command."""
         raise NotImplementedError
 
-    def _run_process(self, cmd: List[str]):
+    def _run_process(self, cmd: List[str], env: Optional[Dict[str, str]] = None):
         """Runs the process and streams output to file and stdout."""
-        env = self.get_env_vars()
+        if env is None:
+            env = self.get_env_vars()
         
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         
@@ -1246,12 +1273,100 @@ class AgentRunner:
 class GeminiRunner(AgentRunner):
     def execute_agent(self):
         # Gemini CLI: `gemini --prompt "content"`
-        # The help output suggests `gemini --prompt`
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
         
-        cmd = ["gemini", "--prompt", prompt_content] 
-        self._run_process(cmd)
+        # Use absolute path to avoid FileNotFoundError
+        gemini_bin = shutil.which("gemini") or "gemini"
+        
+        cmd = [gemini_bin, "--yolo", "--prompt", prompt_content, "--output-format", "stream-json"]
+        
+        if self.model_name:
+            cmd.extend(["--model", self.model_name])
+
+        env = self.get_env_vars()
+        # Remove Gemini-specific env vars to avoid nested session detection/relaunch issues
+        env.pop("GEMINI_CLI", None)
+        env.pop("GEMINI_CLI_NO_RELAUNCH", None)
+        
+        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+        result_json_path = self.work_dir / GEMINI_RESULT_FILENAME
+
+        print(f"[*] Executing: gemini --yolo --prompt <prompt> --output-format stream-json")
+        print(f"[*] Output logging to: {chat_log_path}")
+
+        result_data = None
+
+        with open(chat_log_path, "w") as log_file:
+            process = subprocess.Popen(
+                cmd,
+                cwd=self.work_dir,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+
+            for line in process.stdout:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    event = json.loads(stripped)
+                    event_type = event.get("type", "")
+
+                    if event_type == "message":
+                        # Gemini's message event provides continuous strings without "blocks"
+                        content = event.get("content", "")
+                        if content and event.get("role") == "assistant":
+                            # It streams delta updates usually.
+                            sys.stdout.write(content)
+                            sys.stdout.flush()
+                            log_file.write(content)
+                            log_file.flush()
+                            
+                    elif event_type == "tool_call":
+                        tool_name = event.get("function", "")
+                        info_line = f"\n[Tool: {tool_name}]\n"
+                        sys.stdout.write(info_line)
+                        sys.stdout.flush()
+                        log_file.write(info_line)
+                        log_file.flush()
+
+                    elif event_type == "result":
+                        result_data = event
+                        sys.stdout.write("\n")
+                        sys.stdout.flush()
+                        log_file.write("\n")
+                        log_file.flush()
+
+                except json.JSONDecodeError:
+                    # Non-JSON line, pass through as-is
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    log_file.write(line)
+                    log_file.flush()
+
+            try:
+                process.wait(timeout=900)
+            except subprocess.TimeoutExpired:
+                print(f"[-] Agent process timed out after 900 seconds.")
+                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
+                process.kill()
+                process.wait()
+
+            if process.returncode == 0:
+                print(f"[+] Agent finished successfully.")
+                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+            else:
+                print(f"[-] Agent finished with error code {process.returncode}")
+                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+
+        if result_data:
+            with open(result_json_path, "w") as f:
+                json.dump(result_data, f, indent=2)
+            print(f"[+] Gemini usage data saved to: {result_json_path}")
 
 class ClaudeRunner(AgentRunner):
     def execute_agent(self):
