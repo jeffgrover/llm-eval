@@ -1611,12 +1611,96 @@ class OpenCodeRunner(AgentRunner):
             json.dump(config, f, indent=2)
 
     def execute_agent(self):
-        # OpenCode: `opencode run "content"`
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
-            
-        cmd = ["opencode", "run", prompt_content]
-        self._run_process(cmd)
+
+        cmd = ["opencode", "run", prompt_content,
+               "--format", "json", "--print-logs"]
+
+        if not self.non_local:
+            cmd.extend(["--model", f"lmstudio/{self.model_name}"])
+
+        env = self.get_env_vars()
+        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+
+        print(f"[*] Executing: opencode run <prompt> --format json --print-logs")
+        print(f"[*] Output logging to: {chat_log_path}")
+
+        with open(chat_log_path, "w") as log_file:
+            process = subprocess.Popen(
+                cmd,
+                cwd=self.work_dir,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1
+            )
+
+            # Read stdout (JSON events) and stderr (logs) concurrently
+            import threading
+
+            def drain_stderr():
+                for line in process.stderr:
+                    sys.stderr.write(line)
+                    sys.stderr.flush()
+                    log_file.write(line)
+                    log_file.flush()
+
+            stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
+            stderr_thread.start()
+
+            for line in process.stdout:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    event = json.loads(stripped)
+                    event_type = event.get("type", "")
+
+                    # Extract readable text from JSON events
+                    if event_type == "text":
+                        text = event.get("content", event.get("text", ""))
+                        if text:
+                            sys.stdout.write(text)
+                            sys.stdout.flush()
+                            log_file.write(text)
+                            log_file.flush()
+                    elif event_type == "tool_call":
+                        tool_name = event.get("name", event.get("tool", "unknown"))
+                        info_line = f"\n[Tool: {tool_name}]\n"
+                        sys.stdout.write(info_line)
+                        sys.stdout.flush()
+                        log_file.write(info_line)
+                        log_file.flush()
+                    else:
+                        # Log other event types as raw JSON for debugging
+                        log_file.write(line)
+                        log_file.flush()
+
+                except json.JSONDecodeError:
+                    # Non-JSON line (e.g. log output), pass through
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    log_file.write(line)
+                    log_file.flush()
+
+            stderr_thread.join(timeout=5)
+
+            try:
+                process.wait(timeout=900)
+            except subprocess.TimeoutExpired:
+                print(f"[-] Agent process timed out after 900 seconds.")
+                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
+                process.kill()
+                process.wait()
+
+            if process.returncode == 0:
+                print(f"[+] Agent finished successfully.")
+                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+            else:
+                print(f"[-] Agent finished with error code {process.returncode}")
+                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
 
 class CrushRunner(AgentRunner):
     def execute_agent(self):
