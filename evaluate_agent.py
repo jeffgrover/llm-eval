@@ -22,6 +22,7 @@ SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
 CLAUDE_RESULT_FILENAME = "CLAUDE_RESULT.JSON"
 GEMINI_RESULT_FILENAME = "GEMINI_RESULT.JSON"
+OPENCODE_RESULT_FILENAME = "OPENCODE_RESULT.JSON"
 
 # Tracks whether the lms CLI is responsive (set during model loading)
 _lms_cli_available = True
@@ -479,6 +480,30 @@ class MetadataCollector:
                 except Exception as e:
                     print(f"[-] Error parsing Gemini result JSON: {e}")
 
+        # Check for OpenCode result JSON
+        if chat_log_path:
+            opencode_result_path = chat_log_path.parent / OPENCODE_RESULT_FILENAME
+            if opencode_result_path.exists():
+                try:
+                    with open(opencode_result_path, 'r') as f:
+                        result_data = json.load(f)
+                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
+                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
+                    usage["total_tokens"] = result_data.get("total_tokens", 0)
+                    cache_read = result_data.get("cache_read_tokens", 0)
+                    if cache_read:
+                        usage["cache_read_tokens"] = cache_read
+                    cost = result_data.get("cost_usd", 0)
+                    if cost:
+                        usage["cost_usd"] = cost
+                    num_turns = result_data.get("num_turns", 0)
+                    if num_turns:
+                        usage["num_turns"] = num_turns
+                    if usage["total_tokens"] > 0:
+                        return usage
+                except Exception as e:
+                    print(f"[-] Error parsing OpenCode result JSON: {e}")
+
         # Try server log first (LM Studio)
         if log_path and log_path.exists():
             try:
@@ -703,7 +728,13 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
     prompt_time_str = format_duration_human(prompt_time_seconds)
     
     tps = 0
-    if duration_seconds > prompt_time_seconds:
+    num_turns = tokens.get('num_turns', 0)
+    if num_turns > 1:
+        # Multi-turn: prompt processing is interleaved with generation at each step,
+        # so use total wall time for effective throughput
+        if total_output > 0 and duration_seconds > 0:
+            tps = round(total_output / duration_seconds, 2)
+    elif duration_seconds > prompt_time_seconds:
         generation_seconds = duration_seconds - prompt_time_seconds
         tps = round(total_output / generation_seconds, 2)
     elif total_output > 0 and duration_seconds > 0:
@@ -1622,9 +1653,22 @@ class OpenCodeRunner(AgentRunner):
 
         env = self.get_env_vars()
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+        result_json_path = self.work_dir / OPENCODE_RESULT_FILENAME
 
         print(f"[*] Executing: opencode run <prompt> --format json --print-logs")
         print(f"[*] Output logging to: {chat_log_path}")
+
+        # Patterns to suppress from terminal and log file (high-volume internal bus noise)
+        _stderr_noise = re.compile(r'service=bus\b')
+
+        # Accumulate token usage from step_finish events
+        total_input = 0
+        total_output = 0
+        total_reasoning = 0
+        total_cost = 0.0
+        cache_read = 0
+        cache_write = 0
+        num_turns = 0
 
         with open(chat_log_path, "w") as log_file:
             process = subprocess.Popen(
@@ -1642,6 +1686,8 @@ class OpenCodeRunner(AgentRunner):
 
             def drain_stderr():
                 for line in process.stderr:
+                    if _stderr_noise.search(line):
+                        continue
                     sys.stderr.write(line)
                     sys.stderr.flush()
                     log_file.write(line)
@@ -1673,6 +1719,20 @@ class OpenCodeRunner(AgentRunner):
                         sys.stdout.flush()
                         log_file.write(info_line)
                         log_file.flush()
+                    elif event_type == "step_finish":
+                        # Accumulate per-step token usage
+                        part = event.get("part", {})
+                        tokens = part.get("tokens", {})
+                        total_input += tokens.get("input", 0)
+                        total_output += tokens.get("output", 0)
+                        total_reasoning += tokens.get("reasoning", 0)
+                        total_cost += part.get("cost", 0)
+                        cache = tokens.get("cache", {})
+                        cache_read += cache.get("read", 0)
+                        cache_write += cache.get("write", 0)
+                        num_turns += 1
+                        log_file.write(line)
+                        log_file.flush()
                     else:
                         # Log other event types as raw JSON for debugging
                         log_file.write(line)
@@ -1701,6 +1761,22 @@ class OpenCodeRunner(AgentRunner):
             else:
                 print(f"[-] Agent finished with error code {process.returncode}")
                 log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+
+        # Save accumulated token usage to result JSON
+        if total_input > 0 or total_output > 0:
+            result_data = {
+                "input_tokens": total_input,
+                "output_tokens": total_output,
+                "total_tokens": total_input + total_output,
+                "reasoning_tokens": total_reasoning,
+                "cache_read_tokens": cache_read,
+                "cache_write_tokens": cache_write,
+                "cost_usd": total_cost,
+                "num_turns": num_turns
+            }
+            with open(result_json_path, "w") as f:
+                json.dump(result_data, f, indent=2)
+            print(f"[+] OpenCode usage data saved to: {result_json_path}")
 
 class CrushRunner(AgentRunner):
     def execute_agent(self):
