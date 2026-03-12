@@ -153,3 +153,4 @@ When running, you should see:
 - Smooth leg animation during walking
 - No z-fighting or disappearing surfaces when rotating view
 
+After generating all the files, double-check by reading all the files to ensure they were produced correctly.
