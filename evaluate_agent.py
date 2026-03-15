@@ -1011,6 +1011,10 @@ class AgentRunner:
         self.work_dir.mkdir(parents=True, exist_ok=True)
         print(f"[+] Created workspace: {self.work_dir}")
 
+    def get_model_extra_info(self) -> Dict[str, str]:
+        """Returns additional model metadata to merge into the Model Details box. Override per agent."""
+        return {}
+
     def get_env_vars(self) -> Dict[str, str]:
         """Returns the environment variables needed for the agent to talk to localhost."""
         env = os.environ.copy()
@@ -1205,10 +1209,13 @@ class AgentRunner:
         except Exception:
             prompt_text = "Error reading prompt file."
 
+        model_info = MetadataCollector.parse_model_info(self.model_name, self.non_local, self.agent_name)
+        model_info.update(self.get_model_extra_info())
+
         metadata = {
             "Hardware": MetadataCollector.get_hardware_info(),
             "Software": MetadataCollector.get_software_versions(self.agent_binary, self.non_local),
-            "Model": MetadataCollector.parse_model_info(self.model_name, self.non_local, self.agent_name),
+            "Model": model_info,
             "Tokens": MetadataCollector.get_token_usage(
                 self.work_dir / SERVER_LOG_FILENAME, 
                 self.work_dir / CHAT_SESSION_FILENAME
@@ -1615,6 +1622,24 @@ class VibeRunner(AgentRunner):
                 self._restore_vibe_config()
 
 class OpenCodeRunner(AgentRunner):
+    def get_model_extra_info(self) -> Dict[str, str]:
+        result_path = self.work_dir / OPENCODE_RESULT_FILENAME
+        if not result_path.exists():
+            return {}
+        try:
+            with open(result_path) as f:
+                data = json.load(f)
+            extra = {}
+            if data.get("provider_id"):
+                extra["Provider"] = data["provider_id"].title()
+            if data.get("model_id"):
+                extra["Model ID"] = data["model_id"]
+            if data.get("opencode_version"):
+                extra["OpenCode Version"] = data["opencode_version"]
+            return extra
+        except Exception:
+            return {}
+
     def configure_agent(self):
         if self.non_local:
             return
@@ -1670,6 +1695,11 @@ class OpenCodeRunner(AgentRunner):
         cache_write = 0
         num_turns = 0
 
+        # Provider/model info parsed from log output
+        opencode_version = None
+        provider_id = None
+        model_id = None
+
         with open(chat_log_path, "w") as log_file:
             process = subprocess.Popen(
                 cmd,
@@ -1684,7 +1714,11 @@ class OpenCodeRunner(AgentRunner):
             # Read stdout (JSON events) and stderr (logs) concurrently
             import threading
 
+            _log_version_re = re.compile(r'service=default\s+version=(\S+)')
+            _log_llm_re = re.compile(r'service=llm\s+providerID=(\S+)\s+modelID=(\S+).*\bsmall=false\b')
+
             def drain_stderr():
+                nonlocal opencode_version, provider_id, model_id
                 for line in process.stderr:
                     if _stderr_noise.search(line):
                         continue
@@ -1692,6 +1726,17 @@ class OpenCodeRunner(AgentRunner):
                     sys.stderr.flush()
                     log_file.write(line)
                     log_file.flush()
+                    # Parse opencode version from first log line
+                    if opencode_version is None:
+                        m = _log_version_re.search(line)
+                        if m:
+                            opencode_version = m.group(1)
+                    # Parse provider/model from llm service lines (main build agent only)
+                    if provider_id is None:
+                        m = _log_llm_re.search(line)
+                        if m:
+                            provider_id = m.group(1)
+                            model_id = m.group(2)
 
             stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
             stderr_thread.start()
@@ -1774,6 +1819,12 @@ class OpenCodeRunner(AgentRunner):
                 "cost_usd": total_cost,
                 "num_turns": num_turns
             }
+            if provider_id:
+                result_data["provider_id"] = provider_id
+            if model_id:
+                result_data["model_id"] = model_id
+            if opencode_version:
+                result_data["opencode_version"] = opencode_version
             with open(result_json_path, "w") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] OpenCode usage data saved to: {result_json_path}")
