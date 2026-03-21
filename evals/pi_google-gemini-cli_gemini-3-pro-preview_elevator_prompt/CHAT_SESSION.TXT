@@ -1,0 +1,17 @@
+The 3D elevator simulation has been created successfully. The project consists of three main files:
+
+1.  **`index.html`**: Sets up the Three.js environment, OrbitControls, and loads the simulation scripts. It includes a speed slider for controlling the animation.
+2.  **`person.js`**: Contains the factory function `createPerson()` to generate the 3D humanoid figures with articulated limbs for walking animations.
+3.  **`elevator.js`**: Handles the main simulation logic, including building construction, elevator movement, state management, and the animation loop.
+
+### Key Features Implemented:
+*   **Visual Structure**: Transparent building with 6 floors and a central shaft. The elevator is a semi-transparent yellow car with sliding doors.
+*   **Characters**: Humanoid figures constructed from primitives with proper joint articulation (legs pivot from hips) and colors (blue body, skin-tone head).
+*   **Animation**: Smooth walking animations synchronized with movement. The elevator cycle includes opening doors, people walking in, closing doors, traveling, opening doors, and people walking out.
+*   **Transparency Handling**: `renderer.sortObjects = true` and `depthWrite: false` are used on transparent materials to ensure correct rendering order without visual artifacts.
+*   **Parenting Logic**: Characters become children of the elevator object during transit to ensure they move perfectly with the car.
+
+### Usage
+Open `index.html` in a web browser. Use the mouse to rotate/zoom the camera and the slider in the top-left corner to adjust the simulation speed.
+
+[SUCCESS] Process exited cleanly.

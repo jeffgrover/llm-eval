@@ -40,6 +40,7 @@ Install the agents you wish to evaluate. Each has its own setup requirements:
 | **Gemini CLI** | `gemini` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
 | **Crush** | `crush` | [charmbracelet/crush](https://github.com/charmbracelet/crush) |
 | **OpenCode** | `opencode` | [opencode-ai/opencode](https://github.com/opencode-ai/opencode) |
+| **Pi Coding Agent** | `pi` | [badlogic/pi-mono](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) |
 
 ---
 
@@ -56,7 +57,7 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 
 ### Parameters
 -   `--model`: The LM Studio model identifier (or cloud model name when using `--non-local`).
--   `--agent`: One of `vibe`, `gemini`, `claude`, `opencode`, or `crush`.
+-   `--agent`: One of `vibe`, `gemini`, `claude`, `opencode`, `crush`, or `pi`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
 -   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.
 -   `--headless`: (Optional) Run in headless mode (defaults to True).

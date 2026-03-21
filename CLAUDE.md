@@ -1,7 +1,7 @@
 # LLM Agent Evaluation Suite
 
 ## Project Overview
-A benchmarking framework for evaluating agentic CLI tools (Claude Code, Gemini CLI, Mistral Vibe, OpenCode, Crush) against both local LLMs (via LM Studio) and cloud API providers. Generates self-contained HTML reports with system info, model details, token metrics, and artifact previews.
+A benchmarking framework for evaluating agentic CLI tools (Claude Code, Gemini CLI, Mistral Vibe, OpenCode, Crush, Pi Coding Agent) against both local LLMs (via LM Studio) and cloud API providers. Generates self-contained HTML reports with system info, model details, token metrics, and artifact previews.
 
 ## Architecture
 - `evaluate_agent.py` - Main orchestrator: agent runners, metadata collection, HTML report generation

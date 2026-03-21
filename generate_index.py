@@ -14,6 +14,7 @@ AGENT_DISPLAY_NAMES = {
     "claude": "Claude Code",
     "crush": "Charmbracelet Crush",
     "opencode": "OpenCode CLI",
+    "pi": "Pi Coding Agent",
     "vibe": "Mistral Vibe" # Alias
 }
 
@@ -34,6 +35,7 @@ AGENT_COLORS = {
     "OpenCode CLI": "#059669",
     "Mistral Vibe": "#dc2626",
     "Charmbracelet Crush": "#7c3aed",
+    "Pi Coding Agent": "#0891b2",
 }
 
 def get_agent_color(agent_name):

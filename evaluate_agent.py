@@ -645,6 +645,18 @@ class MetadataCollector:
                 info["Type"] = "Cloud API"
                 info["Model ID"] = model_key
                 return info
+            elif agent_name == "pi":
+                if "/" in model_key:
+                    provider, model_id = model_key.split("/", 1)
+                    # Normalize provider display names (e.g. "google-gemini-cli" -> "Google")
+                    provider_display = provider.split("-")[0].title() if "-" in provider else provider.title()
+                    info["Provider"] = provider_display
+                    info["Model ID"] = model_id
+                else:
+                    info["Provider"] = "Google"  # pi defaults to google provider
+                    info["Model ID"] = model_key
+                info["Type"] = "Cloud API"
+                return info
 
         # Heuristic Defaults
         if "24b" in model_key.lower():
@@ -997,7 +1009,7 @@ class AgentRunner:
         self.agent_binary = self.binary_map.get(agent_name, agent_name)
         
         # Prepare workspace
-        self.safe_model_name = "".join(c for c in model_name if c.isalnum() or c in ('-', '_')).strip()
+        self.safe_model_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in model_name).strip()
         # Requested naming convention: {binary_name}_{safe_model_name}_{prompt_stem}
         self.work_dir = EVALS_DIR / f"{self.agent_binary}_{self.safe_model_name}_{prompt_file.stem}"
         
@@ -1835,8 +1847,36 @@ class CrushRunner(AgentRunner):
         # Crush: `crush run "content" -y`
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
-        
+
         cmd = ["crush", "run", prompt_content, "-y"]
+        self._run_process(cmd)
+
+
+PI_RESULT_FILENAME = "PI_RESULT.JSON"
+
+class PiRunner(AgentRunner):
+    def execute_agent(self):
+        # Pi: `pi --print --no-session --provider <provider> --model <model> "content"`
+        with open(self.prompt_file, 'r') as f:
+            prompt_content = f.read()
+
+        cmd = ["pi", "--print", "--no-session"]
+
+        if self.non_local:
+            # Cloud mode: parse "provider/model" to split provider and model,
+            # otherwise let pi use its configured defaults from settings.json.
+            # Note: pi provider names can differ from simple names (e.g.
+            # "google-gemini-cli" for OAuth vs "google" for API key).
+            if "/" in self.model_name:
+                provider, model_id = self.model_name.split("/", 1)
+                cmd += ["--provider", provider, "--model", model_id]
+            else:
+                cmd += ["--model", self.model_name]
+        else:
+            # Local mode: point at LM Studio's OpenAI-compatible endpoint
+            cmd += ["--provider", "openai", "--model", self.model_name]
+
+        cmd.append(prompt_content)
         self._run_process(cmd)
 
 
@@ -1849,7 +1889,8 @@ def get_runner(agent: str) -> type[AgentRunner]:
         "vibe": VibeRunner,
         "mistral": VibeRunner, # Backward compatibility alias
         "opencode": OpenCodeRunner,
-        "crush": CrushRunner
+        "crush": CrushRunner,
+        "pi": PiRunner
     }
     return mapping.get(agent.lower())
 
@@ -1858,7 +1899,7 @@ def get_runner(agent: str) -> type[AgentRunner]:
 def main():
     parser = argparse.ArgumentParser(description="Evaluate local LLM agents.")
     parser.add_argument("--model", required=True, help="LM Studio model key/identifier")
-    parser.add_argument("--agent", required=True, choices=["gemini", "claude", "vibe", "opencode", "crush"], help="Agent to evaluate (vibe = Mistral Vibe)")
+    parser.add_argument("--agent", required=True, choices=["gemini", "claude", "vibe", "opencode", "crush", "pi"], help="Agent to evaluate (vibe = Mistral Vibe)")
     parser.add_argument("--prompt-file", required=True, type=Path, help="Path to the initial prompt file")
     parser.add_argument("--headless", action="store_true", default=True, help="Run in headless mode (default: True)")
     parser.add_argument("--non-local", action="store_true", help="Disable LM Studio-related functionality and use default inference providers")
