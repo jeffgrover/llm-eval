@@ -1,124 +1,115 @@
 // person.js
 
 function createPerson() {
-    const personGroup = new THREE.Group();
-
-    // Material definitions
-    const skinMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac }); // Skin tone
-    const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x3498db }); // Blue body
-    const legMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });  // Dark legs
-
+    // Colors
+    const COLOR_BODY = 0x3498db;
+    const COLOR_SKIN = 0xffdbac;
+    const COLOR_LEGS = 0x2c3e50;
+    
     // Dimensions
-    const legWidth = 0.25;
-    const legHeight = 0.9;
-    const legDepth = 0.25;
-    const bodyWidth = 0.6;
-    const bodyHeight = 0.9;
-    const bodyDepth = 0.35;
-    const headRadius = 0.25;
-    const armWidth = 0.2;
-    const armHeight = 0.8;
-    const armDepth = 0.2;
-
-    // --- LEGS ---
-    // We need legs to rotate from the hip (top of the leg).
-    // So we create a group for each leg at the hip position, and offset the leg mesh down.
+    const LEG_WIDTH = 0.15;
+    const LEG_HEIGHT = 0.75;
+    const LEG_DEPTH = 0.15;
+    
+    const TORSO_WIDTH = 0.4;
+    const TORSO_HEIGHT = 0.6;
+    const TORSO_DEPTH = 0.25;
+    
+    const HEAD_SIZE = 0.25;
+    
+    const ARM_WIDTH = 0.12;
+    const ARM_HEIGHT = 0.6;
+    const ARM_DEPTH = 0.12;
+    
+    // Create Group - Pivot is at feet (0,0,0)
+    const person = new THREE.Group();
+    
+    // --- Legs ---
+    const legGeo = new THREE.BoxGeometry(LEG_WIDTH, LEG_HEIGHT, LEG_DEPTH);
+    const legMat = new THREE.MeshLambertMaterial({ color: COLOR_LEGS });
     
     // Left Leg
-    const leftLegGroup = new THREE.Group();
-    leftLegGroup.position.set(-0.15, legHeight, 0); // Hip position
+    const leftLeg = new THREE.Mesh(legGeo, legMat);
+    // Pivot at hip: Geometry is centered. Move geometry down by half height so pivot is at top?
+    // Or just position leg relative to hip.
+    // Easier for animation: Make a pivot group for the leg at the hip.
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.1, LEG_HEIGHT, 0); // Hip position
+    leftLeg.position.set(0, -LEG_HEIGHT/2, 0); // Leg hangs down from pivot
+    leftLegPivot.add(leftLeg);
+    person.add(leftLegPivot);
     
-    const leftLegGeo = new THREE.BoxGeometry(legWidth, legHeight, legDepth);
-    // Move geometry down so the origin of the mesh is at the top
-    leftLegGeo.translate(0, -legHeight / 2, 0); 
-    const leftLeg = new THREE.Mesh(leftLegGeo, legMaterial);
-    leftLegGroup.add(leftLeg);
-    personGroup.add(leftLegGroup);
-
     // Right Leg
-    const rightLegGroup = new THREE.Group();
-    rightLegGroup.position.set(0.15, legHeight, 0); // Hip position
-
-    const rightLegGeo = new THREE.BoxGeometry(legWidth, legHeight, legDepth);
-    rightLegGeo.translate(0, -legHeight / 2, 0);
-    const rightLeg = new THREE.Mesh(rightLegGeo, legMaterial);
-    rightLegGroup.add(rightLeg);
-    personGroup.add(rightLegGroup);
-
-    // --- BODY (TORSO) ---
-    const bodyGeo = new THREE.BoxGeometry(bodyWidth, bodyHeight, bodyDepth);
-    const body = new THREE.Mesh(bodyGeo, bodyMaterial);
-    // Body sits on top of legs (legHeight) and extends up. 
-    // Center is at legHeight + bodyHeight/2
-    body.position.y = legHeight + bodyHeight / 2;
-    personGroup.add(body);
-
-    // --- HEAD ---
-    const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4); // Using box for simplicity/style
-    const head = new THREE.Mesh(headGeo, skinMaterial);
-    head.position.y = legHeight + bodyHeight + 0.2; // On top of body
-    personGroup.add(head);
-
-    // --- ARMS ---
-    // Arms should hang down from shoulders. Shoulders are at top of body.
-    const shoulderHeight = legHeight + bodyHeight - 0.1;
-
-    // Left Arm
-    const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-(bodyWidth/2 + armWidth/2), shoulderHeight, 0);
+    const rightLeg = new THREE.Mesh(legGeo, legMat);
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.1, LEG_HEIGHT, 0); // Hip position
+    rightLeg.position.set(0, -LEG_HEIGHT/2, 0); // Leg hangs down from pivot
+    rightLegPivot.add(rightLeg);
+    person.add(rightLegPivot);
     
-    const leftArmGeo = new THREE.BoxGeometry(armWidth, armHeight, armDepth);
-    leftArmGeo.translate(0, -armHeight / 2, 0); // Pivot at top
-    const leftArm = new THREE.Mesh(leftArmGeo, bodyMaterial); // Sleeves same as body? Or skin? "Blue body" usually implies shirt. Let's make arms blue.
-    // Maybe hands at bottom? Keep simple.
-    leftArmGroup.add(leftArm);
-    personGroup.add(leftArmGroup);
-
+    // --- Torso ---
+    const torsoGeo = new THREE.BoxGeometry(TORSO_WIDTH, TORSO_HEIGHT, TORSO_DEPTH);
+    const torsoMat = new THREE.MeshLambertMaterial({ color: COLOR_BODY });
+    const torso = new THREE.Mesh(torsoGeo, torsoMat);
+    torso.position.set(0, LEG_HEIGHT + TORSO_HEIGHT/2, 0);
+    person.add(torso);
+    
+    // --- Head ---
+    const headGeo = new THREE.BoxGeometry(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE); // Using box for simplicity as per "primitives"
+    const headMat = new THREE.MeshLambertMaterial({ color: COLOR_SKIN });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.set(0, LEG_HEIGHT + TORSO_HEIGHT + HEAD_SIZE/2, 0);
+    person.add(head);
+    
+    // --- Arms ---
+    const armGeo = new THREE.BoxGeometry(ARM_WIDTH, ARM_HEIGHT, ARM_DEPTH);
+    const armMat = new THREE.MeshLambertMaterial({ color: COLOR_BODY }); // Same as shirt usually
+    
+    // Left Arm
+    const leftArm = new THREE.Mesh(armGeo, armMat);
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-(TORSO_WIDTH/2 + ARM_WIDTH/2), LEG_HEIGHT + TORSO_HEIGHT - 0.1, 0); // Shoulder position
+    leftArm.position.set(0, -ARM_HEIGHT/2, 0); // Arm hangs down
+    leftArmPivot.add(leftArm);
+    person.add(leftArmPivot);
+    
     // Right Arm
-    const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set((bodyWidth/2 + armWidth/2), shoulderHeight, 0);
-
-    const rightArmGeo = new THREE.BoxGeometry(armWidth, armHeight, armDepth);
-    rightArmGeo.translate(0, -armHeight / 2, 0); // Pivot at top
-    const rightArm = new THREE.Mesh(rightArmGeo, bodyMaterial);
-    rightArmGroup.add(rightArm);
-    personGroup.add(rightArmGroup);
-
-    // Attach references for animation
-    personGroup.userData = {
-        leftLeg: leftLegGroup,
-        rightLeg: rightLegGroup,
-        leftArm: leftArmGroup,
-        rightArm: rightArmGroup,
+    const rightArm = new THREE.Mesh(armGeo, armMat);
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(TORSO_WIDTH/2 + ARM_WIDTH/2, LEG_HEIGHT + TORSO_HEIGHT - 0.1, 0); // Shoulder position
+    rightArm.position.set(0, -ARM_HEIGHT/2, 0); // Arm hangs down
+    rightArmPivot.add(rightArm);
+    person.add(rightArmPivot);
+    
+    // --- Animation Logic ---
+    person.userData = {
         isWalking: false,
-        walkTime: 0
+        walkTime: 0,
+        setWalking: function(walking) {
+            this.isWalking = walking;
+            if (!walking) {
+                // Reset pose
+                leftLegPivot.rotation.x = 0;
+                rightLegPivot.rotation.x = 0;
+                leftArmPivot.rotation.x = 0;
+                rightArmPivot.rotation.x = 0;
+                this.walkTime = 0;
+            }
+        },
+        update: function(delta) {
+            if (this.isWalking) {
+                this.walkTime += delta * 10; // Speed of swing
+                const swing = Math.sin(this.walkTime) * 0.5; // Amplitude
+                
+                leftLegPivot.rotation.x = swing;
+                rightLegPivot.rotation.x = -swing;
+                
+                // Arms opposite to legs
+                leftArmPivot.rotation.x = -swing * 0.5;
+                rightArmPivot.rotation.x = swing * 0.5;
+            }
+        }
     };
-
-    // Cast shadows? Not strictly required by prompt but good practice. 
-    // Prompt says "Transparent" for environment, didn't specify shadows, keeping it simple to avoid artifacts with transparency.
-
-    return personGroup;
-}
-
-function updatePersonAnimation(person, deltaTime, speedMultiplier) {
-    if (!person.userData.isWalking) {
-        // Reset to standing
-        person.userData.leftLeg.rotation.x = 0;
-        person.userData.rightLeg.rotation.x = 0;
-        person.userData.leftArm.rotation.x = 0;
-        person.userData.rightArm.rotation.x = 0;
-        return;
-    }
-
-    person.userData.walkTime += deltaTime * speedMultiplier * 5; // *5 for reasonable cadence
-
-    const angle = Math.sin(person.userData.walkTime) * 0.5; // 0.5 rad swing
-
-    // Legs opposite
-    person.userData.leftLeg.rotation.x = angle;
-    person.userData.rightLeg.rotation.x = -angle;
-
-    // Arms opposite to legs (natural movement)
-    person.userData.leftArm.rotation.x = -angle * 0.5;
-    person.userData.rightArm.rotation.x = angle * 0.5;
+    
+    return person;
 }

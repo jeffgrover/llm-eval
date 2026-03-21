@@ -1,0 +1,11 @@
+{
+  "input_tokens": 31964,
+  "output_tokens": 13253,
+  "total_tokens": 45217,
+  "cache_read_tokens": 67116,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 9,
+  "provider_id": "google-gemini-cli",
+  "model_id": "gemini-3-flash-preview"
+}

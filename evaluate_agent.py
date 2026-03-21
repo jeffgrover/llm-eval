@@ -504,6 +504,30 @@ class MetadataCollector:
                 except Exception as e:
                     print(f"[-] Error parsing OpenCode result JSON: {e}")
 
+        # Check for Pi result JSON
+        if chat_log_path:
+            pi_result_path = chat_log_path.parent / PI_RESULT_FILENAME
+            if pi_result_path.exists():
+                try:
+                    with open(pi_result_path, 'r') as f:
+                        result_data = json.load(f)
+                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
+                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
+                    usage["total_tokens"] = result_data.get("total_tokens", 0)
+                    cache_read = result_data.get("cache_read_tokens", 0)
+                    if cache_read:
+                        usage["cache_read_tokens"] = cache_read
+                    cost = result_data.get("cost_usd", 0)
+                    if cost:
+                        usage["cost_usd"] = cost
+                    num_turns = result_data.get("num_turns", 0)
+                    if num_turns:
+                        usage["num_turns"] = num_turns
+                    if usage["total_tokens"] > 0:
+                        return usage
+                except Exception as e:
+                    print(f"[-] Error parsing Pi result JSON: {e}")
+
         # Try server log first (LM Studio)
         if log_path and log_path.exists():
             try:
@@ -737,7 +761,14 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
     prompt_time_seconds = metadata.get("PromptTime", 0.0)
     
     duration_str = format_duration_human(duration_seconds)
-    prompt_time_str = format_duration_human(prompt_time_seconds)
+    # For cloud agents with no server log, prompt processing time is unavailable;
+    # fall back to total wall-clock duration so the report isn't misleadingly "0s"
+    if prompt_time_seconds > 0:
+        prompt_time_str = format_duration_human(prompt_time_seconds)
+        prompt_time_label = "Processing Time"
+    else:
+        prompt_time_str = duration_str
+        prompt_time_label = "Total Time"
     
     tps = 0
     num_turns = tokens.get('num_turns', 0)
@@ -902,7 +933,7 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
                 <div class="meta-item prompt-card">
                      <h3>Prompt</h3>
                      <div class="prompt-content">{prompt_text}</div>
-                     <div class="prompt-footer">Processing Time: {prompt_time_str}</div>
+                     <div class="prompt-footer">{prompt_time_label}: {prompt_time_str}</div>
                 </div>
                 <div class="meta-item">
                     <h3>Token Metrics</h3>
@@ -1855,12 +1886,30 @@ class CrushRunner(AgentRunner):
 PI_RESULT_FILENAME = "PI_RESULT.JSON"
 
 class PiRunner(AgentRunner):
+    def get_model_extra_info(self) -> Dict[str, str]:
+        """Read provider/model info captured during the run."""
+        result_path = self.work_dir / PI_RESULT_FILENAME
+        if not result_path.exists():
+            return {}
+        try:
+            with open(result_path, 'r') as f:
+                data = json.load(f)
+            extra = {}
+            if data.get("provider_id"):
+                extra["Provider"] = data["provider_id"].title()
+            if data.get("model_id"):
+                extra["Model ID"] = data["model_id"]
+            return extra
+        except Exception:
+            return {}
+
     def execute_agent(self):
-        # Pi: `pi --print --no-session --provider <provider> --model <model> "content"`
+        # Pi: `pi --mode json --print --no-session --provider <provider> --model <model> "content"`
+        # Uses --mode json to get JSONL output with token usage in message_end events
         with open(self.prompt_file, 'r') as f:
             prompt_content = f.read()
 
-        cmd = ["pi", "--print", "--no-session"]
+        cmd = ["pi", "--mode", "json", "--print", "--no-session"]
 
         if self.non_local:
             # Cloud mode: parse "provider/model" to split provider and model,
@@ -1877,7 +1926,131 @@ class PiRunner(AgentRunner):
             cmd += ["--provider", "openai", "--model", self.model_name]
 
         cmd.append(prompt_content)
-        self._run_process(cmd)
+
+        env = self.get_env_vars()
+        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+        result_json_path = self.work_dir / PI_RESULT_FILENAME
+
+        print(f"[*] Executing: pi --mode json --print --no-session ...")
+        print(f"[*] Output logging to: {chat_log_path}")
+
+        # Accumulate token usage from assistant message_end events
+        total_input = 0
+        total_output = 0
+        total_cost = 0.0
+        cache_read = 0
+        cache_write = 0
+        num_turns = 0
+        pi_provider = None
+        pi_model = None
+
+        with open(chat_log_path, "w") as log_file:
+            process = subprocess.Popen(
+                cmd,
+                cwd=self.work_dir,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+
+            for line in process.stdout:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    event = json.loads(stripped)
+                    event_type = event.get("type", "")
+
+                    if event_type == "message_end":
+                        msg = event.get("message", {})
+                        if msg.get("role") == "assistant":
+                            # Extract token usage
+                            usage = msg.get("usage", {})
+                            total_input += usage.get("input", 0)
+                            total_output += usage.get("output", 0)
+                            cache_read += usage.get("cacheRead", 0)
+                            cache_write += usage.get("cacheWrite", 0)
+                            cost_obj = usage.get("cost", {})
+                            if isinstance(cost_obj, dict):
+                                total_cost += cost_obj.get("total", 0)
+                            elif isinstance(cost_obj, (int, float)):
+                                total_cost += cost_obj
+                            num_turns += 1
+                            # Capture provider/model from first assistant message
+                            if pi_provider is None:
+                                pi_provider = msg.get("provider")
+                                pi_model = msg.get("model")
+
+                    elif event_type == "message_update":
+                        # Extract text deltas for the chat log and console
+                        ae = event.get("assistantMessageEvent", {})
+                        ae_type = ae.get("type", "")
+                        if ae_type == "text_delta":
+                            delta = ae.get("delta", "")
+                            if delta:
+                                sys.stdout.write(delta)
+                                sys.stdout.flush()
+                                log_file.write(delta)
+                                log_file.flush()
+                        elif ae_type == "tool_call_start":
+                            tool_name = ae.get("name", "unknown")
+                            info_line = f"\n[Tool: {tool_name}]\n"
+                            sys.stdout.write(info_line)
+                            sys.stdout.flush()
+                            log_file.write(info_line)
+                            log_file.flush()
+
+                    elif event_type == "agent_end":
+                        # Final summary — log as-is for debugging
+                        log_file.write(line)
+                        log_file.flush()
+                    else:
+                        # Other events (session, agent_start, turn_start, etc.)
+                        pass
+
+                except json.JSONDecodeError:
+                    # Non-JSON line, pass through
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    log_file.write(line)
+                    log_file.flush()
+
+            try:
+                process.wait(timeout=900)
+            except subprocess.TimeoutExpired:
+                print(f"[-] Agent process timed out after 900 seconds.")
+                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
+                process.kill()
+                process.wait()
+
+            if process.returncode == 0:
+                print(f"\n[+] Agent finished successfully.")
+                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+            else:
+                print(f"\n[-] Agent finished with error code {process.returncode}")
+                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+
+        # Save accumulated token usage to result JSON
+        if total_input > 0 or total_output > 0:
+            result_data = {
+                "input_tokens": total_input,
+                "output_tokens": total_output,
+                "total_tokens": total_input + total_output,
+                "cache_read_tokens": cache_read,
+                "cache_write_tokens": cache_write,
+                "cost_usd": total_cost,
+                "num_turns": num_turns
+            }
+            if pi_provider:
+                result_data["provider_id"] = pi_provider
+            if pi_model:
+                result_data["model_id"] = pi_model
+
+            with open(result_json_path, "w") as f:
+                json.dump(result_data, f, indent=2)
+            print(f"[+] Token metrics saved to {PI_RESULT_FILENAME}")
 
 
 # --- Factory ---
