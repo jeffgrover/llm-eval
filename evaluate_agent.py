@@ -1641,13 +1641,14 @@ class OpenCodeRunner(AgentRunner):
             return {}
 
     def configure_agent(self):
-        if self.non_local:
-            return
-
         # OpenCode supports opencode.json
         config = {
             "$schema": "https://opencode.ai/config.json",
-            "provider": {
+            "permission": "allow",  # Bypass all permission prompts for unattended evaluation
+        }
+
+        if not self.non_local:
+            config["provider"] = {
                 "lmstudio": {
                     "npm": "@ai-sdk/openai-compatible",
                     "name": "LM Studio (local)",
@@ -1660,9 +1661,9 @@ class OpenCodeRunner(AgentRunner):
                         }
                     }
                 }
-            },
-            "model": f"lmstudio/{self.model_name}"
-        }
+            }
+            config["model"] = f"lmstudio/{self.model_name}"
+
         with open(self.work_dir / "opencode.json", "w") as f:
             json.dump(config, f, indent=2)
 
