@@ -1,6 +1,8 @@
-# Local LLM Agent Evaluation Suite 🚀
+# LLM Agent Evaluation Suite 🚀
 
-This suite provides tools to automate the benchmarking of agentic CLI tools against local LLMs running via LM Studio. It captures detailed performance metrics, server logs, and command outputs, generating beautiful visual reports for every run.
+**[View the live dashboard](https://jeffgrover.github.io/llm-eval/)**
+
+This suite provides tools to automate the benchmarking of agentic CLI tools against both local LLMs (via LM Studio) and cloud API providers (Anthropic, Google, Groq, Cerebras, etc.). It captures detailed performance metrics, server logs, and command outputs, generating beautiful visual reports for every run.
 
 ## 1. LM Studio Setup
 
@@ -53,9 +55,10 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 ```
 
 ### Parameters
--   `--model`: The LM Studio model identifier.
+-   `--model`: The LM Studio model identifier (or cloud model name when using `--non-local`).
 -   `--agent`: One of `vibe`, `gemini`, `claude`, `opencode`, or `crush`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
+-   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.
 -   `--headless`: (Optional) Run in headless mode (defaults to True).
 
 The script will automatically create a uniquely named workspace in `evals/`, capture all logs, detect generated scripts, and run them to capture `OUTPUT.TXT`.
@@ -70,12 +73,17 @@ After running one or more experiments, you can generate a centralized dashboard 
     ```bash
     ./generate_index.py
     ```
-2.  **View Dashboard**: Open the generated `index.html` in your favorite browser.
+2.  **View Dashboard**: Open the generated `index.html` in your favorite browser, or visit the **[live dashboard on GitHub Pages](https://jeffgrover.github.io/llm-eval/)**.
     ```bash
     open index.html
     ```
 
-From the dashboard, you can click **View Report** on any session to see the full breakdown, including:
+The dashboard groups results by agent, with each card clearly showing:
+-   **Provider**: Cloud (blue) or Local (green) with matching icon
+-   **Model name**: Prominently displayed
+-   **Prompt**: Which coding task was used
+
+Click **View Report** on any card to see the full breakdown, including:
 -   **Prompt Trace**: Exactly what was sent (including newlines).
 -   **Token Metrics**: Input/Output tokens and TPS (Tokens Per Second).
 -   **Software Env**: Versions of LMS, CLI, and Hardware specs.

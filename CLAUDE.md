@@ -5,7 +5,7 @@ A benchmarking framework for evaluating agentic CLI tools (Claude Code, Gemini C
 
 ## Architecture
 - `evaluate_agent.py` - Main orchestrator: agent runners, metadata collection, HTML report generation
-- `generate_index.py` - Dashboard generator that aggregates all evaluation results into `index.html`
+- `generate_index.py` - Dashboard generator that aggregates all evaluation results into `index.html`, grouped by agent with provider detection (local vs cloud)
 - `evals/` - Output directory; each run creates `{agent}_{model}_{prompt}/` with artifacts + `summary.html`
 - Prompt files (`*.txt`) at repo root define the coding tasks given to agents
 

@@ -178,9 +178,7 @@ def generate_index_html():
             .provider-cloud { background: #dbeafe; color: #1d4ed8; }
             .provider-local { background: #dcfce7; color: #166534; }
             .provider-unknown { background: #f3f4f6; color: #6b7280; }
-            .status-indicator { height: 8px; width: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-            .status-success { background: #10b981; box-shadow: 0 0 0 2px #d1fae5; }
-            .status-missing { background: #cbd5e0; }
+            .provider-icon { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
 
             .card-body { padding: 20px; flex: 1; }
             .model-name { font-size: 16px; font-weight: 700; color: #1f2937; margin-bottom: 8px; word-break: break-all; line-height: 1.3; }
@@ -237,7 +235,6 @@ def generate_index_html():
         """
 
         for ev in evs:
-            status_class = "status-success" if ev["HasReport"] else "status-missing"
             btn_class = "view-btn" if ev["HasReport"] else "view-btn disabled"
             btn_text = "View Report" if ev["HasReport"] else "No Report"
 
@@ -245,12 +242,23 @@ def generate_index_html():
             if provider == "unknown":
                 provider_class = "provider-unknown"
                 provider_label = "Unknown"
-            elif "Local" in provider or provider == "unknown":
+            elif "Local" in provider:
                 provider_class = "provider-local"
                 provider_label = provider
             else:
                 provider_class = "provider-cloud"
                 provider_label = provider
+
+            # SVG icons for provider type
+            if "Local" in provider:
+                # Computer/monitor icon (green)
+                provider_icon = '<svg class="provider-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Local"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
+            elif provider == "unknown":
+                # Question mark icon (gray)
+                provider_icon = '<svg class="provider-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Unknown"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+            else:
+                # Cloud icon (blue)
+                provider_icon = '<svg class="provider-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Cloud"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>'
 
             prompt_html = ""
             if ev["Prompt"]:
@@ -261,7 +269,7 @@ def generate_index_html():
                 <div class="eval-card">
                     <div class="card-header">
                         <span class="provider-badge {provider_class}">{provider_label}</span>
-                        <span class="status-indicator {status_class}" title="{'Report available' if ev['HasReport'] else 'No report'}"></span>
+                        {provider_icon}
                     </div>
                     <div class="card-body">
                         <div class="model-name">{ev['Model']}</div>
