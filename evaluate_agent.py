@@ -1224,10 +1224,12 @@ class AgentRunner:
                     cwd=self.work_dir,
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=300
                 )
                 
-                with open(output_log_path, "a") as f:
+                with open(output_log_path, "a", encoding="utf-8") as f:
                     f.write(f"--- Execution of {py_file.name} ---\n")
                     f.write("STDOUT:\n")
                     f.write(result.stdout)
@@ -1324,6 +1326,8 @@ class AgentRunner:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, # Merge stderr into stdout
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 bufsize=1 # Line buffered
             )
             
@@ -1386,6 +1390,8 @@ class GeminiRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 bufsize=1
             )
 
@@ -1487,6 +1493,8 @@ class ClaudeRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 bufsize=1
             )
 
@@ -1752,6 +1760,8 @@ class OpenCodeRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 bufsize=1
             )
 
@@ -1904,6 +1914,10 @@ class PiRunner(AgentRunner):
                     "baseUrl": LM_STUDIO_API_URL,
                     "api": "openai-completions",
                     "apiKey": "lm-studio",
+                    "compat": {
+                        "supportsDeveloperRole": False,
+                        "supportsReasoningEffort": False
+                    },
                     "models": [
                         {"id": self.model_name}
                     ]
@@ -1999,6 +2013,8 @@ class PiRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 bufsize=1,
                 shell=(sys.platform == "win32")  # pi is a .cmd on Windows
             )
