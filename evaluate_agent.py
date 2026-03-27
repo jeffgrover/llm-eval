@@ -152,7 +152,7 @@ class MetadataCollector:
                 # Try to get machine manufacturer from DMI
                 vendor_path = "/sys/devices/virtual/dmi/id/sys_vendor"
                 if os.path.exists(vendor_path):
-                    with open(vendor_path, 'r') as f:
+                    with open(vendor_path, 'r', encoding='utf-8') as f:
                         vendor = f.read().strip()
                         info["Machine"] = vendor  # Override generic "x86_64"
                 
@@ -416,7 +416,7 @@ class MetadataCollector:
             claude_result_path = chat_log_path.parent / CLAUDE_RESULT_FILENAME
             if claude_result_path.exists():
                 try:
-                    with open(claude_result_path, 'r') as f:
+                    with open(claude_result_path, 'r', encoding='utf-8') as f:
                         result_data = json.load(f)
                     # Prefer modelUsage for comprehensive per-model totals
                     model_usage = result_data.get("modelUsage", {})
@@ -461,7 +461,7 @@ class MetadataCollector:
             gemini_result_path = chat_log_path.parent / GEMINI_RESULT_FILENAME
             if gemini_result_path.exists():
                 try:
-                    with open(gemini_result_path, 'r') as f:
+                    with open(gemini_result_path, 'r', encoding='utf-8') as f:
                         result_data = json.load(f)
                     stats = result_data.get("stats", {})
                     if stats:
@@ -485,7 +485,7 @@ class MetadataCollector:
             opencode_result_path = chat_log_path.parent / OPENCODE_RESULT_FILENAME
             if opencode_result_path.exists():
                 try:
-                    with open(opencode_result_path, 'r') as f:
+                    with open(opencode_result_path, 'r', encoding='utf-8') as f:
                         result_data = json.load(f)
                     usage["prompt_tokens"] = result_data.get("input_tokens", 0)
                     usage["completion_tokens"] = result_data.get("output_tokens", 0)
@@ -509,7 +509,7 @@ class MetadataCollector:
             pi_result_path = chat_log_path.parent / PI_RESULT_FILENAME
             if pi_result_path.exists():
                 try:
-                    with open(pi_result_path, 'r') as f:
+                    with open(pi_result_path, 'r', encoding='utf-8') as f:
                         result_data = json.load(f)
                     usage["prompt_tokens"] = result_data.get("input_tokens", 0)
                     usage["completion_tokens"] = result_data.get("output_tokens", 0)
@@ -1017,7 +1017,7 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
     </html>
     """
     
-    with open(report_path, "w") as f:
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     
     return report_path
@@ -1084,7 +1084,7 @@ class AgentRunner:
         print(f"[*] Starting server log stream to: {log_path}")
 
         try:
-            self.server_log_file = open(log_path, "w")
+            self.server_log_file = open(log_path, "w", encoding="utf-8")
             self.log_process = subprocess.Popen(
                 ["lms", "log", "stream", "--source", "server"],
                 stdout=self.server_log_file,
@@ -1247,7 +1247,7 @@ class AgentRunner:
         
         # Read prompt text
         try:
-            with open(self.prompt_file, 'r') as f:
+            with open(self.prompt_file, 'r', encoding='utf-8') as f:
                 prompt_text = f.read()
         except Exception:
             prompt_text = "Error reading prompt file."
@@ -1311,7 +1311,7 @@ class AgentRunner:
         print(f"[*] Executing: {' '.join(cmd)}")
         print(f"[*] Output logging to: {chat_log_path}")
         
-        with open(chat_log_path, "w") as log_file:
+        with open(chat_log_path, "w", encoding="utf-8") as log_file:
             # We want to capture both stdout and stderr
             # And also print to the console? 
             # Subprocess.PIPE might buffer, but let's try.
@@ -1354,7 +1354,7 @@ class AgentRunner:
 class GeminiRunner(AgentRunner):
     def execute_agent(self):
         # Gemini CLI: `gemini --prompt "content"`
-        with open(self.prompt_file, 'r') as f:
+        with open(self.prompt_file, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
         
         # Use absolute path to avoid FileNotFoundError
@@ -1378,7 +1378,7 @@ class GeminiRunner(AgentRunner):
 
         result_data = None
 
-        with open(chat_log_path, "w") as log_file:
+        with open(chat_log_path, "w", encoding="utf-8") as log_file:
             process = subprocess.Popen(
                 cmd,
                 cwd=self.work_dir,
@@ -1445,7 +1445,7 @@ class GeminiRunner(AgentRunner):
                 log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
 
         if result_data:
-            with open(result_json_path, "w") as f:
+            with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] Gemini usage data saved to: {result_json_path}")
 
@@ -1453,7 +1453,7 @@ class ClaudeRunner(AgentRunner):
     def execute_agent(self):
         # Claude Code: `claude -p "content"` (headless)
         # Using --output-format stream-json to capture token usage and cost metrics
-        with open(self.prompt_file, 'r') as f:
+        with open(self.prompt_file, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
 
         cmd = ["claude", "-p", prompt_content, "--dangerously-skip-permissions",
@@ -1479,7 +1479,7 @@ class ClaudeRunner(AgentRunner):
 
         result_data = None
 
-        with open(chat_log_path, "w") as log_file:
+        with open(chat_log_path, "w", encoding="utf-8") as log_file:
             process = subprocess.Popen(
                 cmd,
                 cwd=self.work_dir,
@@ -1553,7 +1553,7 @@ class ClaudeRunner(AgentRunner):
 
         # Save result JSON for metadata extraction (token usage, cost, turns)
         if result_data:
-            with open(result_json_path, "w") as f:
+            with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] Claude usage data saved to: {result_json_path}")
 
@@ -1654,7 +1654,7 @@ class VibeRunner(AgentRunner):
 
     def execute_agent(self):
         # Mistral Vibe: `vibe -p "content"`
-        with open(self.prompt_file, 'r') as f:
+        with open(self.prompt_file, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
 
         cmd = ["vibe", "-p", prompt_content]
@@ -1707,11 +1707,11 @@ class OpenCodeRunner(AgentRunner):
             }
             config["model"] = f"lmstudio/{self.model_name}"
 
-        with open(self.work_dir / "opencode.json", "w") as f:
+        with open(self.work_dir / "opencode.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
 
     def execute_agent(self):
-        with open(self.prompt_file, 'r') as f:
+        with open(self.prompt_file, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
 
         cmd = ["opencode", "run", prompt_content,
@@ -1744,7 +1744,7 @@ class OpenCodeRunner(AgentRunner):
         provider_id = None
         model_id = None
 
-        with open(chat_log_path, "w") as log_file:
+        with open(chat_log_path, "w", encoding="utf-8") as log_file:
             process = subprocess.Popen(
                 cmd,
                 cwd=self.work_dir,
@@ -1869,14 +1869,14 @@ class OpenCodeRunner(AgentRunner):
                 result_data["model_id"] = model_id
             if opencode_version:
                 result_data["opencode_version"] = opencode_version
-            with open(result_json_path, "w") as f:
+            with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] OpenCode usage data saved to: {result_json_path}")
 
 class CrushRunner(AgentRunner):
     def execute_agent(self):
         # Crush: `crush run "content" -y`
-        with open(self.prompt_file, 'r') as f:
+        with open(self.prompt_file, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
 
         cmd = ["crush", "run", prompt_content, "-y"]
@@ -1886,13 +1886,54 @@ class CrushRunner(AgentRunner):
 PI_RESULT_FILENAME = "PI_RESULT.JSON"
 
 class PiRunner(AgentRunner):
+    def configure_agent(self):
+        """Write ~/.pi/agent/models.json so Pi talks to LM Studio in local mode."""
+        if self.non_local:
+            return
+
+        self.models_json_path = Path.home() / ".pi" / "agent" / "models.json"
+        self._original_models_json = None
+
+        # Back up existing models.json if present
+        if self.models_json_path.exists():
+            self._original_models_json = self.models_json_path.read_text(encoding='utf-8')
+
+        config = {
+            "providers": {
+                "lmstudio": {
+                    "baseUrl": LM_STUDIO_API_URL,
+                    "api": "openai-completions",
+                    "apiKey": "lm-studio",
+                    "models": [
+                        {"id": self.model_name}
+                    ]
+                }
+            }
+        }
+
+        self.models_json_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.models_json_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+        print(f"[+] Wrote Pi models.json for LM Studio: {self.models_json_path}")
+
+    def _restore_pi_models_json(self):
+        """Restore original models.json after the run."""
+        if not hasattr(self, 'models_json_path'):
+            return
+        if self._original_models_json is not None:
+            self.models_json_path.write_text(self._original_models_json, encoding='utf-8')
+            print(f"[*] Restored original Pi models.json")
+        elif self.models_json_path.exists():
+            self.models_json_path.unlink()
+            print(f"[*] Removed temporary Pi models.json")
+
     def get_model_extra_info(self) -> Dict[str, str]:
         """Read provider/model info captured during the run."""
         result_path = self.work_dir / PI_RESULT_FILENAME
         if not result_path.exists():
             return {}
         try:
-            with open(result_path, 'r') as f:
+            with open(result_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             extra = {}
             if data.get("provider_id"):
@@ -1906,7 +1947,13 @@ class PiRunner(AgentRunner):
     def execute_agent(self):
         # Pi: `pi --mode json --print --no-session --provider <provider> --model <model> "content"`
         # Uses --mode json to get JSONL output with token usage in message_end events
-        with open(self.prompt_file, 'r') as f:
+        try:
+            self._execute_pi()
+        finally:
+            self._restore_pi_models_json()
+
+    def _execute_pi(self):
+        with open(self.prompt_file, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
 
         cmd = ["pi", "--mode", "json", "--print", "--no-session"]
@@ -1922,8 +1969,8 @@ class PiRunner(AgentRunner):
             else:
                 cmd += ["--model", self.model_name]
         else:
-            # Local mode: point at LM Studio's OpenAI-compatible endpoint
-            cmd += ["--provider", "openai", "--model", self.model_name]
+            # Local mode: use lmstudio provider configured in models.json
+            cmd += ["--provider", "lmstudio", "--model", self.model_name]
 
         cmd.append(prompt_content)
 
@@ -1944,7 +1991,7 @@ class PiRunner(AgentRunner):
         pi_provider = None
         pi_model = None
 
-        with open(chat_log_path, "w") as log_file:
+        with open(chat_log_path, "w", encoding="utf-8") as log_file:
             process = subprocess.Popen(
                 cmd,
                 cwd=self.work_dir,
@@ -1952,7 +1999,8 @@ class PiRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                bufsize=1
+                bufsize=1,
+                shell=(sys.platform == "win32")  # pi is a .cmd on Windows
             )
 
             for line in process.stdout:
@@ -2048,7 +2096,7 @@ class PiRunner(AgentRunner):
             if pi_model:
                 result_data["model_id"] = pi_model
 
-            with open(result_json_path, "w") as f:
+            with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] Token metrics saved to {PI_RESULT_FILENAME}")
 
