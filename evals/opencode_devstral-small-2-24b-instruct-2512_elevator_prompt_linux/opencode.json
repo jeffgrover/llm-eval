@@ -1,0 +1,5 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": "allow",
+  "model": "lmstudio-linux/devstral-small-2-24b-instruct-2512"
+}

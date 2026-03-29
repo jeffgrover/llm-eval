@@ -1,0 +1,3 @@
+# Simple test task
+Write a Python function that calculates the factorial of a number.
+Make sure it handles edge cases like negative numbers and zero.

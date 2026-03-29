@@ -40,7 +40,10 @@ CLAUDE_MODEL_IDS = {
 
 # --- LM Studio Client ---
 
-def lms_api_request(path: str, method: str = "GET", data: dict = None, timeout: int = 15) -> Optional[dict]:
+
+def lms_api_request(
+    path: str, method: str = "GET", data: dict = None, timeout: int = 15
+) -> Optional[dict]:
     """Makes an HTTP request to the LM Studio REST API. Returns parsed JSON or None on failure."""
     url = f"{LM_STUDIO_REST_BASE}{path}"
     try:
@@ -49,7 +52,12 @@ def lms_api_request(path: str, method: str = "GET", data: dict = None, timeout: 
         req.add_header("Content-Type", "application/json")
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError, json.JSONDecodeError) as e:
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        OSError,
+        json.JSONDecodeError,
+    ) as e:
         print(f"[-] LM Studio API request failed ({method} {path}): {e}")
         return None
 
@@ -62,7 +70,11 @@ def load_lms_model(model_key: str):
     models = lms_api_request("/api/v0/models")
     if models is not None:
         # REST API is reachable — use it exclusively
-        model_list = models if isinstance(models, list) else models.get("data", models.get("models", []))
+        model_list = (
+            models
+            if isinstance(models, list)
+            else models.get("data", models.get("models", []))
+        )
 
         target_loaded = False
         others_loaded = []
@@ -73,7 +85,9 @@ def load_lms_model(model_key: str):
             if model_key in model_id:
                 if state == "loaded":
                     target_loaded = True
-                    print(f"[+] Model '{model_key}' is already loaded — skipping reload.")
+                    print(
+                        f"[+] Model '{model_key}' is already loaded — skipping reload."
+                    )
             elif state == "loaded":
                 others_loaded.append(m)
 
@@ -82,13 +96,17 @@ def load_lms_model(model_key: str):
             other_id = other.get("id", other.get("path", ""))
             instance_id = other.get("instance_id", other_id)
             print(f"[*] Unloading other model: {other_id}")
-            lms_api_request("/api/v1/models/unload", method="POST", data={"model": instance_id})
+            lms_api_request(
+                "/api/v1/models/unload", method="POST", data={"model": instance_id}
+            )
 
         if target_loaded:
             return  # Already loaded, nothing to do
 
         print(f"[*] Loading model '{model_key}' via REST API...")
-        result = lms_api_request("/api/v1/models/load", method="POST", data={"model": model_key}, timeout=120)
+        result = lms_api_request(
+            "/api/v1/models/load", method="POST", data={"model": model_key}, timeout=120
+        )
         if result is not None:
             print(f"[+] Model '{model_key}' loaded successfully via REST API.")
             return
@@ -103,7 +121,9 @@ def load_lms_model(model_key: str):
         print("[-] Warning: Failed to unload models via CLI, attempting to proceed...")
         _lms_cli_available = False
     except FileNotFoundError:
-        print("[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped.")
+        print(
+            "[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped."
+        )
         sys.exit(1)
 
     print(f"[*] Loading model '{model_key}' into LM Studio...")
@@ -117,12 +137,14 @@ def load_lms_model(model_key: str):
         _lms_cli_available = False
         sys.exit(1)
     except FileNotFoundError:
-        print("[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped.")
+        print(
+            "[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped."
+        )
         sys.exit(1)
 
 
-
 # --- Metadata & Reporting ---
+
 
 class MetadataCollector:
     @staticmethod
@@ -131,7 +153,7 @@ class MetadataCollector:
             "Machine": platform.machine(),
             "Processor": platform.processor(),
             "System": platform.system(),
-            "Release": platform.release()
+            "Release": platform.release(),
         }
         if sys.platform == "darwin":
             try:
@@ -139,12 +161,14 @@ class MetadataCollector:
                 cmd = ["system_profiler", "SPHardwareDataType"]
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 output = result.stdout
-                
+
                 chip_match = re.search(r"Chip:\s+(.+)", output)
                 mem_match = re.search(r"Memory:\s+(.+)", output)
-                
-                if chip_match: info["Chip"] = chip_match.group(1)
-                if mem_match: info["Memory"] = mem_match.group(1)
+
+                if chip_match:
+                    info["Chip"] = chip_match.group(1)
+                if mem_match:
+                    info["Memory"] = mem_match.group(1)
             except Exception:
                 pass
         elif sys.platform == "linux":
@@ -152,34 +176,34 @@ class MetadataCollector:
                 # Try to get machine manufacturer from DMI
                 vendor_path = "/sys/devices/virtual/dmi/id/sys_vendor"
                 if os.path.exists(vendor_path):
-                    with open(vendor_path, 'r', encoding='utf-8') as f:
+                    with open(vendor_path, "r", encoding="utf-8") as f:
                         vendor = f.read().strip()
                         info["Machine"] = vendor  # Override generic "x86_64"
-                
+
             except Exception:
                 pass
-            
+
             try:
                 # Try to get CPU model from lscpu
                 cmd = ["lscpu"]
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 output = result.stdout
-                
+
                 # Parse for Model Name line
                 # Example output: "Model name:	Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz"
                 model_match = re.search(r"Model name:\s*(.+)", output, re.MULTILINE)
                 if model_match:
                     info["Processor"] = model_match.group(1).strip()
-                
+
             except Exception:
                 pass
-            
+
             try:
                 # Try to get detailed Linux distribution info using lsb_release
                 cmd = ["lsb_release", "-a"]
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 output = result.stdout
-                
+
                 # Parse for Description field
                 # Example output:
                 #   Distributor ID: Ubuntu
@@ -191,16 +215,18 @@ class MetadataCollector:
                         description = line.split(":", 1)[1].strip()
                         info["System"] = description  # Override the generic "Linux"
                         break  # Use first description found
-                
+
             except Exception:
                 pass
-            
+
             try:
                 # Try to get GPU info on Linux using lspci (more detailed, no sudo needed)
                 # First, find all GPU device addresses
                 gpu_devices_cmd = ["lspci"]
-                gpu_result = subprocess.run(gpu_devices_cmd, capture_output=True, text=True)
-                
+                gpu_result = subprocess.run(
+                    gpu_devices_cmd, capture_output=True, text=True
+                )
+
                 gpu_addresses = []
                 for line in gpu_result.stdout.splitlines():
                     if "VGA compatible controller" in line or "3D controller" in line:
@@ -208,23 +234,28 @@ class MetadataCollector:
                         parts = line.strip().split()
                         if parts:
                             gpu_addresses.append(parts[0])
-                
+
                 # Query detailed info for each GPU
                 gpu_count = 0
                 for addr in gpu_addresses:
                     try:
                         detail_cmd = ["lspci", "-v", "-s", addr]
-                        detail_result = subprocess.run(detail_cmd, capture_output=True, text=True)
-                        
+                        detail_result = subprocess.run(
+                            detail_cmd, capture_output=True, text=True
+                        )
+
                         # Parse the output for VGA or 3D controller lines
                         for line in detail_result.stdout.splitlines():
-                            if "VGA compatible controller" in line or "3D controller" in line:
+                            if (
+                                "VGA compatible controller" in line
+                                or "3D controller" in line
+                            ):
                                 # Extract the full GPU description
                                 parts = line.split(":", 2)
                                 if len(parts) >= 3:
                                     gpu_info = parts[2].strip()
                                     gpu_count += 1
-                                    
+
                                     # Store in info dict with numbered keys
                                     if gpu_count == 1:
                                         info["GPU Model"] = gpu_info
@@ -233,13 +264,13 @@ class MetadataCollector:
                                     break  # Only need first match per device
                     except Exception:
                         continue
-                
+
                 # If no GPUs found via lspci, try the old lshw method as fallback
                 if gpu_count == 0:
                     cmd = ["lshw", "-C", "display"]
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     output = result.stdout
-                    
+
                     for line in output.splitlines():
                         if line.strip().startswith("vendor:"):
                             vendor = line.split(":", 1)[1].strip()
@@ -253,9 +284,14 @@ class MetadataCollector:
             try:
                 # CPU info via PowerShell
                 cpu_out = subprocess.check_output(
-                    ["powershell", "-NoProfile", "-Command",
-                     "(Get-CimInstance Win32_Processor).Name"],
-                    text=True, timeout=10
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_Processor).Name",
+                    ],
+                    text=True,
+                    timeout=10,
                 ).strip()
                 if cpu_out:
                     info["Processor"] = cpu_out
@@ -265,9 +301,14 @@ class MetadataCollector:
             try:
                 # GPU info via PowerShell
                 gpu_out = subprocess.check_output(
-                    ["powershell", "-NoProfile", "-Command",
-                     "(Get-CimInstance Win32_VideoController).Name"],
-                    text=True, timeout=10
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_VideoController).Name",
+                    ],
+                    text=True,
+                    timeout=10,
                 ).strip()
                 if gpu_out:
                     # May return multiple lines if multiple GPUs
@@ -276,20 +317,25 @@ class MetadataCollector:
                         if i == 0:
                             info["GPU Model"] = gpu
                         else:
-                            info[f"GPU {i+1}"] = gpu
+                            info[f"GPU {i + 1}"] = gpu
             except Exception:
                 pass
 
             try:
                 # RAM via PowerShell
                 ram_out = subprocess.check_output(
-                    ["powershell", "-NoProfile", "-Command",
-                     "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"],
-                    text=True, timeout=10
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
+                    ],
+                    text=True,
+                    timeout=10,
                 ).strip()
                 if ram_out:
                     ram_bytes = int(ram_out)
-                    ram_gb = round(ram_bytes / (1024 ** 3))
+                    ram_gb = round(ram_bytes / (1024**3))
                     info["Memory"] = f"{ram_gb} GB"
             except Exception:
                 pass
@@ -297,9 +343,14 @@ class MetadataCollector:
             try:
                 # Windows version detail
                 ver_out = subprocess.check_output(
-                    ["powershell", "-NoProfile", "-Command",
-                     "(Get-CimInstance Win32_OperatingSystem).Caption"],
-                    text=True, timeout=10
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_OperatingSystem).Caption",
+                    ],
+                    text=True,
+                    timeout=10,
                 ).strip()
                 if ver_out:
                     info["System"] = ver_out
@@ -308,17 +359,21 @@ class MetadataCollector:
         return info
 
     @staticmethod
-    def get_software_versions(agent_binary: str, non_local: bool = False) -> Dict[str, str]:
+    def get_software_versions(
+        agent_binary: str, non_local: bool = False
+    ) -> Dict[str, str]:
         def strip_ansi(text: str) -> str:
-            ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-            return ansi_escape.sub('', text)
+            ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+            return ansi_escape.sub("", text)
 
         versions = {}
-        
+
         if not non_local:
             # LM Studio CLI Version (with timeout to avoid hangs on Windows)
             try:
-                lms_out = subprocess.check_output(["lms", "version"], text=True, timeout=10).strip()
+                lms_out = subprocess.check_output(
+                    ["lms", "version"], text=True, timeout=10
+                ).strip()
                 # New format: "CLI commit: <hash>"
                 m = re.search(r"CLI commit:\s*([a-f0-9]+)", lms_out)
                 if m:
@@ -329,7 +384,9 @@ class MetadataCollector:
                     if m_old:
                         versions["LM Studio CLI Version"] = m_old.group(1)
                     else:
-                        versions["LM Studio CLI Version"] = lms_out.splitlines()[-1] if lms_out else "Unknown"
+                        versions["LM Studio CLI Version"] = (
+                            lms_out.splitlines()[-1] if lms_out else "Unknown"
+                        )
             except subprocess.TimeoutExpired:
                 versions["LM Studio CLI Version"] = "CLI timed out"
             except Exception:
@@ -341,8 +398,13 @@ class MetadataCollector:
                     # mdls -name kMDItemVersion '/Applications/LM Studio.app'
                     # Output: kMDItemVersion = "0.3.39"
                     mdls_out = subprocess.check_output(
-                        ["mdls", "-name", "kMDItemVersion", "/Applications/LM Studio.app"], 
-                        text=True
+                        [
+                            "mdls",
+                            "-name",
+                            "kMDItemVersion",
+                            "/Applications/LM Studio.app",
+                        ],
+                        text=True,
                     ).strip()
                     m_app = re.search(r'kMDItemVersion\s*=\s*"(.*?)"', mdls_out)
                     if m_app:
@@ -357,6 +419,7 @@ class MetadataCollector:
                     # Pattern: /opt/LM-Studio-0.3.39-2-x64.AppImage
                     # Extract version from filename (everything between "LM-Studio-" and ".AppImage")
                     import glob
+
                     app_images = glob.glob("/opt/LM-Studio-*.AppImage")
 
                     if app_images:
@@ -364,18 +427,24 @@ class MetadataCollector:
                         # Version pattern: 0.3.39-2-x64 (we want to sort numerically)
                         def extract_version(app_image_path):
                             # Extract everything between "LM-Studio-" and the first "-" after it
-                            match = re.search(r'LM-Studio-([^-]+)', app_image_path)
+                            match = re.search(r"LM-Studio-([^-]+)", app_image_path)
                             if match:
                                 return match.group(1)
                             return ""
 
                         # Sort by version (using natural sorting for numbers)
-                        app_images.sort(key=lambda x: [int(part) if part.isdigit() else part
-                                                         for part in extract_version(x).split('.')])
+                        app_images.sort(
+                            key=lambda x: [
+                                int(part) if part.isdigit() else part
+                                for part in extract_version(x).split(".")
+                            ]
+                        )
 
                         latest_app = app_images[-1]  # Last one after sort
                         version = extract_version(latest_app)
-                        versions["LM Studio App Version"] = version if version else "Unknown"
+                        versions["LM Studio App Version"] = (
+                            version if version else "Unknown"
+                        )
                     else:
                         versions["LM Studio App Version"] = "Not Found"
                 except Exception as e:
@@ -386,28 +455,35 @@ class MetadataCollector:
                     ps_cmd = (
                         'Get-ItemProperty "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" '
                         '| Where-Object { $_.DisplayName -like "*LM Studio*" } '
-                        '| Select-Object -ExpandProperty DisplayVersion'
+                        "| Select-Object -ExpandProperty DisplayVersion"
                     )
                     ps_out = subprocess.check_output(
                         ["powershell", "-NoProfile", "-Command", ps_cmd],
-                        text=True, timeout=10
+                        text=True,
+                        timeout=10,
                     ).strip()
-                    versions["LM Studio App Version"] = ps_out if ps_out else "Not Found"
+                    versions["LM Studio App Version"] = (
+                        ps_out if ps_out else "Not Found"
+                    )
                 except Exception:
                     versions["LM Studio App Version"] = "Unknown"
-        
+
         # Agent Version
         try:
             # Most agents support --version
-            agent_ver = subprocess.check_output([agent_binary, "--version"], text=True).strip()
+            agent_ver = subprocess.check_output(
+                [agent_binary, "--version"], text=True
+            ).strip()
             versions[agent_binary] = strip_ansi(agent_ver)
         except Exception:
             versions[agent_binary] = "Unknown"
-            
+
         return versions
 
     @staticmethod
-    def get_token_usage(log_path: Path, chat_log_path: Optional[Path] = None) -> Dict[str, int]:
+    def get_token_usage(
+        log_path: Path, chat_log_path: Optional[Path] = None
+    ) -> Dict[str, int]:
         """Parses server logs, agent chat logs, or Claude result JSON for token usage statistics."""
         usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
@@ -416,18 +492,20 @@ class MetadataCollector:
             claude_result_path = chat_log_path.parent / CLAUDE_RESULT_FILENAME
             if claude_result_path.exists():
                 try:
-                    with open(claude_result_path, 'r', encoding='utf-8') as f:
+                    with open(claude_result_path, "r", encoding="utf-8") as f:
                         result_data = json.load(f)
                     # Prefer modelUsage for comprehensive per-model totals
                     model_usage = result_data.get("modelUsage", {})
                     if model_usage:
                         for model_id, model_data in model_usage.items():
                             usage["prompt_tokens"] += (
-                                model_data.get("inputTokens", 0) +
-                                model_data.get("cacheCreationInputTokens", 0) +
-                                model_data.get("cacheReadInputTokens", 0)
+                                model_data.get("inputTokens", 0)
+                                + model_data.get("cacheCreationInputTokens", 0)
+                                + model_data.get("cacheReadInputTokens", 0)
                             )
-                            usage["completion_tokens"] += model_data.get("outputTokens", 0)
+                            usage["completion_tokens"] += model_data.get(
+                                "outputTokens", 0
+                            )
                             cache_read = model_data.get("cacheReadInputTokens", 0)
                             if cache_read:
                                 usage["cache_read_tokens"] = cache_read
@@ -435,17 +513,21 @@ class MetadataCollector:
                         # Fallback to top-level usage object
                         usage_data = result_data.get("usage", {})
                         usage["prompt_tokens"] = (
-                            usage_data.get("input_tokens", 0) +
-                            usage_data.get("cache_creation_input_tokens", 0) +
-                            usage_data.get("cache_read_input_tokens", 0)
+                            usage_data.get("input_tokens", 0)
+                            + usage_data.get("cache_creation_input_tokens", 0)
+                            + usage_data.get("cache_read_input_tokens", 0)
                         )
                         usage["completion_tokens"] = usage_data.get("output_tokens", 0)
                         cache_read = usage_data.get("cache_read_input_tokens", 0)
                         if cache_read:
                             usage["cache_read_tokens"] = cache_read
-                    usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+                    usage["total_tokens"] = (
+                        usage["prompt_tokens"] + usage["completion_tokens"]
+                    )
                     # Include cost if available
-                    cost = result_data.get("cost_usd") or result_data.get("total_cost_usd")
+                    cost = result_data.get("cost_usd") or result_data.get(
+                        "total_cost_usd"
+                    )
                     if cost:
                         usage["cost_usd"] = cost
                     num_turns = result_data.get("num_turns")
@@ -461,20 +543,22 @@ class MetadataCollector:
             gemini_result_path = chat_log_path.parent / GEMINI_RESULT_FILENAME
             if gemini_result_path.exists():
                 try:
-                    with open(gemini_result_path, 'r', encoding='utf-8') as f:
+                    with open(gemini_result_path, "r", encoding="utf-8") as f:
                         result_data = json.load(f)
                     stats = result_data.get("stats", {})
                     if stats:
                         usage["prompt_tokens"] = stats.get("input_tokens", 0)
                         usage["completion_tokens"] = stats.get("output_tokens", 0)
                         usage["total_tokens"] = stats.get("total_tokens", 0)
-                        
+
                         cached = stats.get("cached", 0)
                         if cached:
                             usage["cache_read_tokens"] = cached
-                        
-                        num_turns = stats.get("tool_calls", None) # approximate depending on use case or could just drop
-                        
+
+                        num_turns = stats.get(
+                            "tool_calls", None
+                        )  # approximate depending on use case or could just drop
+
                         if usage["total_tokens"] > 0:
                             return usage
                 except Exception as e:
@@ -485,7 +569,7 @@ class MetadataCollector:
             opencode_result_path = chat_log_path.parent / OPENCODE_RESULT_FILENAME
             if opencode_result_path.exists():
                 try:
-                    with open(opencode_result_path, 'r', encoding='utf-8') as f:
+                    with open(opencode_result_path, "r", encoding="utf-8") as f:
                         result_data = json.load(f)
                     usage["prompt_tokens"] = result_data.get("input_tokens", 0)
                     usage["completion_tokens"] = result_data.get("output_tokens", 0)
@@ -509,7 +593,7 @@ class MetadataCollector:
             pi_result_path = chat_log_path.parent / PI_RESULT_FILENAME
             if pi_result_path.exists():
                 try:
-                    with open(pi_result_path, 'r', encoding='utf-8') as f:
+                    with open(pi_result_path, "r", encoding="utf-8") as f:
                         result_data = json.load(f)
                     usage["prompt_tokens"] = result_data.get("input_tokens", 0)
                     usage["completion_tokens"] = result_data.get("output_tokens", 0)
@@ -531,9 +615,9 @@ class MetadataCollector:
         # Try server log first (LM Studio)
         if log_path and log_path.exists():
             try:
-                with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
-                    
+
                 # Attempt to parse from JSON 'usage' blocks (LMS 0.3.x style)
                 json_pattern = re.compile(r'"usage":\s*({[^}]+})', re.DOTALL)
                 json_matches = json_pattern.findall(content)
@@ -543,60 +627,80 @@ class MetadataCollector:
                         try:
                             usage_data = json.loads(match)
                             usage["prompt_tokens"] += usage_data.get("prompt_tokens", 0)
-                            usage["completion_tokens"] += usage_data.get("completion_tokens", 0)
+                            usage["completion_tokens"] += usage_data.get(
+                                "completion_tokens", 0
+                            )
                             usage["total_tokens"] += usage_data.get("total_tokens", 0)
                         except json.JSONDecodeError:
                             # Fallback for malformed JSON within the matched block
                             p_tok = re.search(r'"prompt_tokens":\s*(\d+)', match)
                             c_tok = re.search(r'"completion_tokens":\s*(\d+)', match)
                             t_tok = re.search(r'"total_tokens":\s*(\d+)', match)
-                            if p_tok: usage["prompt_tokens"] += int(p_tok.group(1))
-                            if c_tok: usage["completion_tokens"] += int(c_tok.group(1))
-                            if t_tok: usage["total_tokens"] += int(t_tok.group(1))
+                            if p_tok:
+                                usage["prompt_tokens"] += int(p_tok.group(1))
+                            if c_tok:
+                                usage["completion_tokens"] += int(c_tok.group(1))
+                            if t_tok:
+                                usage["total_tokens"] += int(t_tok.group(1))
                 else:
                     # Fallback to parse from new "prompt eval time" and "eval time" lines (LMS 0.4.x style)
-                    prompt_tokens_match = re.search(r'prompt eval time =.* (\d+) tokens', content)
+                    prompt_tokens_match = re.search(
+                        r"prompt eval time =.* (\d+) tokens", content
+                    )
                     if prompt_tokens_match:
                         usage["prompt_tokens"] = int(prompt_tokens_match.group(1))
-                    
-                    completion_tokens_match = re.search(r'^\s*eval time =.* (\d+) tokens', content, re.MULTILINE)
+
+                    completion_tokens_match = re.search(
+                        r"^\s*eval time =.* (\d+) tokens", content, re.MULTILINE
+                    )
                     if completion_tokens_match:
-                        usage["completion_tokens"] = int(completion_tokens_match.group(1))
-                        
-                    usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+                        usage["completion_tokens"] = int(
+                            completion_tokens_match.group(1)
+                        )
+
+                    usage["total_tokens"] = (
+                        usage["prompt_tokens"] + usage["completion_tokens"]
+                    )
             except Exception as e:
                 print(f"[-] Error parsing server log token usage: {e}")
 
         # If we still have no tokens, or want to supplement, try chat log (Agent output)
         if usage["total_tokens"] == 0 and chat_log_path and chat_log_path.exists():
             try:
-                with open(chat_log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(chat_log_path, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
-                
+
                 # Heuristics for common agent token reporting patterns
                 # Example: "Tokens: 123 prompt, 45 completion"
                 # Example: "Usage: prompt_tokens=121, completion_tokens=40"
                 patterns = [
-                    (r'prompt_tokens["\']?\s*[:=]\s*(\d+)', r'completion_tokens["\']?\s*[:=]\s*(\d+)'),
-                    (r'(\d+)\s+prompt tokens', r'(\d+)\s+completion tokens'),
-                    (r'Tokens used:\s*(\d+)\s*input,\s*(\d+)\s*output', None)
+                    (
+                        r'prompt_tokens["\']?\s*[:=]\s*(\d+)',
+                        r'completion_tokens["\']?\s*[:=]\s*(\d+)',
+                    ),
+                    (r"(\d+)\s+prompt tokens", r"(\d+)\s+completion tokens"),
+                    (r"Tokens used:\s*(\d+)\s*input,\s*(\d+)\s*output", None),
                 ]
-                
+
                 for p_pat, c_pat in patterns:
                     pm = re.search(p_pat, content, re.IGNORECASE)
                     if pm:
                         usage["prompt_tokens"] = int(pm.group(1))
                         if c_pat:
                             cm = re.search(c_pat, content, re.IGNORECASE)
-                            if cm: usage["completion_tokens"] = int(cm.group(1))
+                            if cm:
+                                usage["completion_tokens"] = int(cm.group(1))
                         elif pm.lastindex >= 2:
                             usage["completion_tokens"] = int(pm.group(2))
-                        
-                        usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
-                        if usage["total_tokens"] > 0: break
+
+                        usage["total_tokens"] = (
+                            usage["prompt_tokens"] + usage["completion_tokens"]
+                        )
+                        if usage["total_tokens"] > 0:
+                            break
             except Exception:
                 pass
-            
+
         return usage
 
     @staticmethod
@@ -604,32 +708,33 @@ class MetadataCollector:
         """Calculates total time spent on prompt processing from logs."""
         if not log_path.exists():
             return 0.0
-            
+
         total_duration = 0.0
-        
+
         try:
-            with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
                 lines = f.readlines()
-                
+
             # Regex for timestamp: [YYYY-MM-DD HH:MM:SS]
-            ts_pattern = re.compile(r'^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]')
-            
+            ts_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
+
             in_block = False
             block_start_time = None
             last_timestamp = None
-            
+
             for line in lines:
                 match = ts_pattern.match(line)
-                if not match: continue
-                
+                if not match:
+                    continue
+
                 current_ts_str = match.group(1)
                 try:
                     current_ts = datetime.strptime(current_ts_str, "%Y-%m-%d %H:%M:%S")
                 except ValueError:
                     continue
-                
+
                 last_timestamp = current_ts
-                
+
                 if "Prompt processing progress" in line:
                     if not in_block:
                         in_block = True
@@ -637,19 +742,23 @@ class MetadataCollector:
                 else:
                     if in_block:
                         if block_start_time:
-                            total_duration += (current_ts - block_start_time).total_seconds()
+                            total_duration += (
+                                current_ts - block_start_time
+                            ).total_seconds()
                         in_block = False
                         block_start_time = None
-            
+
             if in_block and block_start_time and last_timestamp:
-                 total_duration += (last_timestamp - block_start_time).total_seconds()
+                total_duration += (last_timestamp - block_start_time).total_seconds()
         except Exception as e:
             print(f"[-] Error calculating prompt processing time: {e}")
-            
+
         return total_duration
 
     @staticmethod
-    def parse_model_info(model_key: str, non_local: bool = False, agent_name: str = None) -> Dict[str, str]:
+    def parse_model_info(
+        model_key: str, non_local: bool = False, agent_name: str = None
+    ) -> Dict[str, str]:
         # Basic Info
         info = {"Full Name": model_key}
 
@@ -673,7 +782,11 @@ class MetadataCollector:
                 if "/" in model_key:
                     provider, model_id = model_key.split("/", 1)
                     # Normalize provider display names (e.g. "google-gemini-cli" -> "Google")
-                    provider_display = provider.split("-")[0].title() if "-" in provider else provider.title()
+                    provider_display = (
+                        provider.split("-")[0].title()
+                        if "-" in provider
+                        else provider.title()
+                    )
                     info["Provider"] = provider_display
                     info["Model ID"] = model_id
                 else:
@@ -689,30 +802,43 @@ class MetadataCollector:
             info["Parameters"] = "8B"
         elif "7b" in model_key.lower():
             info["Parameters"] = "7B"
-            
+
         if not non_local:
             # Query LM Studio REST API for detailed model info
             try:
                 models = lms_api_request("/api/v0/models", timeout=5)
                 if models is not None:
-                    model_list = models if isinstance(models, list) else models.get("data", models.get("models", []))
+                    model_list = (
+                        models
+                        if isinstance(models, list)
+                        else models.get("data", models.get("models", []))
+                    )
                     for m in model_list:
                         mid = m.get("id", m.get("path", ""))
                         if model_key in mid:
-                            if m.get("arch"): info["Architecture"] = m["arch"]
-                            if m.get("quantization"): info["Quantization"] = m["quantization"]
-                            if m.get("max_context_length"): info["Max Context"] = str(m["max_context_length"])
-                            if m.get("compatibility_type"): info["Compatibility"] = m["compatibility_type"]
-                            if m.get("publisher"): info["Publisher"] = m["publisher"]
-                            if m.get("state"): info["State"] = m["state"]
-                            if mid: info["Full Name"] = mid
+                            if m.get("arch"):
+                                info["Architecture"] = m["arch"]
+                            if m.get("quantization"):
+                                info["Quantization"] = m["quantization"]
+                            if m.get("max_context_length"):
+                                info["Max Context"] = str(m["max_context_length"])
+                            if m.get("compatibility_type"):
+                                info["Compatibility"] = m["compatibility_type"]
+                            if m.get("publisher"):
+                                info["Publisher"] = m["publisher"]
+                            if m.get("state"):
+                                info["State"] = m["state"]
+                            if mid:
+                                info["Full Name"] = mid
                             break
                 else:
                     # Fallback to lms ls CLI
-                    ls_output = subprocess.check_output(["lms", "ls"], text=True, timeout=10)
+                    ls_output = subprocess.check_output(
+                        ["lms", "ls"], text=True, timeout=10
+                    )
                     for line in ls_output.splitlines():
                         if "LOADED" in line:
-                            parts = re.split(r'\s{2,}', line.strip())
+                            parts = re.split(r"\s{2,}", line.strip())
                             if len(parts) >= 4:
                                 info["Size"] = parts[-2]
                                 info["Architecture"] = parts[-3]
@@ -722,13 +848,14 @@ class MetadataCollector:
                             break
             except Exception:
                 pass
-            
+
         # Try to extract quantization (e.g., Q4, Q8)
         quant = re.search(r"(Q\d+[a-zA-Z0-9_]*)", model_key, re.IGNORECASE)
         if quant:
             info["Quantization"] = quant.group(1)
-            
+
         return info
+
 
 def format_duration_human(seconds: float) -> str:
     """Formats a duration in seconds into a human-readable string (H:M:S)."""
@@ -736,11 +863,11 @@ def format_duration_human(seconds: float) -> str:
         return "0.00 sec"
     if seconds < 60:
         return f"{seconds:.2f} sec"
-    
+
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     remaining_seconds = seconds % 60
-    
+
     parts = []
     if hours > 0:
         parts.append(f"{hours}h")
@@ -748,18 +875,25 @@ def format_duration_human(seconds: float) -> str:
         parts.append(f"{minutes}m")
     if remaining_seconds > 0 or not parts:
         parts.append(f"{remaining_seconds:.1f}s")
-    
+
     return " ".join(parts)
 
-def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, duration_seconds: float, agent_name: str) -> Path:
+
+def generate_html_report(
+    work_dir: Path,
+    metadata: Dict,
+    prompt_text: str,
+    duration_seconds: float,
+    agent_name: str,
+) -> Path:
     """Generates a self-contained HTML report."""
     report_path = work_dir / "summary.html"
-    
+
     # Calculate Tokens/Sec
     tokens = metadata.get("Tokens", {})
     total_output = tokens.get("completion_tokens", 0)
     prompt_time_seconds = metadata.get("PromptTime", 0.0)
-    
+
     duration_str = format_duration_human(duration_seconds)
     # For cloud agents with no server log, prompt processing time is unavailable;
     # fall back to total wall-clock duration so the report isn't misleadingly "0s"
@@ -769,9 +903,9 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
     else:
         prompt_time_str = duration_str
         prompt_time_label = "Total Time"
-    
+
     tps = 0
-    num_turns = tokens.get('num_turns', 0)
+    num_turns = tokens.get("num_turns", 0)
     if num_turns > 1:
         # Multi-turn: prompt processing is interleaved with generation at each step,
         # so use total wall time for effective throughput
@@ -785,29 +919,32 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
 
     # Build optional extra token metric rows (cost, turns from cloud APIs)
     extra_token_rows = ""
-    cost_usd = tokens.get('cost_usd')
+    cost_usd = tokens.get("cost_usd")
     if cost_usd:
         extra_token_rows += f'<div class="token-stat"><span class="label">Cost:</span> <span class="value">${cost_usd:.4f}</span></div>'
-    cache_read = tokens.get('cache_read_tokens')
+    cache_read = tokens.get("cache_read_tokens")
     if cache_read:
         extra_token_rows += f'<div class="token-stat"><span class="label">Cache Read:</span> <span class="value">{cache_read:,}</span></div>'
-    num_turns = tokens.get('num_turns')
+    num_turns = tokens.get("num_turns")
     if num_turns:
         extra_token_rows += f'<div class="token-stat"><span class="label">Turns:</span> <span class="value">{num_turns}</span></div>'
 
     # Collect artifacts
     artifacts = []
     for p in work_dir.iterdir():
-        if p.name == "summary.html": continue
-        if p.is_dir(): continue
+        if p.name == "summary.html":
+            continue
+        if p.is_dir():
+            continue
         artifacts.append(p.name)
     artifacts.sort()
-    
+
     # Python dict to HTML Table Rows helper
     def dict_to_rows(d):
         rows = ""
         for k, v in d.items():
-            if k == "Full Name": continue # Skip redundant full name if used elsewhere or show it
+            if k == "Full Name":
+                continue  # Skip redundant full name if used elsewhere or show it
             rows += f'<div class="info-row"><span class="label">{k}:</span> <span class="value">{v}</span></div>'
         return rows
 
@@ -817,7 +954,7 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
         "gemini": "Gemini CLI",
         "claude": "Claude Code",
         "crush": "Charmbracelet Crush",
-        "opencode": "OpenCode CLI"
+        "opencode": "OpenCode CLI",
     }
     display_agent_name = agent_display_names.get(agent_name.lower(), agent_name)
 
@@ -827,7 +964,7 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Evaluation Report: {metadata['Model'].get('Full Name')}</title>
+        <title>Evaluation Report: {metadata["Model"].get("Full Name")}</title>
         <style>
             body {{ font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f5f3ff; color: #1d1d1f; }}
             .container {{ max-width: 1200px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; }}
@@ -912,7 +1049,7 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
             <header>
                 <h1>Agent Evaluation Report</h1>
                 <div class="header-info">
-                    <div>Agent: <span>{display_agent_name}</span> &nbsp;&nbsp;|&nbsp;&nbsp; Model: <span>{metadata['Model'].get('Full Name')}</span></div>
+                    <div>Agent: <span>{display_agent_name}</span> &nbsp;&nbsp;|&nbsp;&nbsp; Model: <span>{metadata["Model"].get("Full Name")}</span></div>
                     <div>Generation Time: <span>{duration_str}</span></div>
                 </div>
             </header>
@@ -920,15 +1057,15 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
             <div class="meta-grid">
                 <div class="meta-item">
                     <h3>System Info</h3>
-                    <div>{dict_to_rows(metadata['Hardware'])}</div>
+                    <div>{dict_to_rows(metadata["Hardware"])}</div>
                 </div>
                 <div class="meta-item">
                     <h3>Software Versions</h3>
-                    <div>{dict_to_rows(metadata['Software'])}</div>
+                    <div>{dict_to_rows(metadata["Software"])}</div>
                 </div>
                 <div class="meta-item">
                     <h3>Model Details</h3>
-                    <div>{dict_to_rows(metadata['Model'])}</div>
+                    <div>{dict_to_rows(metadata["Model"])}</div>
                 </div>
                 <div class="meta-item prompt-card">
                      <h3>Prompt</h3>
@@ -939,9 +1076,9 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
                     <h3>Token Metrics</h3>
                     <div class="tokens-content">
                         <div>
-                            <div class="token-stat"><span class="label">Input:</span> <span class="value">{tokens.get('prompt_tokens', 0)}</span></div>
-                            <div class="token-stat"><span class="label">Output:</span> <span class="value">{tokens.get('completion_tokens', 0)}</span></div>
-                            <div class="token-stat total"><span class="label">Total:</span> <span class="value">{tokens.get('total_tokens', 0)}</span></div>
+                            <div class="token-stat"><span class="label">Input:</span> <span class="value">{tokens.get("prompt_tokens", 0)}</span></div>
+                            <div class="token-stat"><span class="label">Output:</span> <span class="value">{tokens.get("completion_tokens", 0)}</span></div>
+                            <div class="token-stat total"><span class="label">Total:</span> <span class="value">{tokens.get("total_tokens", 0)}</span></div>
                             {extra_token_rows}
                         </div>
                         <div class="token-rate">~{tps} tokens/sec</div>
@@ -953,12 +1090,13 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
                 <div class="sidebar">
                     <h3>Artifacts</h3>
     """
-    
+
     import base64
+
     for art in artifacts:
-        is_html = art.lower().endswith(('.html', '.htm'))
-        is_image = art.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg'))
-        
+        is_html = art.lower().endswith((".html", ".htm"))
+        is_image = art.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".svg"))
+
         if is_html:
             # Add Preview item with base64 content for proper HTML rendering
             try:
@@ -968,7 +1106,8 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
                     {art} <span class="badge">Preview</span>
                 </div>
                 """
-            except: pass
+            except:
+                pass
             # Add Source item
             try:
                 b64_content = base64.b64encode((work_dir / art).read_bytes()).decode()
@@ -977,7 +1116,8 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
                     {art} <span class="badge">Source</span>
                 </div>
                 """
-            except: pass
+            except:
+                pass
         elif is_image:
             html_content += f"""
             <div class="file-list-item" onclick="loadFile('{art}', 'html')">
@@ -1016,36 +1156,50 @@ def generate_html_report(work_dir: Path, metadata: Dict, prompt_text: str, durat
     </body>
     </html>
     """
-    
+
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    
+
     return report_path
+
 
 # --- Agent Runners ---
 
+
 class AgentRunner:
-    def __init__(self, agent_name: str, model_name: str, prompt_file: Path, headless: bool, non_local: bool = False, restore_agent_config: bool = False):
+    def __init__(
+        self,
+        agent_name: str,
+        model_name: str,
+        prompt_file: Path,
+        headless: bool,
+        non_local: bool = False,
+        restore_agent_config: bool = False,
+    ):
         self.agent_name = agent_name
         self.model_name = model_name
         self.prompt_file = prompt_file
         self.headless = headless
         self.non_local = non_local
         self.restore_agent_config = restore_agent_config
-        
+
         # Binary to name mapping
         self.binary_map = {
             "mistral": "vibe",
         }
         self.agent_binary = self.binary_map.get(agent_name, agent_name)
-        
+
         # Prepare workspace
-        self.safe_model_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in model_name).strip()
+        self.safe_model_name = "".join(
+            c if c.isalnum() or c in ("-", "_") else "_" for c in model_name
+        ).strip()
         # Requested naming convention: {binary_name}_{safe_model_name}_{prompt_stem}
-        self.work_dir = EVALS_DIR / f"{self.agent_binary}_{self.safe_model_name}_{prompt_file.stem}"
-        
+        self.work_dir = (
+            EVALS_DIR / f"{self.agent_binary}_{self.safe_model_name}_{prompt_file.stem}"
+        )
+
         self.log_process: Optional[subprocess.Popen] = None
-        
+
     def setup_workspace(self):
         """Creates the evaluation directory."""
         if self.work_dir.exists():
@@ -1077,7 +1231,9 @@ class AgentRunner:
 
         # Skip if lms CLI is known to be unresponsive (e.g. hangs on Windows)
         if not _lms_cli_available:
-            print("[*] Skipping lms log stream (CLI unavailable). Will read on-disk server logs instead.")
+            print(
+                "[*] Skipping lms log stream (CLI unavailable). Will read on-disk server logs instead."
+            )
             return
 
         log_path = self.work_dir / SERVER_LOG_FILENAME
@@ -1088,12 +1244,14 @@ class AgentRunner:
             self.log_process = subprocess.Popen(
                 ["lms", "log", "stream", "--source", "server"],
                 stdout=self.server_log_file,
-                stderr=subprocess.STDOUT
+                stderr=subprocess.STDOUT,
             )
             # Quick check: if process exits immediately it likely can't connect
             time.sleep(0.5)
             if self.log_process.poll() is not None:
-                print("[-] lms log stream exited immediately — will read on-disk server logs instead.")
+                print(
+                    "[-] lms log stream exited immediately — will read on-disk server logs instead."
+                )
                 self.server_log_file.close()
                 self.log_process = None
         except Exception as e:
@@ -1113,8 +1271,8 @@ class AgentRunner:
         # If SERVER.LOG already has useful content (from lms log stream), skip
         if log_path.exists() and log_path.stat().st_size > 0:
             try:
-                content = log_path.read_text(encoding='utf-8', errors='ignore')
-                if '"usage"' in content or 'Prompt processing progress' in content:
+                content = log_path.read_text(encoding="utf-8", errors="ignore")
+                if '"usage"' in content or "Prompt processing progress" in content:
                     return  # lms log stream worked fine
             except Exception:
                 pass
@@ -1122,10 +1280,12 @@ class AgentRunner:
         # Find LM Studio's on-disk log directory
         lms_log_dir = Path.home() / ".lmstudio" / "server-logs"
         if not lms_log_dir.exists():
-            print("[-] LM Studio server-logs directory not found, cannot recover token metrics.")
+            print(
+                "[-] LM Studio server-logs directory not found, cannot recover token metrics."
+            )
             return
 
-        start_time = getattr(self, '_run_start_time', None)
+        start_time = getattr(self, "_run_start_time", None)
         if not start_time:
             return
 
@@ -1144,14 +1304,14 @@ class AgentRunner:
 
         # Timestamp format in LM Studio logs: [YYYY-MM-DD HH:MM:SS]
         start_ts_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
-        ts_pattern = re.compile(r'^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]')
+        ts_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
 
         collected_lines = []
         capturing = False
 
         for log_file in log_files:
             try:
-                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
                         if not capturing:
                             m = ts_pattern.match(line)
@@ -1163,9 +1323,11 @@ class AgentRunner:
                 print(f"[-] Error reading LM Studio log {log_file}: {e}")
 
         if collected_lines:
-            with open(log_path, 'w', encoding='utf-8') as f:
+            with open(log_path, "w", encoding="utf-8") as f:
                 f.writelines(collected_lines)
-            print(f"[+] Recovered {len(collected_lines)} lines from LM Studio on-disk logs into SERVER.LOG")
+            print(
+                f"[+] Recovered {len(collected_lines)} lines from LM Studio on-disk logs into SERVER.LOG"
+            )
         else:
             print("[-] No matching log entries found in LM Studio on-disk logs.")
 
@@ -1180,7 +1342,7 @@ class AgentRunner:
                 self.log_process.kill()
             self.log_process = None
 
-        if hasattr(self, 'server_log_file') and self.server_log_file:
+        if hasattr(self, "server_log_file") and self.server_log_file:
             self.server_log_file.close()
 
         # Fallback: read from LM Studio's on-disk logs if streaming didn't work
@@ -1189,15 +1351,15 @@ class AgentRunner:
     def run(self):
         """Orchestrates the run."""
         start_time = datetime.now()
-        
+
         self.setup_workspace()
-        
+
         # specific agent configuration
         self.configure_agent()
-        
+
         # Start logging LMS server
         self.start_server_logger()
-        
+
         try:
             # Execute
             print(f"[*] Running {self.agent_name}...")
@@ -1205,30 +1367,31 @@ class AgentRunner:
         finally:
             # Stop logging
             self.stop_server_logger()
-            
+
         end_time = datetime.now()
         duration_delta = end_time - start_time
         duration_seconds = duration_delta.total_seconds()
-        
+
         # --- Automatic Script Execution ---
         # Find any .py files generated by the agent and run them
         for py_file in self.work_dir.glob("*.py"):
-            if py_file.name == "evaluate_agent.py": continue 
-            
+            if py_file.name == "evaluate_agent.py":
+                continue
+
             print(f"[*] Automatically executing generated script: {py_file.name}")
             output_log_path = self.work_dir / "OUTPUT.TXT"
-            
+
             try:
                 result = subprocess.run(
                     [sys.executable, py_file.name],
                     cwd=self.work_dir,
                     capture_output=True,
                     text=True,
-                    encoding='utf-8',
-                    errors='replace',
-                    timeout=300
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=300,
                 )
-                
+
                 with open(output_log_path, "a", encoding="utf-8") as f:
                     f.write(f"--- Execution of {py_file.name} ---\n")
                     f.write("STDOUT:\n")
@@ -1237,63 +1400,64 @@ class AgentRunner:
                         f.write("\nSTDERR:\n")
                         f.write(result.stderr)
                     f.write("\n---------------------------\n\n")
-                
-                print(f"[+] Execution of {py_file.name} finished. Results appended to OUTPUT.TXT")
+
+                print(
+                    f"[+] Execution of {py_file.name} finished. Results appended to OUTPUT.TXT"
+                )
             except Exception as e:
                 print(f"[-] Execution of {py_file.name} failed: {e}")
 
         # --- Metadata & Reporting ---
         print("[*] Generating run report...")
-        
+
         # Metadata collection using centralized binary mapping
-        
+
         # Read prompt text
         try:
-            with open(self.prompt_file, 'r', encoding='utf-8') as f:
+            with open(self.prompt_file, "r", encoding="utf-8") as f:
                 prompt_text = f.read()
         except Exception:
             prompt_text = "Error reading prompt file."
 
-        model_info = MetadataCollector.parse_model_info(self.model_name, self.non_local, self.agent_name)
+        model_info = MetadataCollector.parse_model_info(
+            self.model_name, self.non_local, self.agent_name
+        )
         model_info.update(self.get_model_extra_info())
 
         metadata = {
             "Hardware": MetadataCollector.get_hardware_info(),
-            "Software": MetadataCollector.get_software_versions(self.agent_binary, self.non_local),
+            "Software": MetadataCollector.get_software_versions(
+                self.agent_binary, self.non_local
+            ),
             "Model": model_info,
             "Tokens": MetadataCollector.get_token_usage(
-                self.work_dir / SERVER_LOG_FILENAME, 
-                self.work_dir / CHAT_SESSION_FILENAME
+                self.work_dir / SERVER_LOG_FILENAME,
+                self.work_dir / CHAT_SESSION_FILENAME,
             ),
-            "PromptTime": MetadataCollector.get_prompt_processing_time(self.work_dir / SERVER_LOG_FILENAME)
+            "PromptTime": MetadataCollector.get_prompt_processing_time(
+                self.work_dir / SERVER_LOG_FILENAME
+            ),
         }
-        
+
         report_path = generate_html_report(
-            self.work_dir, 
-            metadata, 
-            prompt_text, 
-            duration_seconds, 
-            self.agent_name
+            self.work_dir, metadata, prompt_text, duration_seconds, self.agent_name
         )
-        
+
         print(f"[+] Report generated: {report_path}")
-        
+
         # Open the report (if we didn't just run a py script output, or maybe along with it?)
         # User said: "In addition to these options on the page..."
         # If output was .py, implementation plan said we still open summary.html because it contains the OUTPUT.TXT view.
         # But process_output prints logic to console. Let's open the report too.
         try:
-            if sys.platform == "darwin": # macOS
+            if sys.platform == "darwin":  # macOS
                 subprocess.run(["open", str(report_path)])
-            elif sys.platform == "win32": # Windows
+            elif sys.platform == "win32":  # Windows
                 os.startfile(str(report_path))
-            else: # Linux
+            else:  # Linux
                 subprocess.run(["xdg-open", str(report_path)])
         except Exception as e:
             print(f"[-] Failed to open report: {e}")
-
-
-
 
     def configure_agent(self):
         """Hook for agent-specific configuration file generation."""
@@ -1307,65 +1471,76 @@ class AgentRunner:
         """Runs the process and streams output to file and stdout."""
         if env is None:
             env = self.get_env_vars()
-        
+
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
-        
+
         print(f"[*] Executing: {' '.join(cmd)}")
         print(f"[*] Output logging to: {chat_log_path}")
-        
+
         with open(chat_log_path, "w", encoding="utf-8") as log_file:
             # We want to capture both stdout and stderr
-            # And also print to the console? 
+            # And also print to the console?
             # Subprocess.PIPE might buffer, but let's try.
-            
+
             # Start process in the work dir
             process = subprocess.Popen(
                 cmd,
                 cwd=self.work_dir,
                 env=env,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, # Merge stderr into stdout
+                stderr=subprocess.STDOUT,  # Merge stderr into stdout
                 text=True,
-                encoding='utf-8',
-                errors='replace',
-                bufsize=1 # Line buffered
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,  # Line buffered
             )
-            
+
             # Stream output
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
                 log_file.write(line)
                 log_file.flush()
-                
+
             try:
-                process.wait(timeout=900) # Wait with a timeout
+                process.wait(timeout=900)  # Wait with a timeout
             except subprocess.TimeoutExpired:
                 print(f"[-] Agent process timed out after 900 seconds.")
                 log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill() # Terminate the process
-                process.wait() # Wait for it to actually terminate
-            
+                process.kill()  # Terminate the process
+                process.wait()  # Wait for it to actually terminate
+
             if process.returncode != 0:
                 print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
             else:
                 print(f"[+] Agent finished successfully.")
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
 
+
 # --- Specific Agent Implementations ---
+
 
 class GeminiRunner(AgentRunner):
     def execute_agent(self):
         # Gemini CLI: `gemini --prompt "content"`
-        with open(self.prompt_file, 'r', encoding='utf-8') as f:
+        with open(self.prompt_file, "r", encoding="utf-8") as f:
             prompt_content = f.read()
-        
+
         # Use absolute path to avoid FileNotFoundError
         gemini_bin = shutil.which("gemini") or "gemini"
-        
-        cmd = [gemini_bin, "--yolo", "--prompt", prompt_content, "--output-format", "stream-json"]
-        
+
+        cmd = [
+            gemini_bin,
+            "--yolo",
+            "--prompt",
+            prompt_content,
+            "--output-format",
+            "stream-json",
+        ]
+
         if self.model_name:
             cmd.extend(["--model", self.model_name])
 
@@ -1373,11 +1548,13 @@ class GeminiRunner(AgentRunner):
         # Remove Gemini-specific env vars to avoid nested session detection/relaunch issues
         env.pop("GEMINI_CLI", None)
         env.pop("GEMINI_CLI_NO_RELAUNCH", None)
-        
+
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / GEMINI_RESULT_FILENAME
 
-        print(f"[*] Executing: gemini --yolo --prompt <prompt> --output-format stream-json")
+        print(
+            f"[*] Executing: gemini --yolo --prompt <prompt> --output-format stream-json"
+        )
         print(f"[*] Output logging to: {chat_log_path}")
 
         result_data = None
@@ -1390,9 +1567,9 @@ class GeminiRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                encoding='utf-8',
-                errors='replace',
-                bufsize=1
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
             )
 
             for line in process.stdout:
@@ -1412,7 +1589,7 @@ class GeminiRunner(AgentRunner):
                             sys.stdout.flush()
                             log_file.write(content)
                             log_file.flush()
-                            
+
                     elif event_type == "tool_call":
                         tool_name = event.get("function", "")
                         info_line = f"\n[Tool: {tool_name}]\n"
@@ -1448,22 +1625,32 @@ class GeminiRunner(AgentRunner):
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
             else:
                 print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
 
         if result_data:
             with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] Gemini usage data saved to: {result_json_path}")
 
+
 class ClaudeRunner(AgentRunner):
     def execute_agent(self):
         # Claude Code: `claude -p "content"` (headless)
         # Using --output-format stream-json to capture token usage and cost metrics
-        with open(self.prompt_file, 'r', encoding='utf-8') as f:
+        with open(self.prompt_file, "r", encoding="utf-8") as f:
             prompt_content = f.read()
 
-        cmd = ["claude", "-p", prompt_content, "--dangerously-skip-permissions",
-               "--output-format", "stream-json", "--verbose"]
+        cmd = [
+            "claude",
+            "-p",
+            prompt_content,
+            "--dangerously-skip-permissions",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+        ]
 
         # Add --model flag if we can resolve the friendly name to a Claude model ID
         if self.non_local:
@@ -1480,7 +1667,9 @@ class ClaudeRunner(AgentRunner):
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / CLAUDE_RESULT_FILENAME
 
-        print(f"[*] Executing: claude -p <prompt> --dangerously-skip-permissions --output-format stream-json")
+        print(
+            f"[*] Executing: claude -p <prompt> --dangerously-skip-permissions --output-format stream-json"
+        )
         print(f"[*] Output logging to: {chat_log_path}")
 
         result_data = None
@@ -1493,9 +1682,9 @@ class ClaudeRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                encoding='utf-8',
-                errors='replace',
-                bufsize=1
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
             )
 
             for line in process.stdout:
@@ -1557,13 +1746,16 @@ class ClaudeRunner(AgentRunner):
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
             else:
                 print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
 
         # Save result JSON for metadata extraction (token usage, cost, turns)
         if result_data:
             with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] Claude usage data saved to: {result_json_path}")
+
 
 class VibeRunner(AgentRunner):
     _original_active_model: Optional[str] = None
@@ -1578,7 +1770,7 @@ class VibeRunner(AgentRunner):
             return
 
         try:
-            config_text = vibe_config_path.read_text(encoding='utf-8')
+            config_text = vibe_config_path.read_text(encoding="utf-8")
 
             # Find the alias for a [[models]] entry whose name matches our model
             # TOML parsing without a library: scan for [[models]] blocks
@@ -1592,7 +1784,10 @@ class VibeRunner(AgentRunner):
                 if stripped == "[[models]]":
                     # Save previous block if it matched
                     if in_models_block and current_name and current_alias:
-                        if self.model_name in current_name or current_name in self.model_name:
+                        if (
+                            self.model_name in current_name
+                            or current_name in self.model_name
+                        ):
                             target_alias = current_alias
                     in_models_block = True
                     current_name = None
@@ -1600,7 +1795,10 @@ class VibeRunner(AgentRunner):
                 elif stripped.startswith("[") and in_models_block:
                     # New non-models section — finalize
                     if current_name and current_alias:
-                        if self.model_name in current_name or current_name in self.model_name:
+                        if (
+                            self.model_name in current_name
+                            or current_name in self.model_name
+                        ):
                             target_alias = current_alias
                     in_models_block = False
                 elif in_models_block:
@@ -1617,11 +1815,15 @@ class VibeRunner(AgentRunner):
                     target_alias = current_alias
 
             if not target_alias:
-                print(f"[-] No vibe model alias found matching '{self.model_name}', using current active_model.")
+                print(
+                    f"[-] No vibe model alias found matching '{self.model_name}', using current active_model."
+                )
                 return
 
             # Read current active_model so we can restore it later
-            am_match = re.search(r'^active_model\s*=\s*"(.+?)"', config_text, re.MULTILINE)
+            am_match = re.search(
+                r'^active_model\s*=\s*"(.+?)"', config_text, re.MULTILINE
+            )
             if am_match:
                 self._original_active_model = am_match.group(1)
                 if self._original_active_model == target_alias:
@@ -1633,10 +1835,12 @@ class VibeRunner(AgentRunner):
                 f'\\1"{target_alias}"',
                 config_text,
                 count=1,
-                flags=re.MULTILINE
+                flags=re.MULTILINE,
             )
-            vibe_config_path.write_text(new_config, encoding='utf-8')
-            print(f"[+] Set vibe active_model to '{target_alias}' (was '{self._original_active_model}')")
+            vibe_config_path.write_text(new_config, encoding="utf-8")
+            print(
+                f"[+] Set vibe active_model to '{target_alias}' (was '{self._original_active_model}')"
+            )
 
         except Exception as e:
             print(f"[-] Failed to configure vibe model: {e}")
@@ -1647,22 +1851,22 @@ class VibeRunner(AgentRunner):
             return
         vibe_config_path = Path.home() / ".vibe" / "config.toml"
         try:
-            config_text = vibe_config_path.read_text(encoding='utf-8')
+            config_text = vibe_config_path.read_text(encoding="utf-8")
             new_config = re.sub(
                 r'^(active_model\s*=\s*)".*?"',
                 f'\\1"{self._original_active_model}"',
                 config_text,
                 count=1,
-                flags=re.MULTILINE
+                flags=re.MULTILINE,
             )
-            vibe_config_path.write_text(new_config, encoding='utf-8')
+            vibe_config_path.write_text(new_config, encoding="utf-8")
             print(f"[+] Restored vibe active_model to '{self._original_active_model}'")
         except Exception as e:
             print(f"[-] Failed to restore vibe config: {e}")
 
     def execute_agent(self):
         # Mistral Vibe: `vibe -p "content"`
-        with open(self.prompt_file, 'r', encoding='utf-8') as f:
+        with open(self.prompt_file, "r", encoding="utf-8") as f:
             prompt_content = f.read()
 
         cmd = ["vibe", "-p", prompt_content]
@@ -1672,7 +1876,29 @@ class VibeRunner(AgentRunner):
             if self.restore_agent_config:
                 self._restore_vibe_config()
 
+
 class OpenCodeRunner(AgentRunner):
+    def __init__(
+        self,
+        agent_name: str,
+        model_name: str,
+        prompt_file: Path,
+        headless: bool,
+        non_local: bool = False,
+        restore_agent_config: bool = False,
+        custom_provider: Optional[str] = None,
+    ):
+        super().__init__(
+            agent_name,
+            model_name,
+            prompt_file,
+            headless,
+            non_local,
+            restore_agent_config,
+        )
+        # Store provider for use in configure_agent
+        self.custom_provider = custom_provider
+
     def get_model_extra_info(self) -> Dict[str, str]:
         result_path = self.work_dir / OPENCODE_RESULT_FILENAME
         if not result_path.exists():
@@ -1699,34 +1925,37 @@ class OpenCodeRunner(AgentRunner):
         }
 
         if not self.non_local:
-            config["provider"] = {
-                "lmstudio": {
-                    "npm": "@ai-sdk/openai-compatible",
-                    "name": "LM Studio (local)",
-                    "options": {
-                        "baseURL": LM_STUDIO_API_URL
-                    },
-                    "models": {
-                        self.model_name: {
-                            "name": self.model_name
-                        }
+            provider_name = self.custom_provider if self.custom_provider else "lmstudio"
+
+            if self.custom_provider:
+                # If custom provider is specified, use it directly without defining a new one
+                # This allows using providers configured in the user's global opencode.json
+                config["model"] = f"{provider_name}/{self.model_name}"
+            else:
+                # Default case: define lmstudio provider pointing to localhost
+                base_url = LM_STUDIO_API_URL
+                config["provider"] = {
+                    "lmstudio": {
+                        "npm": "@ai-sdk/openai-compatible",
+                        "name": "LM Studio (local)",
+                        "options": {"baseURL": base_url},
+                        "models": {self.model_name: {"name": self.model_name}},
                     }
                 }
-            }
-            config["model"] = f"lmstudio/{self.model_name}"
+                config["model"] = f"lmstudio/{self.model_name}"
 
         with open(self.work_dir / "opencode.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
 
     def execute_agent(self):
-        with open(self.prompt_file, 'r', encoding='utf-8') as f:
+        with open(self.prompt_file, "r", encoding="utf-8") as f:
             prompt_content = f.read()
 
-        cmd = ["opencode", "run", prompt_content,
-               "--format", "json", "--print-logs"]
+        cmd = ["opencode", "run", prompt_content, "--format", "json", "--print-logs"]
 
         if not self.non_local:
-            cmd.extend(["--model", f"lmstudio/{self.model_name}"])
+            provider_name = self.custom_provider if self.custom_provider else "lmstudio"
+            cmd.extend(["--model", f"{provider_name}/{self.model_name}"])
 
         env = self.get_env_vars()
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
@@ -1736,7 +1965,7 @@ class OpenCodeRunner(AgentRunner):
         print(f"[*] Output logging to: {chat_log_path}")
 
         # Patterns to suppress from terminal and log file (high-volume internal bus noise)
-        _stderr_noise = re.compile(r'service=bus\b')
+        _stderr_noise = re.compile(r"service=bus\b")
 
         # Accumulate token usage from step_finish events
         total_input = 0
@@ -1760,16 +1989,18 @@ class OpenCodeRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                encoding='utf-8',
-                errors='replace',
-                bufsize=1
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
             )
 
             # Read stdout (JSON events) and stderr (logs) concurrently
             import threading
 
-            _log_version_re = re.compile(r'service=default\s+version=(\S+)')
-            _log_llm_re = re.compile(r'service=llm\s+providerID=(\S+)\s+modelID=(\S+).*\bsmall=false\b')
+            _log_version_re = re.compile(r"service=default\s+version=(\S+)")
+            _log_llm_re = re.compile(
+                r"service=llm\s+providerID=(\S+)\s+modelID=(\S+).*\bsmall=false\b"
+            )
 
             def drain_stderr():
                 nonlocal opencode_version, provider_id, model_id
@@ -1859,7 +2090,9 @@ class OpenCodeRunner(AgentRunner):
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
             else:
                 print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
 
         # Save accumulated token usage to result JSON
         if total_input > 0 or total_output > 0:
@@ -1871,7 +2104,7 @@ class OpenCodeRunner(AgentRunner):
                 "cache_read_tokens": cache_read,
                 "cache_write_tokens": cache_write,
                 "cost_usd": total_cost,
-                "num_turns": num_turns
+                "num_turns": num_turns,
             }
             if provider_id:
                 result_data["provider_id"] = provider_id
@@ -1883,10 +2116,11 @@ class OpenCodeRunner(AgentRunner):
                 json.dump(result_data, f, indent=2)
             print(f"[+] OpenCode usage data saved to: {result_json_path}")
 
+
 class CrushRunner(AgentRunner):
     def execute_agent(self):
         # Crush: `crush run "content" -y`
-        with open(self.prompt_file, 'r', encoding='utf-8') as f:
+        with open(self.prompt_file, "r", encoding="utf-8") as f:
             prompt_content = f.read()
 
         cmd = ["crush", "run", prompt_content, "-y"]
@@ -1894,6 +2128,7 @@ class CrushRunner(AgentRunner):
 
 
 PI_RESULT_FILENAME = "PI_RESULT.JSON"
+
 
 class PiRunner(AgentRunner):
     def configure_agent(self):
@@ -1906,7 +2141,9 @@ class PiRunner(AgentRunner):
 
         # Back up existing models.json if present
         if self.models_json_path.exists():
-            self._original_models_json = self.models_json_path.read_text(encoding='utf-8')
+            self._original_models_json = self.models_json_path.read_text(
+                encoding="utf-8"
+            )
 
         config = {
             "providers": {
@@ -1916,11 +2153,9 @@ class PiRunner(AgentRunner):
                     "apiKey": "lm-studio",
                     "compat": {
                         "supportsDeveloperRole": False,
-                        "supportsReasoningEffort": False
+                        "supportsReasoningEffort": False,
                     },
-                    "models": [
-                        {"id": self.model_name}
-                    ]
+                    "models": [{"id": self.model_name}],
                 }
             }
         }
@@ -1932,10 +2167,12 @@ class PiRunner(AgentRunner):
 
     def _restore_pi_models_json(self):
         """Restore original models.json after the run."""
-        if not hasattr(self, 'models_json_path'):
+        if not hasattr(self, "models_json_path"):
             return
         if self._original_models_json is not None:
-            self.models_json_path.write_text(self._original_models_json, encoding='utf-8')
+            self.models_json_path.write_text(
+                self._original_models_json, encoding="utf-8"
+            )
             print(f"[*] Restored original Pi models.json")
         elif self.models_json_path.exists():
             self.models_json_path.unlink()
@@ -1947,7 +2184,7 @@ class PiRunner(AgentRunner):
         if not result_path.exists():
             return {}
         try:
-            with open(result_path, 'r', encoding='utf-8') as f:
+            with open(result_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             extra = {}
             if data.get("provider_id"):
@@ -1967,7 +2204,7 @@ class PiRunner(AgentRunner):
             self._restore_pi_models_json()
 
     def _execute_pi(self):
-        with open(self.prompt_file, 'r', encoding='utf-8') as f:
+        with open(self.prompt_file, "r", encoding="utf-8") as f:
             prompt_content = f.read()
 
         cmd = ["pi", "--mode", "json", "--print", "--no-session"]
@@ -2013,10 +2250,10 @@ class PiRunner(AgentRunner):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                encoding='utf-8',
-                errors='replace',
+                encoding="utf-8",
+                errors="replace",
                 bufsize=1,
-                shell=(sys.platform == "win32")  # pi is a .cmd on Windows
+                shell=(sys.platform == "win32"),  # pi is a .cmd on Windows
             )
 
             for line in process.stdout:
@@ -2094,7 +2331,9 @@ class PiRunner(AgentRunner):
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
             else:
                 print(f"\n[-] Agent finished with error code {process.returncode}")
-                log_file.write(f"\n[ERROR] Process exited with code {process.returncode}\n")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
 
         # Save accumulated token usage to result JSON
         if total_input > 0 or total_output > 0:
@@ -2105,7 +2344,7 @@ class PiRunner(AgentRunner):
                 "cache_read_tokens": cache_read,
                 "cache_write_tokens": cache_write,
                 "cost_usd": total_cost,
-                "num_turns": num_turns
+                "num_turns": num_turns,
             }
             if pi_provider:
                 result_data["provider_id"] = pi_provider
@@ -2119,49 +2358,103 @@ class PiRunner(AgentRunner):
 
 # --- Factory ---
 
+
 def get_runner(agent: str) -> type[AgentRunner]:
     mapping = {
         "gemini": GeminiRunner,
         "claude": ClaudeRunner,
         "vibe": VibeRunner,
-        "mistral": VibeRunner, # Backward compatibility alias
+        "mistral": VibeRunner,  # Backward compatibility alias
         "opencode": OpenCodeRunner,
         "crush": CrushRunner,
-        "pi": PiRunner
+        "pi": PiRunner,
     }
     return mapping.get(agent.lower())
 
+
 # --- Main ---
+
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate local LLM agents.")
     parser.add_argument("--model", required=True, help="LM Studio model key/identifier")
-    parser.add_argument("--agent", required=True, choices=["gemini", "claude", "vibe", "opencode", "crush", "pi"], help="Agent to evaluate (vibe = Mistral Vibe)")
-    parser.add_argument("--prompt-file", required=True, type=Path, help="Path to the initial prompt file")
-    parser.add_argument("--headless", action="store_true", default=True, help="Run in headless mode (default: True)")
-    parser.add_argument("--non-local", action="store_true", help="Disable LM Studio-related functionality and use default inference providers")
-    parser.add_argument("--restore-agent-config", action="store_true", help="Restore agent config (e.g. vibe active_model) to its original value after the run")
+    parser.add_argument(
+        "--agent",
+        required=True,
+        choices=["gemini", "claude", "vibe", "opencode", "crush", "pi"],
+        help="Agent to evaluate (vibe = Mistral Vibe)",
+    )
+    parser.add_argument(
+        "--prompt-file",
+        required=True,
+        type=Path,
+        help="Path to the initial prompt file",
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        default=True,
+        help="Run in headless mode (default: True)",
+    )
+    parser.add_argument(
+        "--non-local",
+        action="store_true",
+        help="Disable LM Studio-related functionality and use default inference providers",
+    )
+    parser.add_argument(
+        "--provider",
+        help="Custom provider name for OpenCode agent (e.g., lmstudio-linux, lmstudio-mac)",
+    )
+    parser.add_argument(
+        "--restore-agent-config",
+        action="store_true",
+        help="Restore agent config (e.g. vibe active_model) to its original value after the run",
+    )
 
     args = parser.parse_args()
-    
+
+    # Warn if --provider is used with --non-local
+    if args.provider and args.non_local:
+        print("[!] Warning: --provider flag is ignored when using --non-local mode")
+
     if not args.prompt_file.exists():
         print(f"[-] Prompt file not found: {args.prompt_file}")
         sys.exit(1)
 
     # 1. Load Model (Local only)
-    if not args.non_local:
+    if not args.non_local and not args.provider:
         load_lms_model(args.model)
-    
+
     # 2. Get Runner
     runner_cls = get_runner(args.agent)
     if not runner_cls:
         print(f"[-] Unknown agent: {args.agent}")
         sys.exit(1)
-        
-    runner = runner_cls(args.agent, args.model, args.prompt_file, args.headless, args.non_local, args.restore_agent_config)
-    
+
+    # For OpenCodeRunner, pass the custom provider if specified
+    if runner_cls == OpenCodeRunner and args.provider:
+        runner = runner_cls(
+            args.agent,
+            args.model,
+            args.prompt_file,
+            args.headless,
+            args.non_local,
+            args.restore_agent_config,
+            custom_provider=args.provider,
+        )
+    else:
+        runner = runner_cls(
+            args.agent,
+            args.model,
+            args.prompt_file,
+            args.headless,
+            args.non_local,
+            args.restore_agent_config,
+        )
+
     # 3. Run
     runner.run()
+
 
 if __name__ == "__main__":
     main()
