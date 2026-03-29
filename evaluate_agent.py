@@ -1759,9 +1759,30 @@ class ClaudeRunner(AgentRunner):
 
 class VibeRunner(AgentRunner):
     _original_active_model: Optional[str] = None
+    
+    def __init__(
+        self,
+        agent_name: str,
+        model_name: str,
+        prompt_file: Path,
+        headless: bool,
+        non_local: bool = False,
+        restore_agent_config: bool = False,
+        custom_provider: Optional[str] = None,
+    ):
+        super().__init__(
+            agent_name,
+            model_name,
+            prompt_file,
+            headless,
+            non_local,
+            restore_agent_config,
+        )
+        # Store provider for use in configure_agent
+        self.custom_provider = custom_provider
 
     def configure_agent(self):
-        """Set vibe's active_model to match the --model passed to this script."""
+        """Set vibe's active_model to match the --model and --provider passed to this script."""
         if self.non_local:
             return
 
@@ -1772,11 +1793,12 @@ class VibeRunner(AgentRunner):
         try:
             config_text = vibe_config_path.read_text(encoding="utf-8")
 
-            # Find the alias for a [[models]] entry whose name matches our model
+            # Find the alias for a [[models]] entry whose name and provider match
             # TOML parsing without a library: scan for [[models]] blocks
             target_alias = None
             in_models_block = False
             current_name = None
+            current_provider = None
             current_alias = None
 
             for line in config_text.splitlines():
@@ -1784,39 +1806,53 @@ class VibeRunner(AgentRunner):
                 if stripped == "[[models]]":
                     # Save previous block if it matched
                     if in_models_block and current_name and current_alias:
-                        if (
-                            self.model_name in current_name
-                            or current_name in self.model_name
-                        ):
-                            target_alias = current_alias
+                        # Check if this model matches (with optional provider)
+                        if self.custom_provider:
+                            # When provider is specified, match both provider and model name
+                            if current_provider and current_provider.lower() == self.custom_provider.lower() and self.model_name in current_name:
+                                target_alias = current_alias
+                        else:
+                            # When no provider specified, match just the model name
+                            if self.model_name in current_name or current_name in self.model_name:
+                                target_alias = current_alias
                     in_models_block = True
                     current_name = None
+                    current_provider = None
                     current_alias = None
                 elif stripped.startswith("[") and in_models_block:
                     # New non-models section — finalize
                     if current_name and current_alias:
-                        if (
-                            self.model_name in current_name
-                            or current_name in self.model_name
-                        ):
-                            target_alias = current_alias
+                        if self.custom_provider:
+                            if current_provider and current_provider.lower() == self.custom_provider.lower() and self.model_name in current_name:
+                                target_alias = current_alias
+                        else:
+                            if self.model_name in current_name or current_name in self.model_name:
+                                target_alias = current_alias
                     in_models_block = False
                 elif in_models_block:
                     m = re.match(r'^name\s*=\s*"(.+?)"', stripped)
                     if m:
-                        current_name = m.group(1)
+                        current_name = m.group(1).strip()
+                    m = re.match(r'^provider\s*=\s*"(.+?)"', stripped)
+                    if m:
+                        current_provider = m.group(1).strip()
                     m = re.match(r'^alias\s*=\s*"(.+?)"', stripped)
                     if m:
-                        current_alias = m.group(1)
+                        current_alias = m.group(1).strip()
 
             # Check last block
             if in_models_block and current_name and current_alias:
-                if self.model_name in current_name or current_name in self.model_name:
-                    target_alias = current_alias
+                if self.custom_provider:
+                    if current_provider and current_provider.lower() == self.custom_provider.lower() and self.model_name in current_name:
+                        target_alias = current_alias
+                else:
+                    if self.model_name in current_name or current_name in self.model_name:
+                        target_alias = current_alias
 
             if not target_alias:
+                provider_str = f"{self.custom_provider}/" if self.custom_provider else ""
                 print(
-                    f"[-] No vibe model alias found matching '{self.model_name}', using current active_model."
+                    f"[-] No vibe model alias found matching '{provider_str}{self.model_name}', using current active_model."
                 )
                 return
 
@@ -2431,8 +2467,8 @@ def main():
         print(f"[-] Unknown agent: {args.agent}")
         sys.exit(1)
 
-    # For OpenCodeRunner, pass the custom provider if specified
-    if runner_cls == OpenCodeRunner and args.provider:
+    # For OpenCodeRunner and VibeRunner, pass the custom provider if specified
+    if (runner_cls == OpenCodeRunner or runner_cls == VibeRunner) and args.provider:
         runner = runner_cls(
             args.agent,
             args.model,
