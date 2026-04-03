@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Elevator Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 100;
+        }
+        .control-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div class="control-group">
+            <label for="speedRange">Animation Speed: <span id="speedVal">1</span>x</label>
+            <input type="range" id="speedRange" min="1" max="20" value="1" step="1">
+        </div>
+    </div>
+
+    <!-- 1. Load the core Three.js library first -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+
+    <!-- 2. Load OrbitControls, which depends on the core library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- 3. Load your custom scripts last -->
+    <script src="person.js"></script>
+    <script src="elevator.js"></script>
+</body>
+</html>
