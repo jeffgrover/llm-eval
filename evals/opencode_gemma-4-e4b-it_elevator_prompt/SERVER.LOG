@@ -1,0 +1,41 @@
+Streaming logs from LM Studio
+
+[2026-04-07 22:40:48][INFO][gemma-4-e4b-it] Running chat completion on conversation with 3 messages.
+[2026-04-07 22:40:48][INFO][gemma-4-e4b-it] Streaming response...
+[2026-04-07 22:40:48][INFO][gemma-4-e4b-it] Running chat completion on conversation with 2 messages.
+[2026-04-07 22:40:48][INFO][gemma-4-e4b-it] Streaming response...
+[2026-04-07 22:40:48][INFO][gemma-4-e4b-it] Prompt processing progress: 0.0%
+[2026-04-07 22:40:48][INFO][gemma-4-e4b-it] Prompt processing progress: 22.2%
+[2026-04-07 22:40:50][INFO][gemma-4-e4b-it] Prompt processing progress: 44.4%
+[2026-04-07 22:40:50][INFO][gemma-4-e4b-it] Prompt processing progress: 0.0%
+[2026-04-07 22:40:52][INFO][gemma-4-e4b-it] Prompt processing progress: 4.6%
+[2026-04-07 22:40:54][INFO][gemma-4-e4b-it] Prompt processing progress: 9.3%
+[2026-04-07 22:40:56][INFO][gemma-4-e4b-it] Prompt processing progress: 13.9%
+[2026-04-07 22:40:58][INFO][gemma-4-e4b-it] Prompt processing progress: 18.5%
+[2026-04-07 22:41:00][INFO][gemma-4-e4b-it] Prompt processing progress: 23.2%
+[2026-04-07 22:41:01][INFO][gemma-4-e4b-it] Prompt processing progress: 27.8%
+[2026-04-07 22:41:03][INFO][gemma-4-e4b-it] Prompt processing progress: 32.4%
+[2026-04-07 22:41:05][INFO][gemma-4-e4b-it] Prompt processing progress: 37.0%
+[2026-04-07 22:41:07][INFO][gemma-4-e4b-it] Prompt processing progress: 41.7%
+[2026-04-07 22:41:09][INFO][gemma-4-e4b-it] Prompt processing progress: 46.3%
+[2026-04-07 22:41:11][INFO][gemma-4-e4b-it] Prompt processing progress: 50.9%
+[2026-04-07 22:41:13][INFO][gemma-4-e4b-it] Prompt processing progress: 55.6%
+[2026-04-07 22:41:16][INFO][gemma-4-e4b-it] Prompt processing progress: 60.2%
+[2026-04-07 22:41:18][INFO][gemma-4-e4b-it] Prompt processing progress: 64.8%
+[2026-04-07 22:41:20][INFO][gemma-4-e4b-it] Prompt processing progress: 69.5%
+[2026-04-07 22:41:22][INFO][gemma-4-e4b-it] Prompt processing progress: 74.1%
+[2026-04-07 22:41:24][INFO][gemma-4-e4b-it] Prompt processing progress: 78.7%
+[2026-04-07 22:41:27][INFO][gemma-4-e4b-it] Prompt processing progress: 83.4%
+[2026-04-07 22:41:29][INFO][gemma-4-e4b-it] Prompt processing progress: 88.0%
+[2026-04-07 22:41:31][INFO][gemma-4-e4b-it] Prompt processing progress: 92.6%
+[2026-04-07 22:41:34][INFO][gemma-4-e4b-it] Prompt processing progress: 95.4%
+[2026-04-07 22:41:34][INFO][gemma-4-e4b-it] Prompt processing progress: 53.5%
+[2026-04-07 22:41:36][INFO][gemma-4-e4b-it] Prompt processing progress: 53.6%
+[2026-04-07 22:41:36][INFO][gemma-4-e4b-it] Prompt processing progress: 100.0%
+[2026-04-07 22:41:38][INFO][gemma-4-e4b-it] Prompt processing progress: 100.0%
+[2026-04-07 22:41:40][INFO][gemma-4-e4b-it] Prompt processing progress: 75.7%
+[2026-04-07 22:41:41][INFO][gemma-4-e4b-it] Prompt processing progress: 77.8%
+[2026-04-07 22:41:43][INFO][gemma-4-e4b-it] Prompt processing progress: 99.8%
+[2026-04-07 22:41:43][INFO][gemma-4-e4b-it] Prompt processing progress: 100.0%
+[2026-04-07 22:41:44][INFO][gemma-4-e4b-it] Finished streaming response
+[2026-04-07 22:41:58][INFO][gemma-4-e4b-it] Finished streaming response
