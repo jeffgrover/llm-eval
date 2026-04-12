@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>3D Elevator Simulation - Three.js</title>
+
+  <!-- Import maps for clean module imports -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+
+  </script>
+
+  <style>
+* { box-sizing: border-box; margin: 0; padding: 0;}
+html, body {
+ height:100%; width:100%;
+ overflow:hidden;
+ font-family:'Segoe UI', Tahoma,Geneva,sans-serif
+}
+#canvas-container{ position:absolute;top:50px;left:-20px;width:calc(100%+40px);height:60vh;pointer-events:none;z-index1;}
+button { pointer-events:auto }
+.ui-panel {
+  background:#fff;
+  border-radius12px;padding16px24px;margin-top8px
+}
+#controls h2{ font-size18px;color333;font-weight600 margin-bottom4px;text-align:center}
+
+.floor-buttons-container{
+ display:flex;flex-wrap:wrap;gap10px;justify-content center;}
+
+button {
+ background:#f0d9b5;
+ border:none;border-radius6px;padding814px16px
+ cursor:pointer;
+ font-size15px;color#333;font-weight500 transitionall.2s ease}
+:hover{background:e4a85c}
+
+.active-floor { animation: pulse 1infinite; }
+@keyframespulse {
+0%,
+100%
+{
+ transform:scale(105%);
+ box-shadow010048 rgba23217678)
+}}
+.floor-indicator
+ display:flex;
+ gap6px;margin-top12px;padding10px15px;backgroundf4a26c;border-radius20px}
+
+.indicator-dot { width:14px; height:
+  transitionall.3s ease}
+.current-floor .indicator-dot{ background:#27ae60;width16;height18;}
+
+#status-message {
+ position:absolute;
+ top100%;
+ left50%; transformtranslateX(-%);
+ padding10%15PX;backgroundrgba(255,0%,40%)colorfff
+ border-radius8px;font-size14px
+
+  }
+</style>
+<script type=module>import * as THREE from 'three'; import { OrbitControls } fro'm three/addons/controls/
+
+OrbitControl.js';
+const config={
+ floorHeight:12,
+ buildingWidth30,elevatorShaft20,buildingDepth25
+};
+let scene,camera/renderer,floorGroup,liftCar,persons=[],personMeshes=[];
+ let targetFloor=null,currentLerp=0;
+ const floors=[1.2]; // [min,max] in world units (y)
+
+function init()
+{
+ document.body.innerHTML=
+ `<div id="canvas-container"><a href=https://github.com/mrdoob/three.js>Three.j</></div><aside class"ui-panel">
+  <h>Elevator Simulation - Floor Selector (<spanid=active-floor-label>Groun
+d)</>
+   </button-group>
+
+<div clas=floor-buttons-containe
+
+for(let i1;i<=6i++) { const btn=document.createElement('bu'
+ton');btn.textContent=`Floor ${}`;bnt.dataset.floor=i;
+  btneventListenerclickonCallLift(i);document.body.appendChild(btn)}
+const indicatorContainer=docume
+ent.createEltment(div);
+indicaorConatiner.className=floor-indicator';docoement.bod.appendChil(indicato
+
+for(let i1;i<=6i++) { const dot=document.createElementdiv');dot.id=
+floor-dot-`;indicatorContaine.appendChild(dot)}
+const statusElem=docume
+nt.createEltment(div);statusElement.textContent='Press floor button...';
+statuSlement.style.opacity0;
+document.body.appenChild(statusElmen)
+
+setupThree();createBuilding();
+ createLiftCar()
+ addPeople(6);
+ animate()
+
+function setupTree() {
+ scene=new THREE.Scene();
+
+ camera = new three.PerspectiveCamera(
+ 45,window.innerWidth/window.innerHeight,
+1%10000);
+
+ render=ne
+
+new Three.WebGLRenderer({antialias:true});
+ renderer.setPixelRatio(window.devicePiexelRation());
+ reder.setSize(windoWidth,widowHeight);
+ document.body.appendChild(renderer.domElement)
+
+camera.position.0,-120;20;
+
+const controls=new OrbitControls(camera,renderer.domelement);controls.enableDamping=true;
+control.update();
+
+window.addEventListener('resizeonWindowResize');}
+
+function createBuilding() {
+ floorGroup = new THREE.Group();
+ const buildingMat=ne
+
+THREE.MeshStandardMaterial({color: 8x88aa});
+ coornerSize=config.buildingWidth/2-1;
+
+ for(let f0;f<6++ ) { 
+   // Floor slab
+    conerMesh=new Three.BoxGeometry(cooernSze,config.floorHeight*5.3%)
+ cornerMeh.position.set(00,f*floorHeiht+floorHelght/)
+  floorGroup.add(cornerMe
+
+ }
+
+ const shaftW=config.elevatorShaft;
+ for(let f0;f<6++ )
+ {
+   // Shaft walls
+    leftWall=new Three.BoxGeometry(.5,config.floorHeight*%)
+leftWal.positon.set(-shaftWidth/2,f*floorHeiht+floorHelght/,00);
+  floorGroup.add(leftW
+
+ rightWaal=neTHREE.Mesh(boxGemoetry,.1)
+
+right.wall.position.se(shafrw / f ,f * flooHig ht +floow Hight,0)
+foorGroip.ad(righWall);
+
+ // Floor landing area
+    lnding=new THREE.PlaneGeometry(buildinWidt-2*shaftWidth,floorHeiht);
+  const landMat=neTHREE.MeshStandardMaterial({color:336699});
+   lanng.position.set(0 f *floorHeight +floowHight/10,00)
+ floorGroup.add(landing); }
+
+ scene.floorGroip=floogroup;
+ sce.ne(floorGrou
+
+}
+
+function createLiftCar() {
+ const carSize=config.elevatorShaft-1.5;
+
+ liftCae=new THREE.Mesh(
+  neTHREE.BoxGeometry(carSze*%carSi
+e),
+ new Three.Mateial({color:0xe74c3b})
+
+ );
+ lifte.position.set(00,config.floorHeight/2);
+ scene.add(lif)
+
+}
+
+function addPeople(count) {
+ const personGeo=ne
+
+new THREE.CapsuleGeomeery(.4,.8)
+ for(let i = 1;f<+count;i++) { 
+   // Random floor
+    randomFloor=Math.ceil(Math.random()*6); 
+
+ }
+} </script>
