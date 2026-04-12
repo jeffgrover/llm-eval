@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Elevator Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            border: 1px solid #444;
+            line-height: 1.6;
+        }
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 50px;
+        }
+        button {
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            background: #333;
+            color: white;
+            border: 2px solid #555;
+            border-radius: 50%;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        button:hover { background: #555; border-color: #888; transform: scale(1.1); }
+        button:active { transform: scale(0.95); }
+        .label { font-weight: bold; color: #00ffaa; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div style="font-size: 1.2em; margin-bottom: 10px; border-bottom: 1px solid #444;">Elevator System</div>
+        Floor: <span id="current-floor" class="label">-</span><br>
+        Status: <span id="status" class="label">-</span><br>
+        Passengers: <span id="passengers" class="label">-</span><br>
+        Waiting: <span id="waiting" class="label">-</span>
+    </div>
+    <div id="controls">
+        <button onclick="callElevator(0)">1</button>
+        <button onclick="callElevator(1)">2</button>
+        <button onclick="callElevator(2)">3</button>
+        <button onclick="callElevator(3)">4</button>
+        <button onclick="callElevator(4)">5</button>
+        <button onclick="callElevator(5)">6</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const NUM_FLOORS = 6;
+        const FLOOR_HEIGHT = 5;
+        const ELEVATOR_SPEED = 0.08;
+        const DOOR_SPEED = 0.03;
+        const PERSON_SPAWN_CHANCE = 0.005;
+        const MAX_PASSENGERS = 6;
+
+        // --- State ---
+        let elevatorTargetY = 0;
+        let elevatorActualY = 0;
+        let elevatorStatus = 'IDLE'; // IDLE, MOVING, OPENING, LOADING, CLOSING
+        let doorOpenFactor = 0; // 0 to 1
+        let passengersInElevator = []; // Array of { mesh, targetFloor }
+        let peopleWaiting = []; // Array of { floor, mesh, targetFloor }
+        let pendingFloorCalls = [];
+
+        // --- Three.js Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(25, 15, 25);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(10, 20, 10);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- Building Assets ---
+
+        // Floors (Platforms)
+        const floorGeometry = new THREE.BoxGeometry(15, 0.2, 15);
+        for (let i = 0; i < NUM_FLOORS; i++) {
+            const material = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const floor = new THREE.Mesh(floorGeometry, material);
+            floor.position.y = i * FLOOR_HEIGHT;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Grid/Lines for floors
+            const edges = new THREE.EdgesGeometry(floorGeometry);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x444444 }));
+            line.position.y = i * FLOOR_HEIGHT + 0.1;
+            scene.add(line);
+        }
+
+        // Elevator Shaft (Visual structure)
+        const shaftGeometry = new THREE.BoxGeometry(4, NUM_FLOORS * FLOOR_HEIGHT, 4);
+        const shaftMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x222222, 
+            transparent: true, 
+            opacity: 0.3,
+            wireframe: true 
+        });
+        const shaft = new THREE.Mesh(shaftGeometry, shaftMaterial);
+        shaft.position.y = (NUM_FLOORS - 1) * FLOOR_HEIGHT / 2;
+        scene.add(shaft);
+
+        // Elevator Car Group
+        const carGroup = new THREE.Group();
+        const carBodyGeom = new THREE.BoxGeometry(3, 4, 3);
+        const carBodyMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 });
+        const carBody = new THREE.Mesh(carBodyGeom, carBodyMat);
+        carBody.position.y = 2; // Offset so bottom is at group origin
+        carGroup.add(carBody);
+
+        // Doors
+        const doorGeom = new THREE.PlaneGeometry(1.4, 3.8);
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, side: THREE.DoubleSide, metalness: 0.7 });
+        const doorLeft = new THREE.Mesh(doorGeom, doorMat);
+        doorLeft.position.set(-0.7, 2, 1.51); // Front of car
+        carGroup.add(doorLeft);
+
+        const doorRight = new THREE.Mesh(doorGeom, doorMat);
+        doorRight.position.set(0.7, 2, 1.51);
+        carGroup.add(doorRight);
+
+        scene.add(carGroup);
+
+        // --- People System ---
+        const personGeometry = new THREE.CapsuleGeometry(0.3, 0.7, 4, 8);
+        function createPerson() {
+            const color = new THREE.Color().setHSL(Math.random(), 0.7, 0.5);
+            const material = new THREE.MeshStandardMaterial({ color });
+            const mesh = new THREE.Mesh(personGeometry, material);
+            mesh.castShadow = true;
+            return mesh;
+        }
+
+        // --- Simulation Logic ---
+
+        window.callElevator = function(floorIndex) {
+            if (!pendingFloorCalls.includes(floorIndex)) {
+                pendingFloorCalls.push(floorIndex);
+            }
+        };
+
+        function updateUI() {
+            document.getElementById('current-floor').innerText = Math.round(elevatorActualY / FLOOR_HEIGHT) + 1;
+            document.getElementById('status').innerText = elevatorStatus;
+            document.getElementById('passengers').innerText = passengersInElevator.length;
+            document.getElementById('waiting').innerText = peopleWaiting.length;
+        }
+
+        function update() {
+            // 1. Spawn People
+            if (Math.random() < PERSON_SPAWN_CHANCE) {
+                const floor = Math.floor(Math.random() * NUM_FLOORS);
+                const mesh = createPerson();
+                mesh.position.set(
+                    (Math.random() - 0.5) * 12,
+                    floor * FLOOR_HEIGHT + 0.7, // Height of capsule
+                    (Math.random() - 0.5) * 12
+                );
+                scene.add(mesh);
+                peopleWaiting.push({ floor, mesh, targetFloor: -1 });
+            }
+
+            // 2. Elevator State Machine
+            const currentFloorIdx = Math.round(elevatorActualY / FLOOR_HEIGHT);
+
+            if (elevatorStatus === 'IDLE') {
+                if (pendingFloorCalls.length > 0) {
+                    const nextFloor = pendingFloorCalls.shift();
+                    elevatorTargetY = nextFloor * FLOOR_HEIGHT;
+                    elevatorStatus = 'MOVING';
+                } else if (passengersInElevator.length > 0) {
+                    // Move to first passenger's destination
+                    elevatorTargetY = passengersInElevator[0].targetFloor * FLOOR_HEIGHT;
+                    elevatorStatus = 'MOVING';
+                }
+            } 
+            else if (elevatorStatus === 'MOVING') {
+                if (Math.abs(elevatorActualY - elevatorTargetY) < 0.05) {
+                    elevatorActualY = elevatorTargetY;
+                    elevatorStatus = 'OPENING';
+                } else {
+                    const dir = elevatorTargetY > elevatorActualY ? 1 : -1;
+                    elevatorActualY += dir * ELEVATOR_SPEED;
+                }
+            } 
+            else if (elevatorStatus === 'OPENING') {
+                doorOpenFactor += DOOR_SPEED;
+                if (doorOpenFactor >= 1) {
+                    doorOpenFactor = 1;
+                    elevatorStatus = 'LOADING';
+                }
+            } 
+            else if (elevatorStatus === 'LOADING') {
+                // A. Drop off people
+                for (let i = passengersInElevator.length - 1; i >= 0; i--) {
+                    const p = passengersInElevator[i];
+                    if (p.targetFloor === currentFloorIdx) {
+                        // Move to floor position before removing from car
+                        const worldPos = new THREE.Vector3();
+                        p.mesh.getWorldPosition(worldPos);
+                        
+                        scene.add(p.mesh); // Re-attach to scene
+                        p.mesh.position.set(
+                            worldPos.x,
+                            currentFloorIdx * FLOOR_HEIGHT + 0.7,
+                            worldPos.z
+                        );
+
+                        passengersInElevator.splice(i, 1);
+                    }
+                }
+
+                // B. Pick up people
+                for (let i = peopleWaiting.length - 1; i >= 0; i--) {
+                    const p = peopleWaiting[i];
+                    if (p.floor === currentFloorIdx) {
+                        if (p.targetFloor === -1) {
+                            let dest;
+                            do {
+                                dest = Math.floor(Math.random() * NUM_FLOORS);
+                            } while (dest === currentFloorIdx);
+                            p.targetFloor = dest;
+                        }
+
+                        if (passengersInElevator.length < MAX_PASSENGERS) {
+                            // Move to carGroup
+                            const worldPos = new THREE.Vector3();
+                            p.mesh.getWorldPosition(worldPos);
+                            
+                            peopleWaiting.splice(i, 1);
+                            passengersInElevator.push(p);
+                            carGroup.add(p.mesh);
+
+                            // Position relative to car center (car group origin is at floor level)
+                            // Car body is at y=2. Let's put people at y=0.7 relative to car base.
+                            // Wait, carBody is a child of carGroup, and carBody is offset by 2.
+                            // So if we add mesh to carGroup, its Y=0 is the car floor (approx).
+                            p.mesh.position.set((Math.random() - 0.5) * 1, 0.7, (Math.random() - 0.5) * 1);
+                        }
+                    }
+                }
+
+                // Check if we are done loading/unloading
+                // For simplicity: wait a bit or just move on if no one left to interact with
+                const anyoneToPickUp = peopleWaiting.some(p => p.floor === currentFloorIdx);
+                const anyoneToDropOff = passengersInElevator.some(p => p.targetFloor === currentFloorIdx);
+
+                if (!anyoneToPickUp && !anyoneToDropOff) {
+                    elevatorStatus = 'CLOSING';
+                } else {
+                    // If we are still loading, just wait a few frames
+                    // In a real sim, we'd use a timer. Here we'll just transition after some time.
+                    if (!this.loadingTimer) this.loadingTimer = 0;
+                    this.loadingTimer++;
+                    if (this.loadingTimer > 60) {
+                        elevatorStatus = 'CLOSING';
+                        this.loadingTimer = 0;
+                    }
+                }
+            } 
+            else if (elevatorStatus === 'CLOSING') {
+                doorOpenFactor -= DOOR_SPEED;
+                if (doorOpenFactor <= 0) {
+                    doorOpenFactor = 0;
+                    elevatorStatus = 'IDLE';
+                }
+            }
+
+            // --- Apply Visual Updates ---
+            carGroup.position.y = elevatorActualY;
+
+            // Door movement
+            doorLeft.position.x = -0.7 - (doorOpenFactor * 1.3);
+            doorRight.position.x = 0.7 + (doorOpenFactor * 1.3);
+
+            updateUI();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            update();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+
+    </script>
+</body>
+</html>
