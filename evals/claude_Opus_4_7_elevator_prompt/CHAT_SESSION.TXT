@@ -1,22 +1,54 @@
 
 [Tool: Bash]
-
-[Tool: Write] /home/jeff/Code/llm-eval/evals/claude_Opus_4_7_elevator_prompt/index.html
-
+I'll create the three files for the 3D elevator simulation.
 [Tool: Write] /home/jeff/Code/llm-eval/evals/claude_Opus_4_7_elevator_prompt/person.js
 
 [Tool: Write] /home/jeff/Code/llm-eval/evals/claude_Opus_4_7_elevator_prompt/elevator.js
-Files created. Let me verify them.
+
+[Tool: Write] /home/jeff/Code/llm-eval/evals/claude_Opus_4_7_elevator_prompt/index.html
+Now let me read all three files to verify correctness.
+[Tool: Read]
+
+[Tool: Read]
+
+[Tool: Read]
+I want to fix a subtle alignment issue: the person's feet should sit exactly on the floor surface, but the way I placed the floor slabs and car floor, there's a 0.05-unit offset. Let me fix that.
+[Tool: Edit] /home/jeff/Code/llm-eval/evals/claude_Opus_4_7_elevator_prompt/elevator.js
+
+[Tool: Edit] /home/jeff/Code/llm-eval/evals/claude_Opus_4_7_elevator_prompt/elevator.js
+Let me also verify the renderOrder is set on people (they can be transparent-adjacent inside the elevator), and do a final read of the updated file.
+[Tool: Read]
+Let me run a syntax check on both JavaScript files to catch any issues.
 [Tool: Bash]
-Created three files:
 
-- **index.html** — loads Three.js 0.128.0 + OrbitControls from the specified CDN in order, includes a 1x–20x speed slider.
-- **person.js** — humanoid with legs whose pivots sit at hip height (so swing rotates from hips, not mid-leg), arms hanging down from shoulders, feet at local y=0 so they align to the floor.
-- **elevator.js** — 6-floor building with transparent floors (opacity 0.3) via 4-panel cutout around the shaft, semi-transparent walls (0.2), yellow elevator frame (0.5) with darker sliding doors (0.7), solid back wall. Transparency set with `depthWrite:false`, `side: DoubleSide`, `sortObjects=true`, renderOrder building=0/elevator=1. Sequence: move → open doors → walk forward → reparent to elevator → close → travel → open → reparent to scene → walk out → close, with 300ms delays and walking leg animation via sine wave.
-Created three files:
+[Tool: Bash]
+Both files pass syntax checks. Let me verify the final state of all three files exists.
+[Tool: Bash]
+All three files are in place. Here's what was created:
 
-- **index.html** — loads Three.js 0.128.0 + OrbitControls from the specified CDN in order, includes a 1x–20x speed slider.
-- **person.js** — humanoid with legs whose pivots sit at hip height (so swing rotates from hips, not mid-leg), arms hanging down from shoulders, feet at local y=0 so they align to the floor.
-- **elevator.js** — 6-floor building with transparent floors (opacity 0.3) via 4-panel cutout around the shaft, semi-transparent walls (0.2), yellow elevator frame (0.5) with darker sliding doors (0.7), solid back wall. Transparency set with `depthWrite:false`, `side: DoubleSide`, `sortObjects=true`, renderOrder building=0/elevator=1. Sequence: move → open doors → walk forward → reparent to elevator → close → travel → open → reparent to scene → walk out → close, with 300ms delays and walking leg animation via sine wave.
+**`index.html`** — Loads Three.js 0.128.0 + OrbitControls from CDN, then `person.js` and `elevator.js` in the correct order. No ES6 modules.
+
+**`person.js`** — Factory for humanoid figures. Legs/arms use a group-at-hip/shoulder pattern so rotation pivots from the joint, not the middle of the limb. Feet align to local y=0; arms hang straight down at default pose.
+
+**`elevator.js`** — Builds a 6-floor transparent building with a center shaft cutout, semi-transparent yellow elevator with split sliding doors, and runs a callback-chained animation pipeline:
+- Configurable constants at the top (`FLOOR_HEIGHT`, `ELEVATOR_SPEED`, etc.)
+- Transparent materials use `depthWrite: false`, `side: DoubleSide`; renderer has `sortObjects: true` and `alpha: true`; `renderOrder` 0 for building / 1 for elevator
+- People wait at +Z facing the doors, walk forward through them (reparented to elevator on boarding, back to scene on exit)
+- Walking uses sine-wave leg swing (and opposite arm swing) via group rotation at the hip
+- 1x–20x speed slider in top-left
+- Distance-based completion (< 0.01) for all motion tweens, 300ms delays between pipeline steps
+All three files are in place. Here's what was created:
+
+**`index.html`** — Loads Three.js 0.128.0 + OrbitControls from CDN, then `person.js` and `elevator.js` in the correct order. No ES6 modules.
+
+**`person.js`** — Factory for humanoid figures. Legs/arms use a group-at-hip/shoulder pattern so rotation pivots from the joint, not the middle of the limb. Feet align to local y=0; arms hang straight down at default pose.
+
+**`elevator.js`** — Builds a 6-floor transparent building with a center shaft cutout, semi-transparent yellow elevator with split sliding doors, and runs a callback-chained animation pipeline:
+- Configurable constants at the top (`FLOOR_HEIGHT`, `ELEVATOR_SPEED`, etc.)
+- Transparent materials use `depthWrite: false`, `side: DoubleSide`; renderer has `sortObjects: true` and `alpha: true`; `renderOrder` 0 for building / 1 for elevator
+- People wait at +Z facing the doors, walk forward through them (reparented to elevator on boarding, back to scene on exit)
+- Walking uses sine-wave leg swing (and opposite arm swing) via group rotation at the hip
+- 1x–20x speed slider in top-left
+- Distance-based completion (< 0.01) for all motion tweens, 300ms delays between pipeline steps
 
 [SUCCESS] Process exited cleanly.

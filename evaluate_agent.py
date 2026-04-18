@@ -1650,6 +1650,7 @@ class ClaudeRunner(AgentRunner):
             "--output-format",
             "stream-json",
             "--verbose",
+            "--effort=max",
         ]
 
         # Add --model flag if we can resolve the friendly name to a Claude model ID

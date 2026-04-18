@@ -1,551 +1,446 @@
-// 3D Elevator Simulation
-// Coordinate system: Y = vertical, Z = front/back (positive Z = in front of elevator doors)
+// 3D elevator simulation — builds a 6-floor transparent building with a yellow
+// elevator car that ferries people (one person per occupied floor; one floor
+// empty at all times) between floors via a callback-driven animation pipeline.
 
-// ---------------- Constants ----------------
-const FLOOR_HEIGHT = 3.5;
-const FLOOR_COUNT = 6;
-const BUILDING_WIDTH = 14;
-const BUILDING_DEPTH = 10;
-const SHAFT_WIDTH = 4;
-const SHAFT_DEPTH = 4;
-const ELEVATOR_SPEED = 4.0;      // units per second (base)
-const PERSON_MOVE_SPEED = 2.0;   // units per second (base)
-const DOOR_ANIM_SPEED = 2.0;     // units per second (base)
-const STEP_DELAY_MS = 300;
+// ---------- Configurable constants ----------
+const FLOOR_HEIGHT    = 3;
+const FLOOR_COUNT     = 6;
+const BUILDING_WIDTH  = 12;
+const BUILDING_DEPTH  = 10;
+const SHAFT_WIDTH     = 3;
+const SHAFT_DEPTH     = 3;
+const ELEVATOR_SPEED  = 4;     // world units per second
+const PERSON_MOVE_SPEED = 2;   // world units per second
+const DOOR_SPEED      = 2;     // world units per second (per door half)
+const DOOR_OPEN_OFFSET = SHAFT_WIDTH / 2; // how far each door slides open
+const STEP_DELAY_MS   = 300;   // pause between pipeline steps
 
-const COLORS = {
-    elevatorFrame: 0xffff00,
-    elevatorDoor: 0xcccc00,
-    floor: 0xcccccc,
-    wall: 0x9999ff,
-    ground: 0x888888,
-    roof: 0x666666
-};
-
-// ---------------- Scene setup ----------------
-let scene, camera, renderer, controls;
-let elevatorCar;
-let building;
-let people = [];            // index = floor number (0..FLOOR_COUNT-1), value = person or null
-let emptyFloor = 0;
+// Global speed multiplier driven by the UI slider (1x .. 20x).
 let speedMultiplier = 1;
-let clock;
 
-// Animation state
-let animating = false;
+// ---------- Scene setup ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x222233);
 
-function init() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xe8ecf4);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(25, 25, 25);
+camera.lookAt(0, FLOOR_HEIGHT * FLOOR_COUNT / 2, 0);
 
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(25, 25, 25);
-    camera.lookAt(0, FLOOR_HEIGHT * FLOOR_COUNT / 2, 0);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.sortObjects = true;    // required for correct transparent depth sorting
+document.body.appendChild(renderer.domElement);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.sortObjects = true;
-    document.body.appendChild(renderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, FLOOR_HEIGHT * FLOOR_COUNT / 2, 0);
+controls.update();
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, FLOOR_HEIGHT * FLOOR_COUNT / 2, 0);
-    controls.update();
+// Lighting.
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+sun.position.set(20, 40, 15);
+scene.add(sun);
 
-    // Lights
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambient);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-    dirLight.position.set(20, 30, 15);
-    scene.add(dirLight);
+// ---------- Building ----------
+const building = new THREE.Group();
+building.renderOrder = 0;
+scene.add(building);
 
-    buildBuilding();
-    buildElevator();
-    populateFloors();
-
-    clock = new THREE.Clock();
-
-    // Speed slider
-    const slider = document.getElementById('speedSlider');
-    const valueLabel = document.getElementById('speedValue');
-    slider.addEventListener('input', () => {
-        speedMultiplier = parseInt(slider.value, 10);
-        valueLabel.textContent = speedMultiplier;
+function makeTransparentMaterial(color, opacity) {
+    return new THREE.MeshLambertMaterial({
+        color: color,
+        transparent: true,
+        opacity: opacity,
+        depthWrite: false,          // prevents z-fighting between transparent surfaces
+        side: THREE.DoubleSide
     });
-
-    window.addEventListener('resize', onWindowResize);
-
-    animate();
-    // Kick off first move after a short delay
-    setTimeout(runNextCycle, 500);
 }
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+const floorMat   = makeTransparentMaterial(0xcccccc, 0.3);
+const wallMat    = makeTransparentMaterial(0x9999ff, 0.2);
+const solidFloor = new THREE.MeshLambertMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide });
 
-// ---------------- Building construction ----------------
-function buildBuilding() {
-    building = new THREE.Group();
-    building.renderOrder = 0;
-
+// Floors with shaft cutout.
+// We build each floor as four rectangles surrounding the shaft so the shaft
+// is a clean hole through the center.
+function buildFloorWithShaft(y, material) {
+    const group = new THREE.Group();
     const halfW = BUILDING_WIDTH / 2;
     const halfD = BUILDING_DEPTH / 2;
+    const halfSW = SHAFT_WIDTH / 2;
+    const halfSD = SHAFT_DEPTH / 2;
 
-    // Floor material (transparent)
-    const floorMat = new THREE.MeshStandardMaterial({
-        color: COLORS.floor,
-        transparent: true,
-        opacity: 0.3,
-        depthWrite: false,
-        side: THREE.DoubleSide
-    });
-
-    // Solid ground (floor 0 base) and solid roof
-    const groundMat = new THREE.MeshStandardMaterial({ color: COLORS.ground });
-    const ground = new THREE.Mesh(
-        new THREE.BoxGeometry(BUILDING_WIDTH + 2, 0.2, BUILDING_DEPTH + 2),
-        groundMat
-    );
-    ground.position.y = -0.1;
-    building.add(ground);
-
-    const roofMat = new THREE.MeshStandardMaterial({ color: COLORS.roof });
-    const roof = new THREE.Mesh(
-        new THREE.BoxGeometry(BUILDING_WIDTH, 0.2, BUILDING_DEPTH),
-        roofMat
-    );
-    roof.position.y = FLOOR_HEIGHT * FLOOR_COUNT + 0.1;
-    building.add(roof);
-
-    // Build each floor surface with a rectangular cutout for the shaft using 4 panels.
-    for (let i = 0; i < FLOOR_COUNT; i++) {
-        const y = i * FLOOR_HEIGHT;
-        addFloorWithShaftHole(y, floorMat);
+    const slabs = [
+        // front strip (positive Z side of shaft)
+        { w: BUILDING_WIDTH,          d: halfD - halfSD, x: 0,               z:  (halfD + halfSD) / 2 },
+        // back strip
+        { w: BUILDING_WIDTH,          d: halfD - halfSD, x: 0,               z: -(halfD + halfSD) / 2 },
+        // left strip (between front/back strips)
+        { w: halfW - halfSW,          d: SHAFT_DEPTH,    x: -(halfW + halfSW) / 2, z: 0 },
+        // right strip
+        { w: halfW - halfSW,          d: SHAFT_DEPTH,    x:  (halfW + halfSW) / 2, z: 0 },
+    ];
+    for (const s of slabs) {
+        const geo = new THREE.BoxGeometry(s.w, 0.1, s.d);
+        const mesh = new THREE.Mesh(geo, material);
+        // Offset so the slab's TOP is at y (floor level); a person standing at y has feet on the floor.
+        mesh.position.set(s.x, y - 0.05, s.z);
+        group.add(mesh);
     }
-
-    // Walls (semi-transparent blue) — 4 walls surrounding the building
-    const wallMat = new THREE.MeshStandardMaterial({
-        color: COLORS.wall,
-        transparent: true,
-        opacity: 0.2,
-        depthWrite: false,
-        side: THREE.DoubleSide
-    });
-
-    const totalHeight = FLOOR_HEIGHT * FLOOR_COUNT;
-    // Back wall (negative Z)
-    const backWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(BUILDING_WIDTH, totalHeight),
-        wallMat
-    );
-    backWall.position.set(0, totalHeight / 2, -halfD);
-    building.add(backWall);
-
-    // Front wall (positive Z) - leave open so you can see in; draw it anyway
-    const frontWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(BUILDING_WIDTH, totalHeight),
-        wallMat
-    );
-    frontWall.position.set(0, totalHeight / 2, halfD);
-    frontWall.rotation.y = Math.PI;
-    building.add(frontWall);
-
-    // Left wall
-    const leftWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(BUILDING_DEPTH, totalHeight),
-        wallMat
-    );
-    leftWall.position.set(-halfW, totalHeight / 2, 0);
-    leftWall.rotation.y = Math.PI / 2;
-    building.add(leftWall);
-
-    // Right wall
-    const rightWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(BUILDING_DEPTH, totalHeight),
-        wallMat
-    );
-    rightWall.position.set(halfW, totalHeight / 2, 0);
-    rightWall.rotation.y = -Math.PI / 2;
-    building.add(rightWall);
-
-    scene.add(building);
+    return group;
 }
 
-function addFloorWithShaftHole(y, mat) {
-    // Create 4 panels around the shaft cutout (centered at origin on XZ plane).
-    const halfW = BUILDING_WIDTH / 2;
-    const halfD = BUILDING_DEPTH / 2;
-    const shaftHalfW = SHAFT_WIDTH / 2;
-    const shaftHalfD = SHAFT_DEPTH / 2;
+// Ground (solid) and roof (solid).
+const ground = new THREE.Mesh(
+    new THREE.BoxGeometry(BUILDING_WIDTH, 0.2, BUILDING_DEPTH),
+    solidFloor
+);
+ground.position.y = -0.1;
+building.add(ground);
 
-    // Front panel (shaft-facing front, positive Z)
-    const frontD = halfD - shaftHalfD;
-    if (frontD > 0) {
-        const front = new THREE.Mesh(
-            new THREE.PlaneGeometry(BUILDING_WIDTH, frontD),
-            mat
-        );
-        front.rotation.x = -Math.PI / 2;
-        front.position.set(0, y, shaftHalfD + frontD / 2);
-        building.add(front);
-    }
+const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(BUILDING_WIDTH, 0.2, BUILDING_DEPTH),
+    solidFloor
+);
+roof.position.y = FLOOR_COUNT * FLOOR_HEIGHT + 0.1;
+building.add(roof);
 
-    // Back panel (negative Z)
-    const backD = halfD - shaftHalfD;
-    if (backD > 0) {
-        const back = new THREE.Mesh(
-            new THREE.PlaneGeometry(BUILDING_WIDTH, backD),
-            mat
-        );
-        back.rotation.x = -Math.PI / 2;
-        back.position.set(0, y, -(shaftHalfD + backD / 2));
-        building.add(back);
-    }
-
-    // Left panel (negative X), spans shaft depth
-    const leftW = halfW - shaftHalfW;
-    if (leftW > 0) {
-        const left = new THREE.Mesh(
-            new THREE.PlaneGeometry(leftW, SHAFT_DEPTH),
-            mat
-        );
-        left.rotation.x = -Math.PI / 2;
-        left.position.set(-(shaftHalfW + leftW / 2), y, 0);
-        building.add(left);
-    }
-
-    // Right panel (positive X)
-    const rightW = halfW - shaftHalfW;
-    if (rightW > 0) {
-        const right = new THREE.Mesh(
-            new THREE.PlaneGeometry(rightW, SHAFT_DEPTH),
-            mat
-        );
-        right.rotation.x = -Math.PI / 2;
-        right.position.set(shaftHalfW + rightW / 2, y, 0);
-        building.add(right);
-    }
+// Intermediate floors (between floor 1 and floor FLOOR_COUNT).
+for (let i = 1; i < FLOOR_COUNT; i++) {
+    const slab = buildFloorWithShaft(i * FLOOR_HEIGHT, floorMat);
+    building.add(slab);
 }
 
-// ---------------- Elevator construction ----------------
-function buildElevator() {
-    elevatorCar = new THREE.Group();
-    elevatorCar.renderOrder = 1;
+// Outer walls — 4 transparent panels. We leave the shaft open (no inner walls).
+function addWall(w, h, d, x, y, z) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+    mesh.position.set(x, y, z);
+    building.add(mesh);
+}
+const totalH = FLOOR_COUNT * FLOOR_HEIGHT;
+const midY = totalH / 2;
+addWall(BUILDING_WIDTH, totalH, 0.1, 0, midY,  BUILDING_DEPTH / 2);  // front
+addWall(BUILDING_WIDTH, totalH, 0.1, 0, midY, -BUILDING_DEPTH / 2);  // back
+addWall(0.1, totalH, BUILDING_DEPTH, -BUILDING_WIDTH / 2, midY, 0);  // left
+addWall(0.1, totalH, BUILDING_DEPTH,  BUILDING_WIDTH / 2, midY, 0);  // right
 
-    const carW = SHAFT_WIDTH - 0.4;
-    const carD = SHAFT_DEPTH - 0.4;
-    const carH = FLOOR_HEIGHT - 0.4;
+// Apply renderOrder to all building meshes.
+building.traverse(obj => { if (obj.isMesh) obj.renderOrder = 0; });
 
-    const frameMat = new THREE.MeshStandardMaterial({
-        color: COLORS.elevatorFrame,
-        transparent: true,
-        opacity: 0.5,
-        depthWrite: false,
-        side: THREE.DoubleSide
-    });
+// ---------- Elevator car ----------
+// The car sits inside the shaft. Doors face +Z (front of building, where people wait).
+const elevatorCar = new THREE.Group();
+elevatorCar.renderOrder = 1;
 
-    // Floor of elevator (solid-ish but transparent for visibility)
-    const carFloor = new THREE.Mesh(
-        new THREE.BoxGeometry(carW, 0.1, carD),
-        new THREE.MeshStandardMaterial({ color: COLORS.elevatorFrame, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide })
-    );
-    carFloor.position.y = 0.05;
-    elevatorCar.add(carFloor);
+const CAR_WIDTH  = SHAFT_WIDTH  - 0.1;
+const CAR_DEPTH  = SHAFT_DEPTH  - 0.1;
+const CAR_HEIGHT = FLOOR_HEIGHT - 0.4;
 
-    // Ceiling
-    const carCeiling = new THREE.Mesh(
-        new THREE.BoxGeometry(carW, 0.1, carD),
-        frameMat
-    );
-    carCeiling.position.y = carH - 0.05;
-    elevatorCar.add(carCeiling);
+const frameMat = new THREE.MeshLambertMaterial({
+    color: 0xffff00, transparent: true, opacity: 0.5,
+    depthWrite: false, side: THREE.DoubleSide
+});
+const doorMat = new THREE.MeshLambertMaterial({
+    color: 0xcccc00, transparent: true, opacity: 0.7,
+    depthWrite: false, side: THREE.DoubleSide
+});
+const solidBackMat = new THREE.MeshLambertMaterial({ color: 0xffff00, side: THREE.DoubleSide });
 
-    // Solid back wall (negative Z, since front/doors at +Z)
-    const backWallMat = new THREE.MeshStandardMaterial({ color: COLORS.elevatorFrame });
-    const backWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(carW, carH),
-        backWallMat
-    );
-    backWall.position.set(0, carH / 2, -carD / 2);
-    elevatorCar.add(backWall);
+// Car floor (solid-ish yellow frame).
+// Top of car floor sits at local y = 0, so a person at local y = 0 stands on it.
+const carFloor = new THREE.Mesh(
+    new THREE.BoxGeometry(CAR_WIDTH, 0.1, CAR_DEPTH),
+    frameMat
+);
+carFloor.position.y = -0.05;
+elevatorCar.add(carFloor);
 
-    // Transparent side walls
-    const leftSide = new THREE.Mesh(
-        new THREE.PlaneGeometry(carD, carH),
-        frameMat
-    );
-    leftSide.rotation.y = Math.PI / 2;
-    leftSide.position.set(-carW / 2, carH / 2, 0);
-    elevatorCar.add(leftSide);
+// Car ceiling.
+const carCeil = new THREE.Mesh(
+    new THREE.BoxGeometry(CAR_WIDTH, 0.1, CAR_DEPTH),
+    frameMat
+);
+carCeil.position.y = CAR_HEIGHT - 0.05;
+elevatorCar.add(carCeil);
 
-    const rightSide = new THREE.Mesh(
-        new THREE.PlaneGeometry(carD, carH),
-        frameMat
-    );
-    rightSide.rotation.y = -Math.PI / 2;
-    rightSide.position.set(carW / 2, carH / 2, 0);
-    elevatorCar.add(rightSide);
+// Solid back wall.
+const backWall = new THREE.Mesh(
+    new THREE.BoxGeometry(CAR_WIDTH, CAR_HEIGHT, 0.05),
+    solidBackMat
+);
+backWall.position.set(0, CAR_HEIGHT / 2, -CAR_DEPTH / 2);
+elevatorCar.add(backWall);
 
-    // --- Sliding doors (on +Z face) ---
-    const doorMat = new THREE.MeshStandardMaterial({
-        color: COLORS.elevatorDoor,
-        transparent: true,
-        opacity: 0.7,
-        depthWrite: false,
-        side: THREE.DoubleSide
-    });
-    const doorW = carW / 2;
-    const doorH = carH - 0.2;
+// Transparent side walls.
+const leftSide = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05, CAR_HEIGHT, CAR_DEPTH),
+    frameMat
+);
+leftSide.position.set(-CAR_WIDTH / 2, CAR_HEIGHT / 2, 0);
+elevatorCar.add(leftSide);
 
-    const leftDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(doorW, doorH, 0.08),
-        doorMat
-    );
-    leftDoor.position.set(-doorW / 2, doorH / 2 + 0.1, carD / 2);
-    elevatorCar.add(leftDoor);
+const rightSide = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05, CAR_HEIGHT, CAR_DEPTH),
+    frameMat
+);
+rightSide.position.set(CAR_WIDTH / 2, CAR_HEIGHT / 2, 0);
+elevatorCar.add(rightSide);
 
-    const rightDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(doorW, doorH, 0.08),
-        doorMat
-    );
-    rightDoor.position.set(doorW / 2, doorH / 2 + 0.1, carD / 2);
-    elevatorCar.add(rightDoor);
+// Sliding doors on the front (+Z face). Each is half the car width; they meet at x = 0 when closed.
+const doorWidth = CAR_WIDTH / 2;
+const leftDoor = new THREE.Mesh(
+    new THREE.BoxGeometry(doorWidth, CAR_HEIGHT, 0.05),
+    doorMat
+);
+const rightDoor = new THREE.Mesh(
+    new THREE.BoxGeometry(doorWidth, CAR_HEIGHT, 0.05),
+    doorMat
+);
+// Closed positions: doors meet in the middle.
+leftDoor.position.set(-doorWidth / 2, CAR_HEIGHT / 2, CAR_DEPTH / 2);
+rightDoor.position.set( doorWidth / 2, CAR_HEIGHT / 2, CAR_DEPTH / 2);
+elevatorCar.add(leftDoor);
+elevatorCar.add(rightDoor);
 
-    elevatorCar.userData.leftDoor = leftDoor;
-    elevatorCar.userData.rightDoor = rightDoor;
-    elevatorCar.userData.doorClosedXLeft = -doorW / 2;
-    elevatorCar.userData.doorClosedXRight = doorW / 2;
-    elevatorCar.userData.doorOpenXLeft = -doorW - 0.05;   // slid outward
-    elevatorCar.userData.doorOpenXRight = doorW + 0.05;
-    elevatorCar.userData.doorOpen = false;
-    elevatorCar.userData.carW = carW;
-    elevatorCar.userData.carD = carD;
-    elevatorCar.userData.carH = carH;
+// Store door state / references for the animation pipeline.
+elevatorCar.userData.leftDoor  = leftDoor;
+elevatorCar.userData.rightDoor = rightDoor;
+elevatorCar.userData.leftDoorClosedX  = -doorWidth / 2;
+elevatorCar.userData.rightDoorClosedX =  doorWidth / 2;
+elevatorCar.userData.doorsOpen = false;
 
-    elevatorCar.position.set(0, 0, 0);
-    scene.add(elevatorCar);
+// Apply renderOrder so the elevator draws after the building.
+elevatorCar.traverse(obj => { if (obj.isMesh) obj.renderOrder = 1; });
+
+// Start the elevator at floor 1.
+elevatorCar.position.set(0, 0, 0);
+scene.add(elevatorCar);
+
+// ---------- Floor geometry helpers ----------
+// Where the elevator car must sit (y) to be on a given floor (0-indexed, 0..FLOOR_COUNT-1).
+function elevatorYForFloor(floor) {
+    return floor * FLOOR_HEIGHT;
 }
 
-// ---------------- People ----------------
+// World-space waiting spot for a person on a given floor — in front of the shaft at +Z.
+const WAIT_Z = SHAFT_DEPTH / 2 + 1.2;
 function waitingSpotForFloor(floor) {
-    // Waiting spot is in front of elevator on +Z side, on the floor surface.
-    const y = floor * FLOOR_HEIGHT;
-    const z = SHAFT_DEPTH / 2 + 1.5;
-    return new THREE.Vector3(0, y, z);
+    return new THREE.Vector3(0, floor * FLOOR_HEIGHT, WAIT_Z);
 }
 
-function insideElevatorLocalPos() {
-    // Local (relative to elevatorCar) position for a person inside the elevator.
-    return new THREE.Vector3(0, 0, -elevatorCar.userData.carD / 4);
+// Interior spot inside the elevator (local coordinates for the car).
+function interiorSpotLocal() {
+    return new THREE.Vector3(0, 0, -CAR_DEPTH / 4);
 }
 
-function populateFloors() {
-    people = new Array(FLOOR_COUNT).fill(null);
-    emptyFloor = Math.floor(Math.random() * FLOOR_COUNT);
-    for (let f = 0; f < FLOOR_COUNT; f++) {
-        if (f === emptyFloor) continue;
-        const p = createPerson();
-        const pos = waitingSpotForFloor(f);
-        p.position.copy(pos);
-        p.rotation.y = Math.PI; // face the elevator (toward -Z)
-        scene.add(p);
-        people[f] = p;
-    }
+// ---------- People ----------
+// One person per floor initially, except one floor is empty.
+const people = new Array(FLOOR_COUNT).fill(null); // people[floor] = person object OR null
+let emptyFloor = Math.floor(Math.random() * FLOOR_COUNT);
+
+for (let f = 0; f < FLOOR_COUNT; f++) {
+    if (f === emptyFloor) continue;
+    const p = createPerson();
+    const spot = waitingSpotForFloor(f);
+    p.position.copy(spot);
+    // Face the elevator (doors are at -Z relative to the waiting spot, so look toward -Z).
+    p.rotation.y = Math.PI;
+    scene.add(p);
+    people[f] = p;
 }
 
-// ---------------- Animation primitives ----------------
-function animateWalk(person, delta) {
-    person.userData.walkPhase += delta * 6;
-    const swing = Math.sin(person.userData.walkPhase) * 0.6;
-    person.userData.leftLegPivot.rotation.x = swing;
-    person.userData.rightLegPivot.rotation.x = -swing;
+// ---------- Animation pipeline ----------
+// Each step accepts a `done` callback; steps are chained via delays.
+// All per-frame motion uses the speedMultiplier so the slider affects everything.
+
+const clock = new THREE.Clock();
+const activeWalkers = new Set(); // persons currently walking (for leg anim)
+
+function delay(ms, done) {
+    setTimeout(done, ms / speedMultiplier);
 }
 
-function resetLegs(person) {
-    person.userData.leftLegPivot.rotation.x = 0;
-    person.userData.rightLegPivot.rotation.x = 0;
-    person.userData.walkPhase = 0;
-}
-
-// Move elevator car to a target floor
-function moveElevatorToFloor(targetFloor, onComplete) {
-    const targetY = targetFloor * FLOOR_HEIGHT;
+// Move the elevator to a target floor. Uses a per-frame tween.
+function moveElevatorToFloor(targetFloor, done) {
+    const targetY = elevatorYForFloor(targetFloor);
     function step() {
-        const dt = clock.getDelta() === 0 ? 0.016 : 0.016; // we won't rely on clock here
-        const effSpeed = ELEVATOR_SPEED * speedMultiplier * 0.016;
+        const dt = clock.getDelta();
+        const effSpeed = ELEVATOR_SPEED * speedMultiplier;
         const dy = targetY - elevatorCar.position.y;
-        if (Math.abs(dy) < 0.01) {
+        const dist = Math.abs(dy);
+        if (dist < 0.01) {
             elevatorCar.position.y = targetY;
-            onComplete();
+            done();
             return;
         }
-        elevatorCar.position.y += Math.sign(dy) * Math.min(Math.abs(dy), effSpeed);
+        const move = Math.min(dist, effSpeed * dt) * Math.sign(dy);
+        elevatorCar.position.y += move;
         requestAnimationFrame(step);
     }
-    step();
+    clock.getDelta(); // flush
+    requestAnimationFrame(step);
 }
 
-// Open doors (slide outward from center)
-function openDoors(onComplete) {
-    const left = elevatorCar.userData.leftDoor;
+// Slide doors to a target offset (0 = closed, DOOR_OPEN_OFFSET = fully open).
+function animateDoors(targetOpen, done) {
+    const left  = elevatorCar.userData.leftDoor;
     const right = elevatorCar.userData.rightDoor;
-    const targetL = elevatorCar.userData.doorOpenXLeft;
-    const targetR = elevatorCar.userData.doorOpenXRight;
+    const closedL = elevatorCar.userData.leftDoorClosedX;
+    const closedR = elevatorCar.userData.rightDoorClosedX;
+    const targetL = closedL - (targetOpen ? DOOR_OPEN_OFFSET : 0);
+    const targetR = closedR + (targetOpen ? DOOR_OPEN_OFFSET : 0);
+
     function step() {
-        const sp = DOOR_ANIM_SPEED * speedMultiplier * 0.016;
+        const dt = clock.getDelta();
+        const effSpeed = DOOR_SPEED * speedMultiplier;
         const dL = targetL - left.position.x;
         const dR = targetR - right.position.x;
-        if (Math.abs(dL) < 0.01 && Math.abs(dR) < 0.01) {
-            left.position.x = targetL;
+        const distL = Math.abs(dL);
+        const distR = Math.abs(dR);
+        if (distL < 0.01 && distR < 0.01) {
+            left.position.x  = targetL;
             right.position.x = targetR;
-            elevatorCar.userData.doorOpen = true;
-            onComplete();
+            elevatorCar.userData.doorsOpen = targetOpen;
+            done();
             return;
         }
-        left.position.x += Math.sign(dL) * Math.min(Math.abs(dL), sp);
-        right.position.x += Math.sign(dR) * Math.min(Math.abs(dR), sp);
+        left.position.x  += Math.min(distL, effSpeed * dt) * Math.sign(dL);
+        right.position.x += Math.min(distR, effSpeed * dt) * Math.sign(dR);
         requestAnimationFrame(step);
     }
-    step();
+    clock.getDelta();
+    requestAnimationFrame(step);
 }
 
-// Close doors (meet in center)
-function closeDoors(onComplete) {
-    const left = elevatorCar.userData.leftDoor;
-    const right = elevatorCar.userData.rightDoor;
-    const targetL = elevatorCar.userData.doorClosedXLeft;
-    const targetR = elevatorCar.userData.doorClosedXRight;
-    function step() {
-        const sp = DOOR_ANIM_SPEED * speedMultiplier * 0.016;
-        const dL = targetL - left.position.x;
-        const dR = targetR - right.position.x;
-        if (Math.abs(dL) < 0.01 && Math.abs(dR) < 0.01) {
-            left.position.x = targetL;
-            right.position.x = targetR;
-            elevatorCar.userData.doorOpen = false;
-            onComplete();
-            return;
-        }
-        left.position.x += Math.sign(dL) * Math.min(Math.abs(dL), sp);
-        right.position.x += Math.sign(dR) * Math.min(Math.abs(dR), sp);
-        requestAnimationFrame(step);
-    }
-    step();
-}
+// Walk a person in world space toward a target world position (XZ only; Y is fixed by floor).
+// `targetWorld` is a THREE.Vector3. Completes when within 0.01 units.
+function walkPersonToWorld(person, targetWorld, done) {
+    person.userData.isWalking = true;
+    activeWalkers.add(person);
 
-// Move person along Z-axis in world space, animating legs.
-// targetWorldPos is a world-space Vector3.
-function walkPersonTo(person, targetWorldPos, onComplete) {
     function step() {
-        const sp = PERSON_MOVE_SPEED * speedMultiplier * 0.016;
-        // Read world position of person
+        const dt = clock.getDelta();
+        const effSpeed = PERSON_MOVE_SPEED * speedMultiplier;
+
+        // Get person's current world position.
         const worldPos = new THREE.Vector3();
         person.getWorldPosition(worldPos);
-
-        const dz = targetWorldPos.z - worldPos.z;
-        const dx = targetWorldPos.x - worldPos.x;
+        const dx = targetWorld.x - worldPos.x;
+        const dz = targetWorld.z - worldPos.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < 0.01) {
-            resetLegs(person);
-            onComplete();
+            // Snap by converting target world -> parent-local.
+            const local = targetWorld.clone();
+            if (person.parent) person.parent.worldToLocal(local);
+            person.position.x = local.x;
+            person.position.z = local.z;
+            person.userData.isWalking = false;
+            activeWalkers.delete(person);
+            done();
             return;
         }
+        const move = Math.min(dist, effSpeed * dt);
+        const nx = dx / dist, nz = dz / dist;
+        // Translate in world space, then re-project into the parent's local space.
+        worldPos.x += nx * move;
+        worldPos.z += nz * move;
+        const local = worldPos.clone();
+        if (person.parent) person.parent.worldToLocal(local);
+        person.position.x = local.x;
+        person.position.z = local.z;
 
-        // Compute step vector (world space)
-        const stepLen = Math.min(dist, sp);
-        const moveX = (dx / dist) * stepLen;
-        const moveZ = (dz / dist) * stepLen;
-
-        // Convert desired world translation to local translation of the person's parent.
-        // Since parents (scene or elevatorCar) only translate (no rotation), world delta == local delta.
-        person.position.x += moveX;
-        person.position.z += moveZ;
-
-        animateWalk(person, 0.016);
         requestAnimationFrame(step);
     }
-    step();
+    clock.getDelta();
+    requestAnimationFrame(step);
 }
 
-function delay(ms, fn) {
-    // Scale the delay by inverse of speed so the whole thing gets faster
-    const scaled = ms / speedMultiplier;
-    setTimeout(fn, scaled);
-}
+// ---------- Simulation loop ----------
+// On each cycle: pick a random occupied floor, move its person to the empty floor.
 
-// ---------------- Simulation cycle ----------------
-function runNextCycle() {
-    if (animating) return;
-
-    // Pick a random occupied floor to move a person from, target = emptyFloor.
+function runCycle() {
+    // Find occupied floors.
     const occupied = [];
     for (let f = 0; f < FLOOR_COUNT; f++) {
         if (people[f] !== null) occupied.push(f);
     }
-    if (occupied.length === 0) return;
+    if (occupied.length === 0) return; // shouldn't happen
 
     const fromFloor = occupied[Math.floor(Math.random() * occupied.length)];
     const toFloor = emptyFloor;
-    if (fromFloor === toFloor) {
-        setTimeout(runNextCycle, 500);
-        return;
-    }
-
-    animating = true;
     const person = people[fromFloor];
 
-    // 1. Elevator moves to pickup floor
+    // 1. Move elevator to pickup floor.
     moveElevatorToFloor(fromFloor, () => {
-        // 2. Doors open
-        openDoors(() => {
-            delay(STEP_DELAY_MS, () => {
-                // 3. Person walks forward into elevator.
-                // Target: elevator entry point in world space (just at the doorway)
-                const entryWorld = new THREE.Vector3(
-                    elevatorCar.position.x,
-                    fromFloor * FLOOR_HEIGHT,
-                    elevatorCar.position.z + insideElevatorLocalPos().z
-                );
-                walkPersonTo(person, entryWorld, () => {
-                    // Reparent to elevator so they travel with it
-                    const worldPos = new THREE.Vector3();
-                    person.getWorldPosition(worldPos);
-                    scene.remove(person);
-                    elevatorCar.add(person);
-                    // Convert worldPos to local elevator coords
-                    const localPos = elevatorCar.worldToLocal(worldPos.clone());
-                    person.position.copy(localPos);
+        delay(STEP_DELAY_MS, () => {
+            // 2. Open doors.
+            animateDoors(true, () => {
+                delay(STEP_DELAY_MS, () => {
+                    // 3. Walk person INTO elevator (forward through doors = -Z).
+                    // Target world position: directly in front of elevator at floor level, then inside.
+                    const interiorLocal = interiorSpotLocal();
+                    const interiorWorld = interiorLocal.clone();
+                    elevatorCar.localToWorld(interiorWorld);
+                    walkPersonToWorld(person, interiorWorld, () => {
+                        // Reparent to elevator so they travel with it.
+                        // Preserve current world transform.
+                        const worldPos = new THREE.Vector3();
+                        person.getWorldPosition(worldPos);
+                        const worldQuat = new THREE.Quaternion();
+                        person.getWorldQuaternion(worldQuat);
 
-                    delay(STEP_DELAY_MS, () => {
-                        // 4. Doors close
-                        closeDoors(() => {
-                            // 5. Elevator travels to destination
-                            moveElevatorToFloor(toFloor, () => {
-                                // 6. Doors open at destination
-                                openDoors(() => {
-                                    delay(STEP_DELAY_MS, () => {
-                                        // 7. Remove person from elevator, add back to scene, walk to waiting spot
-                                        const worldPos2 = new THREE.Vector3();
-                                        person.getWorldPosition(worldPos2);
-                                        elevatorCar.remove(person);
-                                        scene.add(person);
-                                        person.position.copy(worldPos2);
-                                        // Keep facing elevator (toward -Z), so rotation.y = PI
-                                        person.rotation.y = Math.PI;
+                        scene.remove(person);
+                        elevatorCar.add(person);
+                        const localPos = worldPos.clone();
+                        elevatorCar.worldToLocal(localPos);
+                        person.position.copy(localPos);
+                        // Keep facing toward doors (+Z in car's local frame means outside).
+                        // Person was facing -Z in world (rotation.y = PI). Car has no rotation,
+                        // so keep rotation.y = PI.
+                        person.rotation.y = Math.PI;
 
-                                        const waitWorld = waitingSpotForFloor(toFloor);
-                                        walkPersonTo(person, waitWorld, () => {
-                                            delay(STEP_DELAY_MS, () => {
-                                                // 8. Doors close
-                                                closeDoors(() => {
-                                                    // Update state
-                                                    people[fromFloor] = null;
-                                                    people[toFloor] = person;
-                                                    emptyFloor = fromFloor;
-                                                    animating = false;
-                                                    setTimeout(runNextCycle, 500);
+                        delay(STEP_DELAY_MS, () => {
+                            // 4. Close doors.
+                            animateDoors(false, () => {
+                                delay(STEP_DELAY_MS, () => {
+                                    // 5. Travel to destination.
+                                    moveElevatorToFloor(toFloor, () => {
+                                        delay(STEP_DELAY_MS, () => {
+                                            // 6. Open doors at destination.
+                                            animateDoors(true, () => {
+                                                delay(STEP_DELAY_MS, () => {
+                                                    // Before walking out, flip person to face outward (-Z world)
+                                                    // so they walk forward through the doors.
+                                                    // Actually person already faces -Z in world (rotation.y=PI on car).
+                                                    // Walking target is waiting spot at toFloor (+Z world),
+                                                    // and walkPersonToWorld moves toward it directly, so they
+                                                    // will walk backward unless we turn them. Turn to face +Z.
+                                                    person.rotation.y = 0;
+
+                                                    const target = waitingSpotForFloor(toFloor);
+                                                    walkPersonToWorld(person, target, () => {
+                                                        // Reparent back to scene.
+                                                        const wp = new THREE.Vector3();
+                                                        person.getWorldPosition(wp);
+                                                        elevatorCar.remove(person);
+                                                        scene.add(person);
+                                                        person.position.copy(wp);
+                                                        // Face the elevator again.
+                                                        person.rotation.y = Math.PI;
+
+                                                        // Update bookkeeping.
+                                                        people[fromFloor] = null;
+                                                        people[toFloor] = person;
+                                                        emptyFloor = fromFloor;
+
+                                                        delay(STEP_DELAY_MS, () => {
+                                                            // 8. Close doors.
+                                                            animateDoors(false, () => {
+                                                                delay(STEP_DELAY_MS, runCycle);
+                                                            });
+                                                        });
+                                                    });
                                                 });
                                             });
                                         });
@@ -560,12 +455,52 @@ function runNextCycle() {
     });
 }
 
-// ---------------- Main loop ----------------
-function animate() {
-    requestAnimationFrame(animate);
+// ---------- Render loop ----------
+const walkClock = new THREE.Clock();
+function render() {
+    requestAnimationFrame(render);
+    const dt = walkClock.getDelta() * speedMultiplier;
+    activeWalkers.forEach(p => animatePersonWalking(p, dt));
+    // Reset stationary persons to standing pose.
+    for (let f = 0; f < FLOOR_COUNT; f++) {
+        if (people[f] && !activeWalkers.has(people[f])) {
+            animatePersonWalking(people[f], dt);
+        }
+    }
     controls.update();
     renderer.render(scene, camera);
 }
 
-// Start
-init();
+// ---------- UI: speed slider ----------
+function buildSpeedSlider() {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.6);color:#fff;padding:10px;border-radius:6px;font-family:sans-serif;font-size:13px;z-index:10;';
+    const label = document.createElement('div');
+    label.textContent = 'Animation Speed: 1x';
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '1';
+    slider.max = '20';
+    slider.step = '1';
+    slider.value = '1';
+    slider.style.width = '200px';
+    slider.addEventListener('input', () => {
+        speedMultiplier = parseInt(slider.value, 10);
+        label.textContent = 'Animation Speed: ' + speedMultiplier + 'x';
+    });
+    wrap.appendChild(label);
+    wrap.appendChild(slider);
+    document.body.appendChild(wrap);
+}
+
+// ---------- Resize ----------
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ---------- Boot ----------
+buildSpeedSlider();
+render();
+runCycle();
