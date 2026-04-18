@@ -4,6 +4,14 @@
 
 This suite provides tools to automate the benchmarking of agentic CLI tools against both local LLMs (via LM Studio) and cloud API providers (Anthropic, Google, Groq, Cerebras, etc.). It captures detailed performance metrics, server logs, and command outputs, generating beautiful visual reports for every run.
 
+## Reference Implementations
+
+The best results produced so far for each prompt. Click a preview to launch the live simulation.
+
+| [Elevator Simulation](reference/elevator/index.html) | [Office Building Simulation](reference/office/index.html) |
+| :---: | :---: |
+| [![Elevator preview](reference/elevator/preview.png)](reference/elevator/index.html) | [![Office preview](reference/office/preview.png)](reference/office/index.html) |
+
 ## 1. LM Studio Setup
 
 First, you'll need a platform to host your local models.

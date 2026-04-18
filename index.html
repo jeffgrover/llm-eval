@@ -60,6 +60,29 @@
             .view-btn.disabled { background: #cbd5e0; cursor: not-allowed; pointer-events: none; }
 
             .empty-state { text-align: center; color: #6b7280; padding: 60px; grid-column: 1 / -1; }
+
+            .reference-section { margin-bottom: 56px; }
+            .reference-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; }
+            .reference-header h2 { margin: 0; font-size: 20px; font-weight: 700; color: #1a202c; letter-spacing: -0.3px; }
+            .reference-header p { margin: 0; font-size: 14px; color: #6b7280; }
+            .reference-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+            .reference-card {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                border: 1px solid #e5e7eb;
+                overflow: hidden;
+                transition: transform 0.2s, box-shadow 0.2s;
+                text-decoration: none;
+                color: inherit;
+                display: flex;
+                flex-direction: column;
+            }
+            .reference-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+            .reference-thumb { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: #1e1e2e; border-bottom: 1px solid #f3f4f6; }
+            .reference-body { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+            .reference-title { font-size: 16px; font-weight: 700; color: #1f2937; }
+            .reference-cta { font-size: 13px; font-weight: 600; color: #7c3aed; white-space: nowrap; }
         </style>
     </head>
     <body>
@@ -70,6 +93,29 @@
                     Browse evaluation results organized by agent, showing model, prompt, and whether the run used a local or cloud provider.
                 </p>
             </header>
+
+            <div class="reference-section">
+                <div class="reference-header">
+                    <h2>Reference Implementations</h2>
+                    <p>The best results produced for each prompt — click to run the simulation live.</p>
+                </div>
+                <div class="reference-grid">
+                    <a class="reference-card" href="reference/elevator/index.html" target="_blank" rel="noopener">
+                        <img class="reference-thumb" src="reference/elevator/preview.png" alt="Elevator simulation preview">
+                        <div class="reference-body">
+                            <span class="reference-title">Elevator Simulation</span>
+                            <span class="reference-cta">Launch &rarr;</span>
+                        </div>
+                    </a>
+                    <a class="reference-card" href="reference/office/index.html" target="_blank" rel="noopener">
+                        <img class="reference-thumb" src="reference/office/preview.png" alt="Office building simulation preview">
+                        <div class="reference-body">
+                            <span class="reference-title">Office Building Simulation</span>
+                            <span class="reference-cta">Launch &rarr;</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
     
             <div class="agent-section">
                 <div class="agent-section-header">
