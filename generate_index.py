@@ -18,11 +18,14 @@ AGENT_DISPLAY_NAMES = {
     "vibe": "Mistral Vibe" # Alias
 }
 
-# Known prompt file stems (auto-detected from *.txt at repo root)
+# Known prompt file stems (auto-detected from *.txt and *.md at repo root)
 def get_known_prompts():
     prompts = set()
-    for f in Path(".").glob("*.txt"):
-        prompts.add(f.stem)
+    excluded = {"README", "CLAUDE"}
+    for pattern in ("*.txt", "*.md"):
+        for f in Path(".").glob(pattern):
+            if f.stem not in excluded:
+                prompts.add(f.stem)
     return prompts
 
 def get_display_name(agent_raw):
