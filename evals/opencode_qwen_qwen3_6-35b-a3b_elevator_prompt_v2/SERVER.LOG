@@ -1,0 +1,2804 @@
+Streaming logs from LM Studio
+
+[2026-04-18 13:04:04][DEBUG] Received request: POST to /v1/chat/completions with body {
+  "model": "qwen/qwen3.6-35b-a3b",
+  "max_tokens": 32000,
+  "top_p": 1,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a title generator. You output ONLY a threa... <Truncated in logs> ...ode toggle\" → Dark mode toggle in App\n</examples>\n"
+    },
+    {
+      "role": "user",
+      "content": "Generate a title for this conversation:\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Use the agentic coding tools available to you to ... <Truncated in logs> ...check fails, fix it before reporting completion.\n\""
+    }
+  ],
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}
+[2026-04-18 13:04:04][INFO][qwen/qwen3.6-35b-a3b] Running chat completion on conversation with 3 messages.
+[2026-04-18 13:04:04][INFO][qwen/qwen3.6-35b-a3b] Streaming response...
+[2026-04-18 13:04:04][DEBUG] LlamaV4::predict slot selection: session_id=<empty> server-selected (LCP/LRU)
+[2026-04-18 13:04:04][DEBUG] slot get_availabl: id  1 | task -1 | selected slot by LRU, t_last = -1
+srv  get_availabl: updating prompt cache
+srv          load:  - looking for better prompt, base f_keep = -1.000, sim = 0.000
+srv        update:  - cache state: 1 prompts, 206.244 MiB (limits: 8192.000 MiB, 262144 tokens, 262144 est)
+srv        update:    - prompt 0x7aaa88138320:    3230 tokens, checkpoints:  2,   206.244 MiB
+srv  get_availabl: prompt cache update took 0.01 ms
+slot launch_slot_: id  1 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> ?top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  1 | task 35358 | processing task, is_child = 0
+slot slot_save_an: id  2 | task -1 | saving idle slot to prompt cache
+srv   prompt_save:  - saving prompt with length 48094, total state size = 327.919 MiB
+[2026-04-18 13:04:04][DEBUG] Received request: POST to /v1/chat/completions with body {
+  "model": "qwen/qwen3.6-35b-a3b",
+  "max_tokens": 32000,
+  "top_p": 1,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are opencode, an interactive CLI tool that hel... <Truncated in logs> ...`\n- No external dependencies beyond Python stdlib\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Use the agentic coding tools available to you to ... <Truncated in logs> ...check fails, fix it before reporting completion.\n\""
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "bash",
+        "description": "Executes a given bash command in a persistent shel... <Truncated in logs> ...itHub PR: gh api repos/foo/bar/pulls/123/comments\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The command to execute",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Optional timeout in milliseconds",
+              "type": "number"
+            },
+            "workdir": {
+              "description": "The working directory to run the command in. Defau... <Truncated in logs> ...ator_prompt_v2. Use this instead of 'cd' commands.",
+              "type": "string"
+            },
+            "description": {
+              "description": "Clear, concise description of what this command do... <Truncated in logs> ...\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read",
+        "description": "Read a file or directory from the local filesystem... <Truncated in logs> ...les and PDFs and return them as file attachments.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file or directory to read",
+              "type": "string"
+            },
+            "offset": {
+              "description": "The line number to start reading from (1-indexed)",
+              "type": "number"
+            },
+            "limit": {
+              "description": "The maximum number of lines to read (defaults to 2000)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "glob",
+        "description": "- Fast file pattern matching tool that works with ... <Truncated in logs> ... searches as a batch that are potentially useful.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The glob pattern to match files against",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. If not specified, the ... <Truncated in logs> ...avior. Must be a valid directory path if provided.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep",
+        "description": "- Fast content search tool that works with any cod... <Truncated in logs> ... globbing and grepping, use the Task tool instead\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The regex pattern to search for in file contents",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. Defaults to the current working directory.",
+              "type": "string"
+            },
+            "include": {
+              "description": "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "edit",
+        "description": "Performs exact string replacements in files. \n\nUsa... <Truncated in logs> ...ul if you want to rename a variable for instance.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file to modify",
+              "type": "string"
+            },
+            "oldString": {
+              "description": "The text to replace",
+              "type": "string"
+            },
+            "newString": {
+              "description": "The text to replace it with (must be different from oldString)",
+              "type": "string"
+            },
+            "replaceAll": {
+              "description": "Replace all occurrences of oldString (default false)",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write",
+        "description": "Writes a file to the local filesystem.\n\nUsage:\n- T... <Truncated in logs> ...s it. Avoid writing emojis to files unless asked.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "content": {
+              "description": "The content to write to the file",
+              "type": "string"
+            },
+            "filePath": {
+              "description": "The absolute path to the file to write (must be absolute, not relative)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "task",
+        "description": "Launch a new agent to handle complex, multistep ta... <Truncated in logs> ...the with the greeting-responder agent\"\n</example>\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "A short (3-5 words) description of the task",
+              "type": "string"
+            },
+            "prompt": {
+              "description": "The task for the agent to perform",
+              "type": "string"
+            },
+            "subagent_type": {
+              "description": "The type of specialized agent to use for this task",
+              "type": "string"
+            },
+            "task_id": {
+              "description": "This should only be set if you mean to resume a pr... <Truncated in logs> ...session as before instead of creating a fresh one)",
+              "type": "string"
+            },
+            "command": {
+              "description": "The command that triggered this task",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "webfetch",
+        "description": "- Fetches content from a specified URL\n- Takes a U... <Truncated in logs> ...ts may be summarized if the content is very large\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "The URL to fetch content from",
+              "type": "string"
+            },
+            "format": {
+              "description": "The format to return the content in (text, markdown, or html). Defaults to markdown.",
+              "default": "markdown",
+              "type": "string",
+              "enum": [
+                "text",
+                "markdown",
+                "html"
+              ]
+            },
+            "timeout": {
+              "description": "Optional timeout in seconds (max 120)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "url",
+            "format"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todowrite",
+        "description": "Use this tool to create and manage a structured ta... <Truncated in logs> ...ures you complete all requirements successfully.\n\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "todos": {
+              "description": "The updated todo list",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "description": "Brief description of the task",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Current status of the task: pending, in_progress, completed, cancelled",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Priority level of the task: high, medium, low",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "status",
+                  "priority"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill",
+        "description": "Load a specialized skill that provides domain-specific instructions and workflows. No skills are currently available.",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The name of the skill from available_skills",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}
+[2026-04-18 13:04:04][INFO][qwen/qwen3.6-35b-a3b] Running chat completion on conversation with 2 messages.
+[2026-04-18 13:04:04][INFO][qwen/qwen3.6-35b-a3b] Streaming response...
+[2026-04-18 13:04:04][DEBUG] LlamaV4::predict slot selection: session_id=<empty> server-selected (LCP/LRU)
+[2026-04-18 13:04:04][DEBUG] slot prompt_clear: id  2 | task -1 | clearing prompt with 48094 tokens
+[2026-04-18 13:04:04][DEBUG] srv        update:  - cache state: 2 prompts, 1225.109 MiB (limits: 8192.000 MiB, 262144 tokens, 343190 est)
+srv        update:    - prompt 0x7aaa88138320:    3230 tokens, checkpoints:  2,   206.244 MiB
+srv        update:    - prompt 0x7aaa8859d340:   48094 tokens, checkpoints: 11,  1018.864 MiB
+slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+srv  get_availabl: updating prompt cache
+srv          load:  - looking for better prompt, base f_keep = -1.000, sim = 0.000
+srv        update:  - cache state: 2 prompts, 1225.109 MiB (limits: 8192.000 MiB, 262144 tokens, 343190 est)
+srv        update:    - prompt 0x7aaa88138320:    3230 tokens, checkpoints:  2,   206.244 MiB
+srv        update:    - prompt 0x7aaa8859d340:   48094 tokens, checkpoints: 11,  1018.864 MiB
+srv  get_availabl: prompt cache update took 0.01 ms
+[2026-04-18 13:04:04][DEBUG] slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> ?top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task 35359 | processing task, is_child = 0
+slot update_slots: id  0 | task 35359 | new prompt, n_ctx_slot = 262144, n_keep = 14028, task.n_tokens = 14028
+slot update_slots: id  0 | task 35359 | cache reuse is not supported - ignoring n_cache_reuse = 256
+slot update_slots: id  0 | task 35359 | n_tokens = 0, memory_seq_rm [0, end)
+[2026-04-18 13:04:04][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 512, batch.n_tokens = 512, progress = 0.036498
+[2026-04-18 13:04:05][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 0.0%
+[2026-04-18 13:04:05][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 512, memory_seq_rm [512, end)
+[2026-04-18 13:04:05][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 1024, batch.n_tokens = 512, progress = 0.072997
+[2026-04-18 13:04:05][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 3.6%
+[2026-04-18 13:04:05][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 1024, memory_seq_rm [1024, end)
+[2026-04-18 13:04:05][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 1536, batch.n_tokens = 512, progress = 0.109495
+[2026-04-18 13:04:05][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 7.3%
+[2026-04-18 13:04:06][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 1536, memory_seq_rm [1536, end)
+[2026-04-18 13:04:06][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 2048, batch.n_tokens = 512, progress = 0.145994
+[2026-04-18 13:04:06][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 10.9%
+[2026-04-18 13:04:07][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 2048, memory_seq_rm [2048, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 2560, batch.n_tokens = 512, progress = 0.182492
+[2026-04-18 13:04:07][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 14.6%
+[2026-04-18 13:04:08][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 2560, memory_seq_rm [2560, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 3072, batch.n_tokens = 512, progress = 0.218991
+[2026-04-18 13:04:08][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 18.2%
+[2026-04-18 13:04:09][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 3072, memory_seq_rm [3072, end)
+[2026-04-18 13:04:09][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 3584, batch.n_tokens = 512, progress = 0.255489
+[2026-04-18 13:04:09][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 21.9%
+[2026-04-18 13:04:11][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 3584, memory_seq_rm [3584, end)
+[2026-04-18 13:04:11][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 4096, batch.n_tokens = 512, progress = 0.291987
+[2026-04-18 13:04:11][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 25.5%
+[2026-04-18 13:04:12][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 4096, memory_seq_rm [4096, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 4608, batch.n_tokens = 512, progress = 0.328486
+[2026-04-18 13:04:12][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 29.2%
+[2026-04-18 13:04:13][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 4608, memory_seq_rm [4608, end)
+[2026-04-18 13:04:13][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 5120, batch.n_tokens = 512, progress = 0.364984
+[2026-04-18 13:04:13][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 32.8%
+[2026-04-18 13:04:15][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 5120, memory_seq_rm [5120, end)
+[2026-04-18 13:04:15][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 5632, batch.n_tokens = 512, progress = 0.401483
+[2026-04-18 13:04:15][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 36.5%
+[2026-04-18 13:04:17][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 5632, memory_seq_rm [5632, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 6144, batch.n_tokens = 512, progress = 0.437981
+[2026-04-18 13:04:17][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 40.1%
+[2026-04-18 13:04:18][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 6144, memory_seq_rm [6144, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 6656, batch.n_tokens = 512, progress = 0.474480
+[2026-04-18 13:04:18][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 43.8%
+[2026-04-18 13:04:20][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 6656, memory_seq_rm [6656, end)
+[2026-04-18 13:04:20][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 7168, batch.n_tokens = 512, progress = 0.510978
+[2026-04-18 13:04:20][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 47.4%
+[2026-04-18 13:04:22][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 7168, memory_seq_rm [7168, end)
+[2026-04-18 13:04:22][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 7680, batch.n_tokens = 512, progress = 0.547476
+[2026-04-18 13:04:22][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 51.1%
+[2026-04-18 13:04:24][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 7680, memory_seq_rm [7680, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 8192, batch.n_tokens = 512, progress = 0.583975
+[2026-04-18 13:04:24][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 54.7%
+[2026-04-18 13:04:26][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 8192, memory_seq_rm [8192, end)
+[2026-04-18 13:04:26][DEBUG] slot update_slots: id  0 | task 35359 | 8192 tokens since last checkpoint at 0, creating new checkpoint during processing at position 8704
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 8704, batch.n_tokens = 512, progress = 0.620473
+[2026-04-18 13:04:26][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 58.4%
+[2026-04-18 13:04:28][DEBUG] slot update_slots: id  0 | task 35359 | created context checkpoint 1 of 32 (pos_min = 8191, pos_max = 8191, n_tokens = 8192, size = 62.813 MiB)
+[2026-04-18 13:04:28][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 8704, memory_seq_rm [8704, end)
+[2026-04-18 13:04:28][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 9216, batch.n_tokens = 512, progress = 0.656972
+[2026-04-18 13:04:28][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 62.0%
+[2026-04-18 13:04:31][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 9216, memory_seq_rm [9216, end)
+[2026-04-18 13:04:31][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 9728, batch.n_tokens = 512, progress = 0.693470
+[2026-04-18 13:04:31][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 65.7%
+[2026-04-18 13:04:33][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 9728, memory_seq_rm [9728, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 10240, batch.n_tokens = 512, progress = 0.729969
+[2026-04-18 13:04:33][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 69.3%
+[2026-04-18 13:04:35][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 10240, memory_seq_rm [10240, end)
+[2026-04-18 13:04:35][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 10752, batch.n_tokens = 512, progress = 0.766467
+[2026-04-18 13:04:35][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 73.0%
+[2026-04-18 13:04:38][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 10752, memory_seq_rm [10752, end)
+[2026-04-18 13:04:38][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 11264, batch.n_tokens = 512, progress = 0.802966
+[2026-04-18 13:04:38][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 76.6%
+[2026-04-18 13:04:40][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 11264, memory_seq_rm [11264, end)
+[2026-04-18 13:04:40][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 11776, batch.n_tokens = 512, progress = 0.839464
+[2026-04-18 13:04:40][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 80.3%
+[2026-04-18 13:04:43][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 11776, memory_seq_rm [11776, end)
+[2026-04-18 13:04:43][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 12288, batch.n_tokens = 512, progress = 0.875962
+[2026-04-18 13:04:43][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 83.9%
+[2026-04-18 13:04:46][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 12288, memory_seq_rm [12288, end)
+[2026-04-18 13:04:46][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 12800, batch.n_tokens = 512, progress = 0.912461
+[2026-04-18 13:04:46][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 87.6%
+[2026-04-18 13:04:48][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 12800, memory_seq_rm [12800, end)
+[2026-04-18 13:04:48][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 13312, batch.n_tokens = 512, progress = 0.948959
+[2026-04-18 13:04:48][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 91.2%
+[2026-04-18 13:04:51][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 13312, memory_seq_rm [13312, end)
+[2026-04-18 13:04:51][DEBUG] slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 13516, batch.n_tokens = 204, progress = 0.963502
+slot update_slots: id  1 | task 35358 | new prompt, n_ctx_slot = 262144, n_keep = 544, task.n_tokens = 4022
+slot update_slots: id  1 | task 35358 | cache reuse is not supported - ignoring n_cache_reuse = 256
+slot update_slots: id  1 | task 35358 | n_tokens = 0, memory_seq_rm [0, end)
+slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 308, batch.n_tokens = 512, progress = 0.076579
+[2026-04-18 13:04:51][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 94.9%
+[2026-04-18 13:04:51][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 0.0%
+[2026-04-18 13:04:56][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 13516, memory_seq_rm [13516, end)
+slot update_slots: id  0 | task 35359 | prompt processing progress, n_tokens = 14024, batch.n_tokens = 508, progress = 0.999715
+[2026-04-18 13:04:56][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 96.4%
+[2026-04-18 13:04:56][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 7.7%
+[2026-04-18 13:04:56][DEBUG] slot update_slots: id  0 | task 35359 | created context checkpoint 2 of 32 (pos_min = 13515, pos_max = 13515, n_tokens = 13516, size = 62.813 MiB)
+slot update_slots: id  1 | task 35358 | n_tokens = 308, memory_seq_rm [308, end)
+[2026-04-18 13:04:56][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 312, batch.n_tokens = 512, progress = 0.077573
+[2026-04-18 13:04:57][DEBUG] slot update_slots: id  0 | task 35359 | n_tokens = 14024, memory_seq_rm [14024, end)
+[2026-04-18 13:04:57][DEBUG] slot init_sampler: id  0 | task 35359 | init sampler, took 1.17 ms, tokens: text = 14028, total = 14028
+slot update_slots: id  0 | task 35359 | prompt processing done, n_tokens = 14028, batch.n_tokens = 4
+[2026-04-18 13:04:57][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:04:57][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 7.8%
+[2026-04-18 13:05:00][DEBUG] slot update_slots: id  0 | task 35359 | created context checkpoint 3 of 32 (pos_min = 14023, pos_max = 14023, n_tokens = 14024, size = 62.813 MiB)
+slot update_slots: id  1 | task 35358 | n_tokens = 312, memory_seq_rm [312, end)
+[2026-04-18 13:05:00][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 820, batch.n_tokens = 512, progress = 0.203879
+[2026-04-18 13:05:00][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:05:01][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 820, memory_seq_rm [820, end)
+[2026-04-18 13:05:01][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 1331, batch.n_tokens = 512, progress = 0.330930
+[2026-04-18 13:05:01][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 20.4%
+[2026-04-18 13:05:02][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 1331, memory_seq_rm [1331, end)
+[2026-04-18 13:05:02][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 1842, batch.n_tokens = 512, progress = 0.457981
+[2026-04-18 13:05:02][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 33.1%
+[2026-04-18 13:05:03][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 1842, memory_seq_rm [1842, end)
+[2026-04-18 13:05:03][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 2353, batch.n_tokens = 512, progress = 0.585032
+[2026-04-18 13:05:03][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 45.8%
+[2026-04-18 13:05:04][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 2353, memory_seq_rm [2353, end)
+[2026-04-18 13:05:04][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 2864, batch.n_tokens = 512, progress = 0.712084
+[2026-04-18 13:05:04][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 58.5%
+[2026-04-18 13:05:05][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 2864, memory_seq_rm [2864, end)
+[2026-04-18 13:05:05][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 3375, batch.n_tokens = 512, progress = 0.839135
+[2026-04-18 13:05:05][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 71.2%
+[2026-04-18 13:05:07][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 3375, memory_seq_rm [3375, end)
+[2026-04-18 13:05:07][DEBUG] slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 3510, batch.n_tokens = 136, progress = 0.872700
+[2026-04-18 13:05:07][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 83.9%
+[2026-04-18 13:05:08][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 3510, memory_seq_rm [3510, end)
+slot update_slots: id  1 | task 35358 | prompt processing progress, n_tokens = 4018, batch.n_tokens = 509, progress = 0.999005
+[2026-04-18 13:05:08][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 87.3%
+[2026-04-18 13:05:08][DEBUG] slot update_slots: id  1 | task 35358 | created context checkpoint 1 of 32 (pos_min = 3509, pos_max = 3509, n_tokens = 3510, size = 62.813 MiB)
+[2026-04-18 13:05:09][DEBUG] slot update_slots: id  1 | task 35358 | n_tokens = 4018, memory_seq_rm [4018, end)
+[2026-04-18 13:05:09][DEBUG] slot init_sampler: id  1 | task 35358 | init sampler, took 0.33 ms, tokens: text = 4022, total = 4022
+slot update_slots: id  1 | task 35358 | prompt processing done, n_tokens = 4022, batch.n_tokens = 5
+[2026-04-18 13:05:09][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 99.9%
+[2026-04-18 13:05:09][DEBUG] slot update_slots: id  1 | task 35358 | created context checkpoint 2 of 32 (pos_min = 4017, pos_max = 4017, n_tokens = 4018, size = 62.813 MiB)
+[2026-04-18 13:05:09][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:05:47][DEBUG] slot print_timing: id  0 | task 35359 | 
+prompt eval time =   56420.22 ms / 14028 tokens (    4.02 ms per token,   248.63 tokens per second)
+       eval time =   46382.17 ms /   591 tokens (   78.48 ms per token,    12.74 tokens per second)
+      total time =  102802.39 ms / 14619 tokens
+[2026-04-18 13:05:47][DEBUG] slot      release: id  0 | task 35359 | stop processing: n_tokens = 14618, truncated = 0
+[2026-04-18 13:05:47][DEBUG] LlamaV4: server assigned slot 0 to task 35359
+[2026-04-18 13:05:47][INFO][qwen/qwen3.6-35b-a3b] Finished streaming response
+[2026-04-18 13:05:47][DEBUG] Received request: POST to /v1/chat/completions with body {
+  "model": "qwen/qwen3.6-35b-a3b",
+  "max_tokens": 32000,
+  "top_p": 1,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are opencode, an interactive CLI tool that hel... <Truncated in logs> ...`\n- No external dependencies beyond Python stdlib\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Use the agentic coding tools available to you to ... <Truncated in logs> ...check fails, fix it before reporting completion.\n\""
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nI'll create the three required files carefully following all hard requirements. Let me start by creating them all.",
+      "reasoning_content": "The user wants me to create a 3D elevator simulati... <Truncated in logs> ...files with careful attention to every requirement.",
+      "tool_calls": [
+        {
+          "id": "595114835",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<... <Truncated in logs> ...en_qwen3_6-35b-a3b_elevator_prompt_v2/index.html\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "595114835",
+      "content": "Wrote file successfully."
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "bash",
+        "description": "Executes a given bash command in a persistent shel... <Truncated in logs> ...itHub PR: gh api repos/foo/bar/pulls/123/comments\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The command to execute",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Optional timeout in milliseconds",
+              "type": "number"
+            },
+            "workdir": {
+              "description": "The working directory to run the command in. Defau... <Truncated in logs> ...ator_prompt_v2. Use this instead of 'cd' commands.",
+              "type": "string"
+            },
+            "description": {
+              "description": "Clear, concise description of what this command do... <Truncated in logs> ...\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read",
+        "description": "Read a file or directory from the local filesystem... <Truncated in logs> ...les and PDFs and return them as file attachments.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file or directory to read",
+              "type": "string"
+            },
+            "offset": {
+              "description": "The line number to start reading from (1-indexed)",
+              "type": "number"
+            },
+            "limit": {
+              "description": "The maximum number of lines to read (defaults to 2000)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "glob",
+        "description": "- Fast file pattern matching tool that works with ... <Truncated in logs> ... searches as a batch that are potentially useful.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The glob pattern to match files against",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. If not specified, the ... <Truncated in logs> ...avior. Must be a valid directory path if provided.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep",
+        "description": "- Fast content search tool that works with any cod... <Truncated in logs> ... globbing and grepping, use the Task tool instead\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The regex pattern to search for in file contents",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. Defaults to the current working directory.",
+              "type": "string"
+            },
+            "include": {
+              "description": "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "edit",
+        "description": "Performs exact string replacements in files. \n\nUsa... <Truncated in logs> ...ul if you want to rename a variable for instance.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file to modify",
+              "type": "string"
+            },
+            "oldString": {
+              "description": "The text to replace",
+              "type": "string"
+            },
+            "newString": {
+              "description": "The text to replace it with (must be different from oldString)",
+              "type": "string"
+            },
+            "replaceAll": {
+              "description": "Replace all occurrences of oldString (default false)",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write",
+        "description": "Writes a file to the local filesystem.\n\nUsage:\n- T... <Truncated in logs> ...s it. Avoid writing emojis to files unless asked.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "content": {
+              "description": "The content to write to the file",
+              "type": "string"
+            },
+            "filePath": {
+              "description": "The absolute path to the file to write (must be absolute, not relative)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "task",
+        "description": "Launch a new agent to handle complex, multistep ta... <Truncated in logs> ...the with the greeting-responder agent\"\n</example>\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "A short (3-5 words) description of the task",
+              "type": "string"
+            },
+            "prompt": {
+              "description": "The task for the agent to perform",
+              "type": "string"
+            },
+            "subagent_type": {
+              "description": "The type of specialized agent to use for this task",
+              "type": "string"
+            },
+            "task_id": {
+              "description": "This should only be set if you mean to resume a pr... <Truncated in logs> ...session as before instead of creating a fresh one)",
+              "type": "string"
+            },
+            "command": {
+              "description": "The command that triggered this task",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "webfetch",
+        "description": "- Fetches content from a specified URL\n- Takes a U... <Truncated in logs> ...ts may be summarized if the content is very large\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "The URL to fetch content from",
+              "type": "string"
+            },
+            "format": {
+              "description": "The format to return the content in (text, markdown, or html). Defaults to markdown.",
+              "default": "markdown",
+              "type": "string",
+              "enum": [
+                "text",
+                "markdown",
+                "html"
+              ]
+            },
+            "timeout": {
+              "description": "Optional timeout in seconds (max 120)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "url",
+            "format"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todowrite",
+        "description": "Use this tool to create and manage a structured ta... <Truncated in logs> ...ures you complete all requirements successfully.\n\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "todos": {
+              "description": "The updated todo list",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "description": "Brief description of the task",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Current status of the task: pending, in_progress, completed, cancelled",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Priority level of the task: high, medium, low",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "status",
+                  "priority"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill",
+        "description": "Load a specialized skill that provides domain-specific instructions and workflows. No skills are currently available.",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The name of the skill from available_skills",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}
+[2026-04-18 13:05:47][INFO][qwen/qwen3.6-35b-a3b] Running chat completion on conversation with 4 messages.
+[2026-04-18 13:05:47][INFO][qwen/qwen3.6-35b-a3b] Streaming response...
+[2026-04-18 13:05:47][DEBUG] LlamaV4::predict slot selection: session_id=<empty> server-selected (LCP/LRU)
+[2026-04-18 13:05:48][DEBUG] slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, sim_best = 0.999 (> 0.100 thold), f_keep = 1.000
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> ?top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task 35984 | processing task, is_child = 0
+slot update_slots: id  0 | task 35984 | new prompt, n_ctx_slot = 262144, n_keep = 14028, task.n_tokens = 14639
+slot update_slots: id  0 | task 35984 | cache reuse is not supported - ignoring n_cache_reuse = 256
+slot update_slots: id  0 | task 35984 | n_tokens = 14618, memory_seq_rm [14618, end)
+[2026-04-18 13:05:48][DEBUG] slot update_slots: id  0 | task 35984 | prompt processing progress, n_tokens = 14635, batch.n_tokens = 18, progress = 0.999727
+[2026-04-18 13:05:48][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 0.0%
+[2026-04-18 13:05:48][DEBUG] slot update_slots: id  0 | task 35984 | created context checkpoint 4 of 32 (pos_min = 14617, pos_max = 14617, n_tokens = 14618, size = 62.813 MiB)
+[2026-04-18 13:05:48][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 81.0%
+[2026-04-18 13:05:48][DEBUG] slot update_slots: id  0 | task 35984 | n_tokens = 14635, memory_seq_rm [14635, end)
+[2026-04-18 13:05:48][DEBUG] slot init_sampler: id  0 | task 35984 | init sampler, took 1.22 ms, tokens: text = 14639, total = 14639
+slot update_slots: id  0 | task 35984 | prompt processing done, n_tokens = 14639, batch.n_tokens = 5
+[2026-04-18 13:05:48][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:06:36][DEBUG] slot print_timing: id  0 | task 35984 | 
+prompt eval time =     797.13 ms /    21 tokens (   37.96 ms per token,    26.34 tokens per second)
+       eval time =   47586.21 ms /   680 tokens (   69.98 ms per token,    14.29 tokens per second)
+      total time =   48383.34 ms /   701 tokens
+[2026-04-18 13:06:36][DEBUG] slot      release: id  0 | task 35984 | stop processing: n_tokens = 15318, truncated = 0
+[2026-04-18 13:06:36][DEBUG] LlamaV4: server assigned slot 0 to task 35984
+[2026-04-18 13:06:36][INFO][qwen/qwen3.6-35b-a3b] Finished streaming response
+[2026-04-18 13:06:36][DEBUG] Received request: POST to /v1/chat/completions with body {
+  "model": "qwen/qwen3.6-35b-a3b",
+  "max_tokens": 32000,
+  "top_p": 1,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are opencode, an interactive CLI tool that hel... <Truncated in logs> ...`\n- No external dependencies beyond Python stdlib\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Use the agentic coding tools available to you to ... <Truncated in logs> ...check fails, fix it before reporting completion.\n\""
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nI'll create the three required files carefully following all hard requirements. Let me start by creating them all.",
+      "reasoning_content": "The user wants me to create a 3D elevator simulati... <Truncated in logs> ...files with careful attention to every requirement.",
+      "tool_calls": [
+        {
+          "id": "595114835",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<... <Truncated in logs> ...en_qwen3_6-35b-a3b_elevator_prompt_v2/index.html\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "595114835",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning_content": "Good, index.html is created. Now let me create per... <Truncated in logs> ...ining leftLeg, rightLeg, and isWalking references.",
+      "tool_calls": [
+        {
+          "id": "755857684",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"function createPerson(color, position)... <Truncated in logs> ...wen_qwen3_6-35b-a3b_elevator_prompt_v2/person.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "755857684",
+      "content": "Wrote file successfully."
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "bash",
+        "description": "Executes a given bash command in a persistent shel... <Truncated in logs> ...itHub PR: gh api repos/foo/bar/pulls/123/comments\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The command to execute",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Optional timeout in milliseconds",
+              "type": "number"
+            },
+            "workdir": {
+              "description": "The working directory to run the command in. Defau... <Truncated in logs> ...ator_prompt_v2. Use this instead of 'cd' commands.",
+              "type": "string"
+            },
+            "description": {
+              "description": "Clear, concise description of what this command do... <Truncated in logs> ...\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read",
+        "description": "Read a file or directory from the local filesystem... <Truncated in logs> ...les and PDFs and return them as file attachments.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file or directory to read",
+              "type": "string"
+            },
+            "offset": {
+              "description": "The line number to start reading from (1-indexed)",
+              "type": "number"
+            },
+            "limit": {
+              "description": "The maximum number of lines to read (defaults to 2000)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "glob",
+        "description": "- Fast file pattern matching tool that works with ... <Truncated in logs> ... searches as a batch that are potentially useful.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The glob pattern to match files against",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. If not specified, the ... <Truncated in logs> ...avior. Must be a valid directory path if provided.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep",
+        "description": "- Fast content search tool that works with any cod... <Truncated in logs> ... globbing and grepping, use the Task tool instead\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The regex pattern to search for in file contents",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. Defaults to the current working directory.",
+              "type": "string"
+            },
+            "include": {
+              "description": "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "edit",
+        "description": "Performs exact string replacements in files. \n\nUsa... <Truncated in logs> ...ul if you want to rename a variable for instance.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file to modify",
+              "type": "string"
+            },
+            "oldString": {
+              "description": "The text to replace",
+              "type": "string"
+            },
+            "newString": {
+              "description": "The text to replace it with (must be different from oldString)",
+              "type": "string"
+            },
+            "replaceAll": {
+              "description": "Replace all occurrences of oldString (default false)",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write",
+        "description": "Writes a file to the local filesystem.\n\nUsage:\n- T... <Truncated in logs> ...s it. Avoid writing emojis to files unless asked.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "content": {
+              "description": "The content to write to the file",
+              "type": "string"
+            },
+            "filePath": {
+              "description": "The absolute path to the file to write (must be absolute, not relative)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "task",
+        "description": "Launch a new agent to handle complex, multistep ta... <Truncated in logs> ...the with the greeting-responder agent\"\n</example>\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "A short (3-5 words) description of the task",
+              "type": "string"
+            },
+            "prompt": {
+              "description": "The task for the agent to perform",
+              "type": "string"
+            },
+            "subagent_type": {
+              "description": "The type of specialized agent to use for this task",
+              "type": "string"
+            },
+            "task_id": {
+              "description": "This should only be set if you mean to resume a pr... <Truncated in logs> ...session as before instead of creating a fresh one)",
+              "type": "string"
+            },
+            "command": {
+              "description": "The command that triggered this task",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "webfetch",
+        "description": "- Fetches content from a specified URL\n- Takes a U... <Truncated in logs> ...ts may be summarized if the content is very large\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "The URL to fetch content from",
+              "type": "string"
+            },
+            "format": {
+              "description": "The format to return the content in (text, markdown, or html). Defaults to markdown.",
+              "default": "markdown",
+              "type": "string",
+              "enum": [
+                "text",
+                "markdown",
+                "html"
+              ]
+            },
+            "timeout": {
+              "description": "Optional timeout in seconds (max 120)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "url",
+            "format"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todowrite",
+        "description": "Use this tool to create and manage a structured ta... <Truncated in logs> ...ures you complete all requirements successfully.\n\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "todos": {
+              "description": "The updated todo list",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "description": "Brief description of the task",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Current status of the task: pending, in_progress, completed, cancelled",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Priority level of the task: high, medium, low",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "status",
+                  "priority"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill",
+        "description": "Load a specialized skill that provides domain-specific instructions and workflows. No skills are currently available.",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The name of the skill from available_skills",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}
+[2026-04-18 13:06:36][INFO][qwen/qwen3.6-35b-a3b] Running chat completion on conversation with 6 messages.
+[2026-04-18 13:06:36][INFO][qwen/qwen3.6-35b-a3b] Streaming response...
+[2026-04-18 13:06:36][DEBUG] LlamaV4::predict slot selection: session_id=<empty> server-selected (LCP/LRU)
+[2026-04-18 13:06:36][DEBUG] slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, sim_best = 0.999 (> 0.100 thold), f_keep = 1.000
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> ?top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task 36672 | processing task, is_child = 0
+slot update_slots: id  0 | task 36672 | new prompt, n_ctx_slot = 262144, n_keep = 14028, task.n_tokens = 15339
+slot update_slots: id  0 | task 36672 | cache reuse is not supported - ignoring n_cache_reuse = 256
+slot update_slots: id  0 | task 36672 | n_tokens = 15318, memory_seq_rm [15318, end)
+[2026-04-18 13:06:36][DEBUG] slot update_slots: id  0 | task 36672 | prompt processing progress, n_tokens = 15335, batch.n_tokens = 18, progress = 0.999739
+[2026-04-18 13:06:36][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 0.0%
+[2026-04-18 13:06:36][DEBUG] slot update_slots: id  0 | task 36672 | created context checkpoint 5 of 32 (pos_min = 15317, pos_max = 15317, n_tokens = 15318, size = 62.813 MiB)
+[2026-04-18 13:06:36][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 81.0%
+[2026-04-18 13:06:37][DEBUG] slot update_slots: id  0 | task 36672 | n_tokens = 15335, memory_seq_rm [15335, end)
+[2026-04-18 13:06:37][DEBUG] slot init_sampler: id  0 | task 36672 | init sampler, took 1.26 ms, tokens: text = 15339, total = 15339
+slot update_slots: id  0 | task 36672 | prompt processing done, n_tokens = 15339, batch.n_tokens = 5
+[2026-04-18 13:06:37][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:07:23][DEBUG] slot print_timing: id  1 | task 35358 | 
+prompt eval time =   17992.44 ms /  4022 tokens (    4.47 ms per token,   223.54 tokens per second)
+       eval time =  133424.89 ms /  1883 tokens (   70.86 ms per token,    14.11 tokens per second)
+      total time =  151417.34 ms /  5905 tokens
+[2026-04-18 13:07:23][DEBUG] slot      release: id  1 | task 35358 | stop processing: n_tokens = 5904, truncated = 0
+LlamaV4: server assigned slot 1 to task 35358
+[2026-04-18 13:07:23][INFO][qwen/qwen3.6-35b-a3b] Finished streaming response
+[2026-04-18 13:12:43][DEBUG] slot print_timing: id  0 | task 36672 | 
+prompt eval time =     842.91 ms /    21 tokens (   40.14 ms per token,    24.91 tokens per second)
+       eval time =  365970.51 ms /  6769 tokens (   54.07 ms per token,    18.50 tokens per second)
+      total time =  366813.42 ms /  6790 tokens
+[2026-04-18 13:12:43][DEBUG] slot      release: id  0 | task 36672 | stop processing: n_tokens = 22107, truncated = 0
+srv  update_slots: all slots are idle
+[2026-04-18 13:12:43][DEBUG] LlamaV4: server assigned slot 0 to task 36672
+[2026-04-18 13:12:43][INFO][qwen/qwen3.6-35b-a3b] Finished streaming response
+[2026-04-18 13:12:43][DEBUG] Received request: POST to /v1/chat/completions with body {
+  "model": "qwen/qwen3.6-35b-a3b",
+  "max_tokens": 32000,
+  "top_p": 1,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are opencode, an interactive CLI tool that hel... <Truncated in logs> ...`\n- No external dependencies beyond Python stdlib\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Use the agentic coding tools available to you to ... <Truncated in logs> ...check fails, fix it before reporting completion.\n\""
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nI'll create the three required files carefully following all hard requirements. Let me start by creating them all.",
+      "reasoning_content": "The user wants me to create a 3D elevator simulati... <Truncated in logs> ...files with careful attention to every requirement.",
+      "tool_calls": [
+        {
+          "id": "595114835",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<... <Truncated in logs> ...en_qwen3_6-35b-a3b_elevator_prompt_v2/index.html\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "595114835",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning_content": "Good, index.html is created. Now let me create per... <Truncated in logs> ...ining leftLeg, rightLeg, and isWalking references.",
+      "tool_calls": [
+        {
+          "id": "755857684",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"function createPerson(color, position)... <Truncated in logs> ...wen_qwen3_6-35b-a3b_elevator_prompt_v2/person.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "755857684",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning_content": "Now I need to create the main elevator.js file. Th... <Truncated in logs> ...ndom floor selection\n\nLet me write this carefully.",
+      "tool_calls": [
+        {
+          "id": "947982751",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"// Constants as top-level declarations... <Truncated in logs> ...n_qwen3_6-35b-a3b_elevator_prompt_v2/elevator.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "947982751",
+      "content": "Wrote file successfully."
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "bash",
+        "description": "Executes a given bash command in a persistent shel... <Truncated in logs> ...itHub PR: gh api repos/foo/bar/pulls/123/comments\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The command to execute",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Optional timeout in milliseconds",
+              "type": "number"
+            },
+            "workdir": {
+              "description": "The working directory to run the command in. Defau... <Truncated in logs> ...ator_prompt_v2. Use this instead of 'cd' commands.",
+              "type": "string"
+            },
+            "description": {
+              "description": "Clear, concise description of what this command do... <Truncated in logs> ...\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read",
+        "description": "Read a file or directory from the local filesystem... <Truncated in logs> ...les and PDFs and return them as file attachments.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file or directory to read",
+              "type": "string"
+            },
+            "offset": {
+              "description": "The line number to start reading from (1-indexed)",
+              "type": "number"
+            },
+            "limit": {
+              "description": "The maximum number of lines to read (defaults to 2000)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "glob",
+        "description": "- Fast file pattern matching tool that works with ... <Truncated in logs> ... searches as a batch that are potentially useful.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The glob pattern to match files against",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. If not specified, the ... <Truncated in logs> ...avior. Must be a valid directory path if provided.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep",
+        "description": "- Fast content search tool that works with any cod... <Truncated in logs> ... globbing and grepping, use the Task tool instead\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The regex pattern to search for in file contents",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. Defaults to the current working directory.",
+              "type": "string"
+            },
+            "include": {
+              "description": "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "edit",
+        "description": "Performs exact string replacements in files. \n\nUsa... <Truncated in logs> ...ul if you want to rename a variable for instance.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file to modify",
+              "type": "string"
+            },
+            "oldString": {
+              "description": "The text to replace",
+              "type": "string"
+            },
+            "newString": {
+              "description": "The text to replace it with (must be different from oldString)",
+              "type": "string"
+            },
+            "replaceAll": {
+              "description": "Replace all occurrences of oldString (default false)",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write",
+        "description": "Writes a file to the local filesystem.\n\nUsage:\n- T... <Truncated in logs> ...s it. Avoid writing emojis to files unless asked.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "content": {
+              "description": "The content to write to the file",
+              "type": "string"
+            },
+            "filePath": {
+              "description": "The absolute path to the file to write (must be absolute, not relative)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "task",
+        "description": "Launch a new agent to handle complex, multistep ta... <Truncated in logs> ...the with the greeting-responder agent\"\n</example>\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "A short (3-5 words) description of the task",
+              "type": "string"
+            },
+            "prompt": {
+              "description": "The task for the agent to perform",
+              "type": "string"
+            },
+            "subagent_type": {
+              "description": "The type of specialized agent to use for this task",
+              "type": "string"
+            },
+            "task_id": {
+              "description": "This should only be set if you mean to resume a pr... <Truncated in logs> ...session as before instead of creating a fresh one)",
+              "type": "string"
+            },
+            "command": {
+              "description": "The command that triggered this task",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "webfetch",
+        "description": "- Fetches content from a specified URL\n- Takes a U... <Truncated in logs> ...ts may be summarized if the content is very large\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "The URL to fetch content from",
+              "type": "string"
+            },
+            "format": {
+              "description": "The format to return the content in (text, markdown, or html). Defaults to markdown.",
+              "default": "markdown",
+              "type": "string",
+              "enum": [
+                "text",
+                "markdown",
+                "html"
+              ]
+            },
+            "timeout": {
+              "description": "Optional timeout in seconds (max 120)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "url",
+            "format"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todowrite",
+        "description": "Use this tool to create and manage a structured ta... <Truncated in logs> ...ures you complete all requirements successfully.\n\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "todos": {
+              "description": "The updated todo list",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "description": "Brief description of the task",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Current status of the task: pending, in_progress, completed, cancelled",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Priority level of the task: high, medium, low",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "status",
+                  "priority"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill",
+        "description": "Load a specialized skill that provides domain-specific instructions and workflows. No skills are currently available.",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The name of the skill from available_skills",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}
+[2026-04-18 13:12:43][INFO][qwen/qwen3.6-35b-a3b] Running chat completion on conversation with 8 messages.
+[2026-04-18 13:12:43][INFO][qwen/qwen3.6-35b-a3b] Streaming response...
+[2026-04-18 13:12:43][DEBUG] LlamaV4::predict slot selection: session_id=<empty> server-selected (LCP/LRU)
+[2026-04-18 13:12:43][DEBUG] slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, sim_best = 0.999 (> 0.100 thold), f_keep = 1.000
+[2026-04-18 13:12:43][DEBUG] slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> ?top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task 43444 | processing task, is_child = 0
+slot slot_save_an: id  1 | task -1 | saving idle slot to prompt cache
+srv   prompt_save:  - saving prompt with length 5904, total state size = 95.358 MiB
+[2026-04-18 13:12:49][DEBUG] slot prompt_clear: id  1 | task -1 | clearing prompt with 5904 tokens
+[2026-04-18 13:12:49][DEBUG] srv        update:  - cache state: 3 prompts, 1446.093 MiB (limits: 8192.000 MiB, 262144 tokens, 324192 est)
+srv        update:    - prompt 0x7aaa88138320:    3230 tokens, checkpoints:  2,   206.244 MiB
+srv        update:    - prompt 0x7aaa8859d340:   48094 tokens, checkpoints: 11,  1018.864 MiB
+srv        update:    - prompt 0x7aaa883ac590:    5904 tokens, checkpoints:  2,   220.984 MiB
+[2026-04-18 13:12:49][DEBUG] slot update_slots: id  0 | task 43444 | new prompt, n_ctx_slot = 262144, n_keep = 14028, task.n_tokens = 22128
+slot update_slots: id  0 | task 43444 | cache reuse is not supported - ignoring n_cache_reuse = 256
+slot update_slots: id  0 | task 43444 | n_tokens = 22107, memory_seq_rm [22107, end)
+slot update_slots: id  0 | task 43444 | prompt processing progress, n_tokens = 22124, batch.n_tokens = 17, progress = 0.999819
+[2026-04-18 13:12:49][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 0.0%
+[2026-04-18 13:12:49][DEBUG] slot update_slots: id  0 | task 43444 | created context checkpoint 6 of 32 (pos_min = 22106, pos_max = 22106, n_tokens = 22107, size = 62.813 MiB)
+[2026-04-18 13:12:49][DEBUG] slot update_slots: id  0 | task 43444 | n_tokens = 22124, memory_seq_rm [22124, end)
+[2026-04-18 13:12:49][DEBUG] slot init_sampler: id  0 | task 43444 | init sampler, took 1.83 ms, tokens: text = 22128, total = 22128
+slot update_slots: id  0 | task 43444 | prompt processing done, n_tokens = 22128, batch.n_tokens = 4
+[2026-04-18 13:12:49][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 81.0%
+[2026-04-18 13:12:50][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:13:02][DEBUG] slot print_timing: id  0 | task 43444 | 
+prompt eval time =    1054.21 ms /    21 tokens (   50.20 ms per token,    19.92 tokens per second)
+       eval time =   12012.25 ms /   217 tokens (   55.36 ms per token,    18.06 tokens per second)
+      total time =   13066.46 ms /   238 tokens
+[2026-04-18 13:13:02][DEBUG] slot      release: id  0 | task 43444 | stop processing: n_tokens = 22344, truncated = 0
+srv  update_slots: all slots are idle
+[2026-04-18 13:13:02][DEBUG] LlamaV4: server assigned slot 0 to task 43444
+[2026-04-18 13:13:02][INFO][qwen/qwen3.6-35b-a3b] Finished streaming response
+[2026-04-18 13:13:02][DEBUG] Received request: POST to /v1/chat/completions with body {
+  "model": "qwen/qwen3.6-35b-a3b",
+  "max_tokens": 32000,
+  "top_p": 1,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are opencode, an interactive CLI tool that hel... <Truncated in logs> ...`\n- No external dependencies beyond Python stdlib\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Use the agentic coding tools available to you to ... <Truncated in logs> ...check fails, fix it before reporting completion.\n\""
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nI'll create the three required files carefully following all hard requirements. Let me start by creating them all.",
+      "reasoning_content": "The user wants me to create a 3D elevator simulati... <Truncated in logs> ...files with careful attention to every requirement.",
+      "tool_calls": [
+        {
+          "id": "595114835",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<... <Truncated in logs> ...en_qwen3_6-35b-a3b_elevator_prompt_v2/index.html\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "595114835",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning_content": "Good, index.html is created. Now let me create per... <Truncated in logs> ...ining leftLeg, rightLeg, and isWalking references.",
+      "tool_calls": [
+        {
+          "id": "755857684",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"function createPerson(color, position)... <Truncated in logs> ...wen_qwen3_6-35b-a3b_elevator_prompt_v2/person.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "755857684",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning_content": "Now I need to create the main elevator.js file. Th... <Truncated in logs> ...ndom floor selection\n\nLet me write this carefully.",
+      "tool_calls": [
+        {
+          "id": "947982751",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"// Constants as top-level declarations... <Truncated in logs> ...n_qwen3_6-35b-a3b_elevator_prompt_v2/elevator.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "947982751",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nNow let me verify all hard requirements by reading each file.",
+      "reasoning_content": "Now let me verify all the hard requirements by reading each file and checking the checklist.",
+      "tool_calls": [
+        {
+          "id": "409397128",
+          "type": "function",
+          "function": {
+            "name": "read",
+            "arguments": "{\"filePath\":\"/home/jeff/Code/llm-eval/evals/opencode_qwen_qwen3_6-35b-a3b_elevator_prompt_v2/index.html\"}"
+          }
+        },
+        {
+          "id": "324430344",
+          "type": "function",
+          "function": {
+            "name": "read",
+            "arguments": "{\"filePath\":\"/home/jeff/Code/llm-eval/evals/opencode_qwen_qwen3_6-35b-a3b_elevator_prompt_v2/person.js\"}"
+          }
+        },
+        {
+          "id": "382620095",
+          "type": "function",
+          "function": {
+            "name": "read",
+            "arguments": "{\"filePath\":\"/home/jeff/Code/llm-eval/evals/opencode_qwen_qwen3_6-35b-a3b_elevator_prompt_v2/elevator.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "409397128",
+      "content": "<path>/home/jeff/Code/llm-eval/evals/opencode_qwen... <Truncated in logs> ...</html>\n\n(End of file - total 47 lines)\n</content>"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "324430344",
+      "content": "<path>/home/jeff/Code/llm-eval/evals/opencode_qwen... <Truncated in logs> ...;\n51: }\n\n(End of file - total 51 lines)\n</content>"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "382620095",
+      "content": "<path>/home/jeff/Code/llm-eval/evals/opencode_qwen... <Truncated in logs> ...mate);\n\n(End of file - total 698 lines)\n</content>"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "bash",
+        "description": "Executes a given bash command in a persistent shel... <Truncated in logs> ...itHub PR: gh api repos/foo/bar/pulls/123/comments\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The command to execute",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Optional timeout in milliseconds",
+              "type": "number"
+            },
+            "workdir": {
+              "description": "The working directory to run the command in. Defau... <Truncated in logs> ...ator_prompt_v2. Use this instead of 'cd' commands.",
+              "type": "string"
+            },
+            "description": {
+              "description": "Clear, concise description of what this command do... <Truncated in logs> ...\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read",
+        "description": "Read a file or directory from the local filesystem... <Truncated in logs> ...les and PDFs and return them as file attachments.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file or directory to read",
+              "type": "string"
+            },
+            "offset": {
+              "description": "The line number to start reading from (1-indexed)",
+              "type": "number"
+            },
+            "limit": {
+              "description": "The maximum number of lines to read (defaults to 2000)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "glob",
+        "description": "- Fast file pattern matching tool that works with ... <Truncated in logs> ... searches as a batch that are potentially useful.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The glob pattern to match files against",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. If not specified, the ... <Truncated in logs> ...avior. Must be a valid directory path if provided.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep",
+        "description": "- Fast content search tool that works with any cod... <Truncated in logs> ... globbing and grepping, use the Task tool instead\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The regex pattern to search for in file contents",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. Defaults to the current working directory.",
+              "type": "string"
+            },
+            "include": {
+              "description": "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "edit",
+        "description": "Performs exact string replacements in files. \n\nUsa... <Truncated in logs> ...ul if you want to rename a variable for instance.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file to modify",
+              "type": "string"
+            },
+            "oldString": {
+              "description": "The text to replace",
+              "type": "string"
+            },
+            "newString": {
+              "description": "The text to replace it with (must be different from oldString)",
+              "type": "string"
+            },
+            "replaceAll": {
+              "description": "Replace all occurrences of oldString (default false)",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write",
+        "description": "Writes a file to the local filesystem.\n\nUsage:\n- T... <Truncated in logs> ...s it. Avoid writing emojis to files unless asked.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "content": {
+              "description": "The content to write to the file",
+              "type": "string"
+            },
+            "filePath": {
+              "description": "The absolute path to the file to write (must be absolute, not relative)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "task",
+        "description": "Launch a new agent to handle complex, multistep ta... <Truncated in logs> ...the with the greeting-responder agent\"\n</example>\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "A short (3-5 words) description of the task",
+              "type": "string"
+            },
+            "prompt": {
+              "description": "The task for the agent to perform",
+              "type": "string"
+            },
+            "subagent_type": {
+              "description": "The type of specialized agent to use for this task",
+              "type": "string"
+            },
+            "task_id": {
+              "description": "This should only be set if you mean to resume a pr... <Truncated in logs> ...session as before instead of creating a fresh one)",
+              "type": "string"
+            },
+            "command": {
+              "description": "The command that triggered this task",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "webfetch",
+        "description": "- Fetches content from a specified URL\n- Takes a U... <Truncated in logs> ...ts may be summarized if the content is very large\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "The URL to fetch content from",
+              "type": "string"
+            },
+            "format": {
+              "description": "The format to return the content in (text, markdown, or html). Defaults to markdown.",
+              "default": "markdown",
+              "type": "string",
+              "enum": [
+                "text",
+                "markdown",
+                "html"
+              ]
+            },
+            "timeout": {
+              "description": "Optional timeout in seconds (max 120)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "url",
+            "format"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todowrite",
+        "description": "Use this tool to create and manage a structured ta... <Truncated in logs> ...ures you complete all requirements successfully.\n\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "todos": {
+              "description": "The updated todo list",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "description": "Brief description of the task",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Current status of the task: pending, in_progress, completed, cancelled",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Priority level of the task: high, medium, low",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "status",
+                  "priority"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill",
+        "description": "Load a specialized skill that provides domain-specific instructions and workflows. No skills are currently available.",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The name of the skill from available_skills",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}
+[2026-04-18 13:13:02][INFO][qwen/qwen3.6-35b-a3b] Running chat completion on conversation with 12 messages.
+[2026-04-18 13:13:02][INFO][qwen/qwen3.6-35b-a3b] Streaming response...
+[2026-04-18 13:13:02][DEBUG] LlamaV4::predict slot selection: session_id=<empty> server-selected (LCP/LRU)
+[2026-04-18 13:13:03][DEBUG] slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, sim_best = 0.673 (> 0.100 thold), f_keep = 1.000
+[2026-04-18 13:13:03][DEBUG] slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> ?top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task 43663 | processing task, is_child = 0
+slot update_slots: id  0 | task 43663 | new prompt, n_ctx_slot = 262144, n_keep = 14028, task.n_tokens = 33210
+slot update_slots: id  0 | task 43663 | cache reuse is not supported - ignoring n_cache_reuse = 256
+slot update_slots: id  0 | task 43663 | n_tokens = 22344, memory_seq_rm [22344, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 22856, batch.n_tokens = 512, progress = 0.688226
+[2026-04-18 13:13:03][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 0.0%
+[2026-04-18 13:13:03][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 22856, memory_seq_rm [22856, end)
+[2026-04-18 13:13:03][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 23368, batch.n_tokens = 512, progress = 0.703644
+[2026-04-18 13:13:03][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 4.7%
+[2026-04-18 13:13:08][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 23368, memory_seq_rm [23368, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 23880, batch.n_tokens = 512, progress = 0.719061
+[2026-04-18 13:13:08][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 9.4%
+[2026-04-18 13:13:12][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 23880, memory_seq_rm [23880, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 24392, batch.n_tokens = 512, progress = 0.734478
+[2026-04-18 13:13:12][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 14.1%
+[2026-04-18 13:13:18][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 24392, memory_seq_rm [24392, end)
+[2026-04-18 13:13:18][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 24904, batch.n_tokens = 512, progress = 0.749895
+[2026-04-18 13:13:18][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 18.8%
+[2026-04-18 13:13:23][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 24904, memory_seq_rm [24904, end)
+[2026-04-18 13:13:23][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 25416, batch.n_tokens = 512, progress = 0.765312
+[2026-04-18 13:13:23][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 23.6%
+[2026-04-18 13:13:28][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 25416, memory_seq_rm [25416, end)
+[2026-04-18 13:13:28][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 25928, batch.n_tokens = 512, progress = 0.780729
+[2026-04-18 13:13:28][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 28.3%
+[2026-04-18 13:13:33][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 25928, memory_seq_rm [25928, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 26440, batch.n_tokens = 512, progress = 0.796146
+[2026-04-18 13:13:33][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 33.0%
+[2026-04-18 13:13:39][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 26440, memory_seq_rm [26440, end)
+[2026-04-18 13:13:39][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 26952, batch.n_tokens = 512, progress = 0.811563
+[2026-04-18 13:13:39][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 37.7%
+[2026-04-18 13:13:44][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 26952, memory_seq_rm [26952, end)
+[2026-04-18 13:13:44][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 27464, batch.n_tokens = 512, progress = 0.826980
+[2026-04-18 13:13:44][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 42.4%
+[2026-04-18 13:13:49][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 27464, memory_seq_rm [27464, end)
+[2026-04-18 13:13:49][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 27976, batch.n_tokens = 512, progress = 0.842397
+[2026-04-18 13:13:49][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 47.1%
+[2026-04-18 13:13:55][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 27976, memory_seq_rm [27976, end)
+[2026-04-18 13:13:55][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 28488, batch.n_tokens = 512, progress = 0.857814
+[2026-04-18 13:13:55][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 51.8%
+[2026-04-18 13:14:00][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 28488, memory_seq_rm [28488, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 29000, batch.n_tokens = 512, progress = 0.873231
+[2026-04-18 13:14:00][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 56.5%
+[2026-04-18 13:14:06][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 29000, memory_seq_rm [29000, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 29512, batch.n_tokens = 512, progress = 0.888648
+[2026-04-18 13:14:06][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 61.3%
+[2026-04-18 13:14:11][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 29512, memory_seq_rm [29512, end)
+[2026-04-18 13:14:11][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 30024, batch.n_tokens = 512, progress = 0.904065
+[2026-04-18 13:14:11][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 66.0%
+[2026-04-18 13:14:17][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 30024, memory_seq_rm [30024, end)
+[2026-04-18 13:14:17][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 30536, batch.n_tokens = 512, progress = 0.919482
+[2026-04-18 13:14:17][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 70.7%
+[2026-04-18 13:14:23][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 30536, memory_seq_rm [30536, end)
+[2026-04-18 13:14:23][DEBUG] slot update_slots: id  0 | task 43663 | 8192 tokens since last checkpoint at 22107, creating new checkpoint during processing at position 31048
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 31048, batch.n_tokens = 512, progress = 0.934899
+[2026-04-18 13:14:23][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 75.4%
+[2026-04-18 13:14:28][DEBUG] slot update_slots: id  0 | task 43663 | created context checkpoint 7 of 32 (pos_min = 30535, pos_max = 30535, n_tokens = 30536, size = 62.813 MiB)
+[2026-04-18 13:14:29][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 31048, memory_seq_rm [31048, end)
+[2026-04-18 13:14:29][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 31560, batch.n_tokens = 512, progress = 0.950316
+[2026-04-18 13:14:29][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 80.1%
+[2026-04-18 13:14:34][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 31560, memory_seq_rm [31560, end)
+[2026-04-18 13:14:34][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 32072, batch.n_tokens = 512, progress = 0.965733
+[2026-04-18 13:14:34][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 84.8%
+[2026-04-18 13:14:40][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 32072, memory_seq_rm [32072, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 32584, batch.n_tokens = 512, progress = 0.981150
+[2026-04-18 13:14:40][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 89.5%
+[2026-04-18 13:14:46][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 32584, memory_seq_rm [32584, end)
+slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 32698, batch.n_tokens = 114, progress = 0.984583
+[2026-04-18 13:14:46][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 94.2%
+[2026-04-18 13:14:52][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 32698, memory_seq_rm [32698, end)
+[2026-04-18 13:14:52][DEBUG] slot update_slots: id  0 | task 43663 | prompt processing progress, n_tokens = 33206, batch.n_tokens = 508, progress = 0.999880
+[2026-04-18 13:14:52][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 95.3%
+[2026-04-18 13:14:54][DEBUG] slot update_slots: id  0 | task 43663 | created context checkpoint 8 of 32 (pos_min = 32697, pos_max = 32697, n_tokens = 32698, size = 62.813 MiB)
+[2026-04-18 13:14:54][DEBUG] slot update_slots: id  0 | task 43663 | n_tokens = 33206, memory_seq_rm [33206, end)
+[2026-04-18 13:14:54][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:14:54][DEBUG] slot init_sampler: id  0 | task 43663 | init sampler, took 2.75 ms, tokens: text = 33210, total = 33210
+slot update_slots: id  0 | task 43663 | prompt processing done, n_tokens = 33210, batch.n_tokens = 4
+[2026-04-18 13:15:00][DEBUG] slot update_slots: id  0 | task 43663 | created context checkpoint 9 of 32 (pos_min = 33205, pos_max = 33205, n_tokens = 33206, size = 62.813 MiB)
+[2026-04-18 13:15:00][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:15:20][DEBUG] slot print_timing: id  0 | task 43663 | 
+prompt eval time =  117965.00 ms / 10866 tokens (   10.86 ms per token,    92.11 tokens per second)
+       eval time =   19612.12 ms /   315 tokens (   62.26 ms per token,    16.06 tokens per second)
+      total time =  137577.12 ms / 11181 tokens
+[2026-04-18 13:15:20][DEBUG] slot      release: id  0 | task 43663 | stop processing: n_tokens = 33524, truncated = 0
+srv  update_slots: all slots are idle
+[2026-04-18 13:15:20][DEBUG] LlamaV4: server assigned slot 0 to task 43663
+[2026-04-18 13:15:20][INFO][qwen/qwen3.6-35b-a3b] Finished streaming response
+[2026-04-18 13:15:20][DEBUG] Received request: POST to /v1/chat/completions with body {
+  "model": "qwen/qwen3.6-35b-a3b",
+  "max_tokens": 32000,
+  "top_p": 1,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are opencode, an interactive CLI tool that hel... <Truncated in logs> ...`\n- No external dependencies beyond Python stdlib\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Use the agentic coding tools available to you to ... <Truncated in logs> ...check fails, fix it before reporting completion.\n\""
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nI'll create the three required files carefully following all hard requirements. Let me start by creating them all.",
+      "reasoning_content": "The user wants me to create a 3D elevator simulati... <Truncated in logs> ...files with careful attention to every requirement.",
+      "tool_calls": [
+        {
+          "id": "595114835",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<... <Truncated in logs> ...en_qwen3_6-35b-a3b_elevator_prompt_v2/index.html\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "595114835",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning_content": "Good, index.html is created. Now let me create per... <Truncated in logs> ...ining leftLeg, rightLeg, and isWalking references.",
+      "tool_calls": [
+        {
+          "id": "755857684",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"function createPerson(color, position)... <Truncated in logs> ...wen_qwen3_6-35b-a3b_elevator_prompt_v2/person.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "755857684",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning_content": "Now I need to create the main elevator.js file. Th... <Truncated in logs> ...ndom floor selection\n\nLet me write this carefully.",
+      "tool_calls": [
+        {
+          "id": "947982751",
+          "type": "function",
+          "function": {
+            "name": "write",
+            "arguments": "{\"content\":\"// Constants as top-level declarations... <Truncated in logs> ...n_qwen3_6-35b-a3b_elevator_prompt_v2/elevator.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "947982751",
+      "content": "Wrote file successfully."
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nNow let me verify all hard requirements by reading each file.",
+      "reasoning_content": "Now let me verify all the hard requirements by reading each file and checking the checklist.",
+      "tool_calls": [
+        {
+          "id": "409397128",
+          "type": "function",
+          "function": {
+            "name": "read",
+            "arguments": "{\"filePath\":\"/home/jeff/Code/llm-eval/evals/opencode_qwen_qwen3_6-35b-a3b_elevator_prompt_v2/index.html\"}"
+          }
+        },
+        {
+          "id": "324430344",
+          "type": "function",
+          "function": {
+            "name": "read",
+            "arguments": "{\"filePath\":\"/home/jeff/Code/llm-eval/evals/opencode_qwen_qwen3_6-35b-a3b_elevator_prompt_v2/person.js\"}"
+          }
+        },
+        {
+          "id": "382620095",
+          "type": "function",
+          "function": {
+            "name": "read",
+            "arguments": "{\"filePath\":\"/home/jeff/Code/llm-eval/evals/opencode_qwen_qwen3_6-35b-a3b_elevator_prompt_v2/elevator.js\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "409397128",
+      "content": "<path>/home/jeff/Code/llm-eval/evals/opencode_qwen... <Truncated in logs> ...</html>\n\n(End of file - total 47 lines)\n</content>"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "324430344",
+      "content": "<path>/home/jeff/Code/llm-eval/evals/opencode_qwen... <Truncated in logs> ...;\n51: }\n\n(End of file - total 51 lines)\n</content>"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "382620095",
+      "content": "<path>/home/jeff/Code/llm-eval/evals/opencode_qwen... <Truncated in logs> ...mate);\n\n(End of file - total 698 lines)\n</content>"
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nNow let me run the verification checks from the checklist:",
+      "reasoning_content": "Good, all three files exist and contain complete c... <Truncated in logs> ...ines 44-48\n\nLet me verify the import/export check.",
+      "tool_calls": [
+        {
+          "id": "196051697",
+          "type": "function",
+          "function": {
+            "name": "grep",
+            "arguments": "{\"pattern\":\"import |export \",\"path\":\"/home/jeff/Co... <Truncated in logs> ...n3_6-35b-a3b_elevator_prompt_v2\",\"include\":\"*.js\"}"
+          }
+        },
+        {
+          "id": "764948005",
+          "type": "function",
+          "function": {
+            "name": "grep",
+            "arguments": "{\"pattern\":\"type=\\\"module\\\"\",\"path\":\"/home/jeff/Co... <Truncated in logs> ...e_qwen_qwen3_6-35b_elevator_prompt_v2/index.html\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "196051697",
+      "content": "No files found"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "764948005",
+      "content": "No files found"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "bash",
+        "description": "Executes a given bash command in a persistent shel... <Truncated in logs> ...itHub PR: gh api repos/foo/bar/pulls/123/comments\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The command to execute",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Optional timeout in milliseconds",
+              "type": "number"
+            },
+            "workdir": {
+              "description": "The working directory to run the command in. Defau... <Truncated in logs> ...ator_prompt_v2. Use this instead of 'cd' commands.",
+              "type": "string"
+            },
+            "description": {
+              "description": "Clear, concise description of what this command do... <Truncated in logs> ...\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read",
+        "description": "Read a file or directory from the local filesystem... <Truncated in logs> ...les and PDFs and return them as file attachments.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file or directory to read",
+              "type": "string"
+            },
+            "offset": {
+              "description": "The line number to start reading from (1-indexed)",
+              "type": "number"
+            },
+            "limit": {
+              "description": "The maximum number of lines to read (defaults to 2000)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "glob",
+        "description": "- Fast file pattern matching tool that works with ... <Truncated in logs> ... searches as a batch that are potentially useful.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The glob pattern to match files against",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. If not specified, the ... <Truncated in logs> ...avior. Must be a valid directory path if provided.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep",
+        "description": "- Fast content search tool that works with any cod... <Truncated in logs> ... globbing and grepping, use the Task tool instead\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "description": "The regex pattern to search for in file contents",
+              "type": "string"
+            },
+            "path": {
+              "description": "The directory to search in. Defaults to the current working directory.",
+              "type": "string"
+            },
+            "include": {
+              "description": "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "edit",
+        "description": "Performs exact string replacements in files. \n\nUsa... <Truncated in logs> ...ul if you want to rename a variable for instance.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "description": "The absolute path to the file to modify",
+              "type": "string"
+            },
+            "oldString": {
+              "description": "The text to replace",
+              "type": "string"
+            },
+            "newString": {
+              "description": "The text to replace it with (must be different from oldString)",
+              "type": "string"
+            },
+            "replaceAll": {
+              "description": "Replace all occurrences of oldString (default false)",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write",
+        "description": "Writes a file to the local filesystem.\n\nUsage:\n- T... <Truncated in logs> ...s it. Avoid writing emojis to files unless asked.\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "content": {
+              "description": "The content to write to the file",
+              "type": "string"
+            },
+            "filePath": {
+              "description": "The absolute path to the file to write (must be absolute, not relative)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "task",
+        "description": "Launch a new agent to handle complex, multistep ta... <Truncated in logs> ...the with the greeting-responder agent\"\n</example>\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "A short (3-5 words) description of the task",
+              "type": "string"
+            },
+            "prompt": {
+              "description": "The task for the agent to perform",
+              "type": "string"
+            },
+            "subagent_type": {
+              "description": "The type of specialized agent to use for this task",
+              "type": "string"
+            },
+            "task_id": {
+              "description": "This should only be set if you mean to resume a pr... <Truncated in logs> ...session as before instead of creating a fresh one)",
+              "type": "string"
+            },
+            "command": {
+              "description": "The command that triggered this task",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "webfetch",
+        "description": "- Fetches content from a specified URL\n- Takes a U... <Truncated in logs> ...ts may be summarized if the content is very large\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "The URL to fetch content from",
+              "type": "string"
+            },
+            "format": {
+              "description": "The format to return the content in (text, markdown, or html). Defaults to markdown.",
+              "default": "markdown",
+              "type": "string",
+              "enum": [
+                "text",
+                "markdown",
+                "html"
+              ]
+            },
+            "timeout": {
+              "description": "Optional timeout in seconds (max 120)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "url",
+            "format"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todowrite",
+        "description": "Use this tool to create and manage a structured ta... <Truncated in logs> ...ures you complete all requirements successfully.\n\n",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "todos": {
+              "description": "The updated todo list",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "description": "Brief description of the task",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Current status of the task: pending, in_progress, completed, cancelled",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Priority level of the task: high, medium, low",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "status",
+                  "priority"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill",
+        "description": "Load a specialized skill that provides domain-specific instructions and workflows. No skills are currently available.",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The name of the skill from available_skills",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}
+[2026-04-18 13:15:20][INFO][qwen/qwen3.6-35b-a3b] Running chat completion on conversation with 15 messages.
+[2026-04-18 13:15:20][INFO][qwen/qwen3.6-35b-a3b] Streaming response...
+[2026-04-18 13:15:20][DEBUG] LlamaV4::predict slot selection: session_id=<empty> server-selected (LCP/LRU)
+[2026-04-18 13:15:20][DEBUG] slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, sim_best = 0.999 (> 0.100 thold), f_keep = 1.000
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> ?top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task 44001 | processing task, is_child = 0
+slot update_slots: id  0 | task 44001 | new prompt, n_ctx_slot = 262144, n_keep = 14028, task.n_tokens = 33551
+[2026-04-18 13:15:20][DEBUG] slot update_slots: id  0 | task 44001 | cache reuse is not supported - ignoring n_cache_reuse = 256
+slot update_slots: id  0 | task 44001 | n_tokens = 33524, memory_seq_rm [33524, end)
+slot update_slots: id  0 | task 44001 | prompt processing progress, n_tokens = 33547, batch.n_tokens = 23, progress = 0.999881
+[2026-04-18 13:15:20][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 0.0%
+[2026-04-18 13:15:20][DEBUG] slot update_slots: id  0 | task 44001 | created context checkpoint 10 of 32 (pos_min = 33523, pos_max = 33523, n_tokens = 33524, size = 62.813 MiB)
+[2026-04-18 13:15:20][DEBUG] slot update_slots: id  0 | task 44001 | n_tokens = 33547, memory_seq_rm [33547, end)
+[2026-04-18 13:15:20][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 85.2%
+[2026-04-18 13:15:20][DEBUG] slot init_sampler: id  0 | task 44001 | init sampler, took 2.79 ms, tokens: text = 33551, total = 33551
+slot update_slots: id  0 | task 44001 | prompt processing done, n_tokens = 33551, batch.n_tokens = 4
+[2026-04-18 13:15:21][INFO][qwen/qwen3.6-35b-a3b] Prompt processing progress: 100.0%
+[2026-04-18 13:15:49][DEBUG] slot print_timing: id  0 | task 44001 | 
+prompt eval time =    1219.51 ms /    27 tokens (   45.17 ms per token,    22.14 tokens per second)
+       eval time =   27488.68 ms /   438 tokens (   62.76 ms per token,    15.93 tokens per second)
+      total time =   28708.19 ms /   465 tokens
+[2026-04-18 13:15:49][DEBUG] slot      release: id  0 | task 44001 | stop processing: n_tokens = 33988, truncated = 0
+srv  update_slots: all slots are idle
+[2026-04-18 13:15:49][DEBUG] LlamaV4: server assigned slot 0 to task 44001
+[2026-04-18 13:15:49][INFO][qwen/qwen3.6-35b-a3b] Finished streaming response
