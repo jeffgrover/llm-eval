@@ -5,6 +5,7 @@ import subprocess
 import time
 import shutil
 import sys
+import html
 import json
 import re
 import platform
@@ -1069,7 +1070,7 @@ def generate_html_report(
                 </div>
                 <div class="meta-item prompt-card">
                      <h3>Prompt</h3>
-                     <div class="prompt-content">{prompt_text}</div>
+                     <div class="prompt-content">{html.escape(prompt_text)}</div>
                      <div class="prompt-footer">{prompt_time_label}: {prompt_time_str}</div>
                 </div>
                 <div class="meta-item">
