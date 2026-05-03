@@ -4,6 +4,9 @@ Use the agentic coding tools available to you to write files that implement a
 3D simulation of an office building and its inhabitants, running entirely in
 the browser with no build process (Three.js 0.128.0 loaded from a CDN).
 
+I hereby pre-approve any plan you generate, do not prompt to approve the
+development plan before coding, you are in YOLO mode.
+
 The simulation must not simply be "an elevator moves people between floors."
 It must read as **a day in the life of a small office**, expressed through
 persistent agents that pursue human goals on a simulated clock: arriving for

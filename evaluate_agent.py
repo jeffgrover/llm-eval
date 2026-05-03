@@ -31,6 +31,30 @@ CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
 # Tracks whether the lms CLI is responsive (set during model loading)
 _lms_cli_available = True
 
+
+def read_prompt_file(prompt_file: Path) -> str:
+    """Read the evaluation prompt exactly as written on disk."""
+    with open(prompt_file, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def send_stdin(process: subprocess.Popen, input_text: Optional[str]) -> None:
+    """Send prompt text to a child process without putting it on the command line."""
+    if input_text is None or process.stdin is None:
+        return
+    try:
+        process.stdin.write(input_text)
+        process.stdin.close()
+    except BrokenPipeError:
+        pass
+
+
+def format_display_cmd(cmd: List[str], prompt_placeholder: Optional[str] = None) -> str:
+    """Format a command for logs without dumping the full prompt."""
+    if prompt_placeholder is None:
+        return " ".join(cmd)
+    return f"{' '.join(cmd)} {prompt_placeholder}".strip()
+
 # Claude model friendly name -> API model ID mapping
 CLAUDE_MODEL_IDS = {
     "opus 4.6": "claude-opus-4-6",
@@ -1501,14 +1525,20 @@ class AgentRunner:
         """Runs the actual agent command."""
         raise NotImplementedError
 
-    def _run_process(self, cmd: List[str], env: Optional[Dict[str, str]] = None):
+    def _run_process(
+        self,
+        cmd: List[str],
+        env: Optional[Dict[str, str]] = None,
+        input_text: Optional[str] = None,
+        display_cmd: Optional[str] = None,
+    ):
         """Runs the process and streams output to file and stdout."""
         if env is None:
             env = self.get_env_vars()
 
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
 
-        print(f"[*] Executing: {' '.join(cmd)}")
+        print(f"[*] Executing: {display_cmd or format_display_cmd(cmd)}")
         print(f"[*] Output logging to: {chat_log_path}")
 
         with open(chat_log_path, "w", encoding="utf-8") as log_file:
@@ -1521,6 +1551,7 @@ class AgentRunner:
                 cmd,
                 cwd=self.work_dir,
                 env=env,
+                stdin=subprocess.PIPE if input_text is not None else None,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,  # Merge stderr into stdout
                 text=True,
@@ -1528,6 +1559,7 @@ class AgentRunner:
                 errors="replace",
                 bufsize=1,  # Line buffered
             )
+            send_stdin(process, input_text)
 
             # Stream output
             for line in process.stdout:
@@ -1559,9 +1591,8 @@ class AgentRunner:
 
 class GeminiRunner(AgentRunner):
     def execute_agent(self):
-        # Gemini CLI: `gemini --prompt "content"`
-        with open(self.prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
+        # Gemini CLI appends stdin to --prompt; keep the full prompt out of argv.
+        prompt_content = read_prompt_file(self.prompt_file)
 
         # Use absolute path to avoid FileNotFoundError
         gemini_bin = shutil.which("gemini") or "gemini"
@@ -1570,7 +1601,7 @@ class GeminiRunner(AgentRunner):
             gemini_bin,
             "--yolo",
             "--prompt",
-            prompt_content,
+            "",
             "--output-format",
             "stream-json",
         ]
@@ -1598,6 +1629,7 @@ class GeminiRunner(AgentRunner):
                 cmd,
                 cwd=self.work_dir,
                 env=env,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -1605,6 +1637,7 @@ class GeminiRunner(AgentRunner):
                 errors="replace",
                 bufsize=1,
             )
+            send_stdin(process, prompt_content)
 
             for line in process.stdout:
                 stripped = line.strip()
@@ -1671,15 +1704,13 @@ class GeminiRunner(AgentRunner):
 
 class ClaudeRunner(AgentRunner):
     def execute_agent(self):
-        # Claude Code: `claude -p "content"` (headless)
+        # Claude Code: `claude -p` reads the prompt from stdin in headless mode.
         # Using --output-format stream-json to capture token usage and cost metrics
-        with open(self.prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
+        prompt_content = read_prompt_file(self.prompt_file)
 
         cmd = [
             "claude",
             "-p",
-            prompt_content,
             "--dangerously-skip-permissions",
             "--output-format",
             "stream-json",
@@ -1714,6 +1745,7 @@ class ClaudeRunner(AgentRunner):
                 cmd,
                 cwd=self.work_dir,
                 env=env,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -1721,6 +1753,7 @@ class ClaudeRunner(AgentRunner):
                 errors="replace",
                 bufsize=1,
             )
+            send_stdin(process, prompt_content)
 
             for line in process.stdout:
                 stripped = line.strip()
@@ -1937,12 +1970,11 @@ class VibeRunner(AgentRunner):
 
     def execute_agent(self):
         # Mistral Vibe: `vibe -p "content"`
-        with open(self.prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
+        prompt_content = read_prompt_file(self.prompt_file)
 
         cmd = ["vibe", "-p", prompt_content]
         try:
-            self._run_process(cmd)
+            self._run_process(cmd, display_cmd="vibe -p <prompt>")
         finally:
             if self.restore_agent_config:
                 self._restore_vibe_config()
@@ -2019,8 +2051,7 @@ class OpenCodeRunner(AgentRunner):
             json.dump(config, f, indent=2)
 
     def execute_agent(self):
-        with open(self.prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
+        prompt_content = read_prompt_file(self.prompt_file)
 
         cmd = ["opencode", "run", prompt_content, "--format", "json", "--print-logs"]
 
@@ -2380,8 +2411,7 @@ class CodexRunner(AgentRunner):
             print("[-] Codex runner currently supports only --non-local ChatGPT account mode.")
             sys.exit(1)
 
-        with open(self.prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
+        prompt_content = read_prompt_file(self.prompt_file)
 
         codex_bin = shutil.which("codex") or "codex"
         last_message_path = self.work_dir / CODEX_LAST_MESSAGE_FILENAME
@@ -2426,7 +2456,7 @@ class CodexRunner(AgentRunner):
         if self.model_name:
             cmd.extend(["--model", self.model_name])
 
-        cmd.append(prompt_content)
+        cmd.append("-")
 
         env = self.get_env_vars()
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
@@ -2452,6 +2482,7 @@ class CodexRunner(AgentRunner):
                 cmd,
                 cwd=self.work_dir,
                 env=env,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -2459,6 +2490,7 @@ class CodexRunner(AgentRunner):
                 errors="replace",
                 bufsize=1,
             )
+            send_stdin(process, prompt_content)
 
             for line in process.stdout:
                 stripped = line.strip()
@@ -2564,12 +2596,15 @@ class CodexRunner(AgentRunner):
 
 class CrushRunner(AgentRunner):
     def execute_agent(self):
-        # Crush: `crush run "content" -y`
-        with open(self.prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
+        # Crush accepts prompts on stdin; keep the full prompt out of argv.
+        prompt_content = read_prompt_file(self.prompt_file)
 
-        cmd = ["crush", "run", prompt_content, "-y"]
-        self._run_process(cmd)
+        cmd = ["crush", "run", "-y"]
+        self._run_process(
+            cmd,
+            input_text=prompt_content,
+            display_cmd="crush run -y < prompt",
+        )
 
 
 PI_RESULT_FILENAME = "PI_RESULT.JSON"
@@ -2649,8 +2684,7 @@ class PiRunner(AgentRunner):
             self._restore_pi_models_json()
 
     def _execute_pi(self):
-        with open(self.prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
+        prompt_content = read_prompt_file(self.prompt_file)
 
         cmd = ["pi", "--mode", "json", "--print", "--no-session"]
 

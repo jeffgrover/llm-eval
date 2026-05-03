@@ -1,0 +1,249 @@
+YOLO mode is enabled. All tool calls will be automatically approved.
+YOLO mode is enabled. All tool calls will be automatically approved.
+Ripgrep is not available. Falling back to GrepTool.
+Error stating path 0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="person.js"></script>
+<script src="world.js"></script>
+<script src="elevator_logic.js"></script>
+<script src="elevator.js"></script>
+<script src="sim.js"></script>
+</body></html>
+```
+Exact URLs and order are mandatory — OrbitControls depends on the global
+`THREE` being defined first; `elevator.js` depends on `ElevatorLogic`;
+`sim.js` depends on all previous browser scripts. Do not load
+`elevator_logic_test.js` in the browser page.
+---
+## Coordinate conventions
+- `+Y` is up. `+Z` is the front of the building (entrance side; elevator doors
+  face `+Z`). `+X` is right.
+- Floor `N` has its walkable floor at world `y = N * FLOOR_HEIGHT`.
+- The shaft is a 3×3 column centered at `x=0, z=0`, extending top-to-bottom.
+- Floor `0` is the ground-floor **lobby**; floors `1..FLOOR_COUNT-1` are
+  **identical office floors**.
+---
+## `person.js`
+Export a factory `createPerson({bodyColor?, skinColor?, legColor?})` returning
+a `THREE.Group`. Body is assembled from primitives so **feet sit at local
+y=0** (the person's origin). Structure bottom-to-top: legs → torso → head,
+with arms at shoulder level.
+- Each leg is its own `THREE.Group` pivoting at the **hip** (group origin at
+  hip, cylinder hanging below). Arms pivot the same way at the shoulder. This
+  makes walk animation a simple `rotation.x` tween at the pivot.
+- Add a small hemisphere "nose" on the `+Z` face of the head so facing
+  direction reads from a top-down camera.
+- Sample colors from three small palettes (shirts, skin tones, pants) so the
+  agents are visually distinct at a glance.
+Export a per-frame animator `animatePersonWalking(person, dt)`:
+- If `userData.isSitting`: legs rotate `-π/2` at the hip (feet forward), arms
+  drop to `-π/4`, walk phase resets.
+- Else if `userData.isWalking`: advance `walkPhase += dt * 8`; legs swing
+  with `sin(phase) * 0.6`, arms with `-sin(phase) * 0.5` (opposite) for a
+  natural gait.
+- Else: reset limbs to zero rotation (standing idle).
+---
+## `world.js` — building + floors + navigation
+### Constants
+```js
+const WORLD = {
+    FLOOR_HEIGHT: 3.4, FLOOR_COUNT: 6,
+    BUILDING_WIDTH: 22, BUILDING_DEPTH: 18,
+    SHAFT_WIDTH: 3, SHAFT_DEPTH: 3,
+    PERSON_R: 0.4
+};
+```
+### Geometry
+- Ground slab and roof are solid gray.
+- Intermediate floor slabs are built as four strips around the shaft opening
+  (so the shaft is a clean hole top to bottom). Material: semi-transparent
+  gray, `opacity: 0.3`, `depthWrite: false`, `side: DoubleSide`.
+- Outer walls are semi-transparent blue (`#9999ff`, opacity 0.2). **Leave a
+  3-unit-wide gap in the FRONT wall on floor 0 only** (the main entrance);
+  floors 1..5 of the front wall are solid (build the front wall as three
+  segments: two side panels full-height, one above-the-gap panel covering
+  floors 1-5).
+- Interior walls on office floors delineate rooms; slightly more visible
+  (`#bbc5e6`, opacity 0.28) with 1.2-unit doorway gaps.
+- All transparent materials use `depthWrite: false` + `side: DoubleSide`.
+- Give the building `renderOrder = 0`.
+### Per-floor layout (floors 1..5 — identical)
+Each office floor contains:
+- **Four private offices** along the back wall (`z` in roughly `[-9, -3]`),
+  separated by interior walls, each with its own desk and chair. The desk
+  monitor sits at the back of the desk; the user sits in the chair facing the
+  desk (`-Z`), so walking in through the office doorway puts the person
+  behind their chair.
+- **One conference room** in the front-left quadrant (`x: [-11,-3]`,
+  `z: [3,9]`) with a long table and four chairs (two per long side, facing
+  each other across the table).
+- **One lounge / break area** in the front-right quadrant (`x: [3,11]`,
+  `z: [3,9]`) with a couch, coffee table, two armchairs, and a water cooler.
+- **A hallway ring around the shaft**, connecting the waiting area in front
+  of the elevator doors to office doors in the back and to the conference /
+  lounge doors in the front.
+- **A call panel on the wall next to the shaft**, facing `+Z`, with up and
+  down arrow lamps and a small current-floor indicator (canvas-texture
+  digits).
+- **A shaft-side floor indicator** mounted above the doors showing the
+  car's current floor and direction (e.g. `"3^"` going up).
+### Ground floor (`floor 0`) — lobby
+The lobby is deliberately busy — plenty of places for visitors to sit,
+stand, and loiter. Contains:
+- **Entrance** at front center (a pair of semi-transparent glass doors at
+  `z = +9`, with the 3-unit gap in the outer wall). Agents spawn on the
+  **sidewalk** (a concrete-colored slab outside the front wall at
+  `z ≈ +12`) and walk IN through the doors — and similarly walk OUT onto
+  the sidewalk before vanishing. Include a matching graph node `outside`
+  at `(0, 0, 12)` linked to `entrance`.
+- **Cafe**: counter on the left wall (coffee machine, pastry display) +
+  ~4 bistro tables with chairs, a `cafe_order` standing waypoint at the
+  counter.
+- **Front lounge**: couch + armchairs + coffee table (right side).
+- **Back lounge** (Z < 0): two couches facing each other across a coffee
+  table (`back_lounge_N`, `back_lounge_S`).
+- **Conversation pit** (back-left): a round table surrounded by four
+  armchairs (`pit_N`, `pit_S`, `pit_E`, `pit_W`).
+- **Two water coolers** with standing waypoints (`lobby_wc_front`,
+  `lobby_wc_back`).
+- **Reception desk** tucked off to the side so it doesn't block the walk
+  from entrance to elevator, plus a `reception` standing waypoint.
+- **Info kiosk** near the entrance (`kiosk` standing waypoint).
+- **Generic loiter waypoints** scattered through the lobby
+  (`lobby_stand_center`, `lobby_stand_NE`, `lobby_stand_NW`,
+  `lobby_stand_midE`, `lobby_stand_midW`, `lobby_stand_entry`) so
+  visitors spread out rather than piling up.
+- A potted plant / two by the entrance for flavor.
+Each office floor also gets a **`water_cooler`** standing waypoint near
+the lounge cooler and two **`hall_stand_N` / `hall_stand_S`** hallway
+loiter spots, so visitors can ride up and "be: ENAMETOOLONG: name too long, stat '/Users/jeffgrover/Code/llm-eval/evals/gemini_gemini-3_1-pro-preview_office_prompt_v2/0.128.0/build/three.min.js"></script>
+<script src="https:/cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="person.js"></script>
+<script src="world.js"></script>
+<script src="elevator_logic.js"></script>
+<script src="elevator.js"></script>
+<script src="sim.js"></script>
+</body></html>
+```
+Exact URLs and order are mandatory — OrbitControls depends on the global
+`THREE` being defined first; `elevator.js` depends on `ElevatorLogic`;
+`sim.js` depends on all previous browser scripts. Do not load
+`elevator_logic_test.js` in the browser page.
+---
+## Coordinate conventions
+- `+Y` is up. `+Z` is the front of the building (entrance side; elevator doors
+  face `+Z`). `+X` is right.
+- Floor `N` has its walkable floor at world `y = N * FLOOR_HEIGHT`.
+- The shaft is a 3×3 column centered at `x=0, z=0`, extending top-to-bottom.
+- Floor `0` is the ground-floor **lobby**; floors `1..FLOOR_COUNT-1` are
+  **identical office floors**.
+---
+## `person.js`
+Export a factory `createPerson({bodyColor?, skinColor?, legColor?})` returning
+a `THREE.Group`. Body is assembled from primitives so **feet sit at local
+y=0** (the person's origin). Structure bottom-to-top: legs → torso → head,
+with arms at shoulder level.
+- Each leg is its own `THREE.Group` pivoting at the **hip** (group origin at
+  hip, cylinder hanging below). Arms pivot the same way at the shoulder. This
+  makes walk animation a simple `rotation.x` tween at the pivot.
+- Add a small hemisphere "nose" on the `+Z` face of the head so facing
+  direction reads from a top-down camera.
+- Sample colors from three small palettes (shirts, skin tones, pants) so the
+  agents are visually distinct at a glance.
+Export a per-frame animator `animatePersonWalking(person, dt)`:
+- If `userData.isSitting`: legs rotate `-π/2` at the hip (feet forward), arms
+  drop to `-π/4`, walk phase resets.
+- Else if `userData.isWalking`: advance `walkPhase += dt * 8`; legs swing
+  with `sin(phase) * 0.6`, arms with `-sin(phase) * 0.5` (opposite) for a
+  natural gait.
+- Else: reset limbs to zero rotation (standing idle).
+---
+## `world.js` — building + floors + navigation
+### Constants
+```js
+const WORLD = {
+    FLOOR_HEIGHT: 3.4, FLOOR_COUNT: 6,
+    BUILDING_WIDTH: 22, BUILDING_DEPTH: 18,
+    SHAFT_WIDTH: 3, SHAFT_DEPTH: 3,
+    PERSON_R: 0.4
+};
+```
+### Geometry
+- Ground slab and roof are solid gray.
+- Intermediate floor slabs are built as four strips around the shaft opening
+  (so the shaft is a clean hole top to bottom). Material: semi-transparent
+  gray, `opacity: 0.3`, `depthWrite: false`, `side: DoubleSide`.
+- Outer walls are semi-transparent blue (`#9999ff`, opacity 0.2). **Leave a
+  3-unit-wide gap in the FRONT wall on floor 0 only** (the main entrance);
+  floors 1..5 of the front wall are solid (build the front wall as three
+  segments: two side panels full-height, one above-the-gap panel covering
+  floors 1-5).
+- Interior walls on office floors delineate rooms; slightly more visible
+  (`#bbc5e6`, opacity 0.28) with 1.2-unit doorway gaps.
+- All transparent materials use `depthWrite: false` + `side: DoubleSide`.
+- Give the building `renderOrder = 0`.
+### Per-floor layout (floors 1..5 — identical)
+Each office floor contains:
+- **Four private offices** along the back wall (`z` in roughly `[-9, -3]`),
+  separated by interior walls, each with its own desk and chair. The desk
+  monitor sits at the back of the desk; the user sits in the chair facing the
+  desk (`-Z`), so walking in through the office doorway puts the person
+  behind their chair.
+- **One conference room** in the front-left quadrant (`x: [-11,-3]`,
+  `z: [3,9]`) with a long table and four chairs (two per long side, facing
+  each other across the table).
+- **One lounge / break area** in the front-right quadrant (`x: [3,11]`,
+  `z: [3,9]`) with a couch, coffee table, two armchairs, and a water cooler.
+- **A hallway ring around the shaft**, connecting the waiting area in front
+  of the elevator doors to office doors in the back and to the conference /
+  lounge doors in the front.
+- **A call panel on the wall next to the shaft**, facing `+Z`, with up and
+  down arrow lamps and a small current-floor indicator (canvas-texture
+  digits).
+- **A shaft-side floor indicator** mounted above the doors showing the
+  car's current floor and direction (e.g. `"3^"` going up).
+### Ground floor (`floor 0`) — lobby
+The lobby is deliberately busy — plenty of places for visitors to sit,
+stand, and loiter. Contains:
+- **Entrance** at front center (a pair of semi-transparent glass doors at
+  `z = +9`, with the 3-unit gap in the outer wall). Agents spawn on the
+  **sidewalk** (a concrete-colored slab outside the front wall at
+  `z ≈ +12`) and walk IN through the doors — and similarly walk OUT onto
+  the sidewalk before vanishing. Include a matching graph node `outside`
+  at `(0, 0, 12)` linked to `entrance`.
+- **Cafe**: counter on the left wall (coffee machine, pastry display) +
+  ~4 bistro tables with chairs, a `cafe_order` standing waypoint at the
+  counter.
+- **Front lounge**: couch + armchairs + coffee table (right side).
+- **Back lounge** (Z < 0): two couches facing each other across a coffee
+  table (`back_lounge_N`, `back_lounge_S`).
+- **Conversation pit** (back-left): a round table surrounded by four
+  armchairs (`pit_N`, `pit_S`, `pit_E`, `pit_W`).
+- **Two water coolers** with standing waypoints (`lobby_wc_front`,
+  `lobby_wc_back`).
+- **Reception desk** tucked off to the side so it doesn't block the walk
+  from entrance to elevator, plus a `reception` standing waypoint.
+- **Info kiosk** near the entrance (`kiosk` standing waypoint).
+- **Generic loiter waypoints** scattered through the lobby
+  (`lobby_stand_center`, `lobby_stand_NE`, `lobby_stand_NW`,
+  `lobby_stand_midE`, `lobby_stand_midW`, `lobby_stand_entry`) so
+  visitors spread out rather than piling up.
+- A potted plant / two by the entrance for flavor.
+Each office floor also gets a **`water_cooler`** standing waypoint near
+the lounge cooler and two **`hall_stand_N` / `hall_stand_S`** hallway
+loiter spots, so visitors can ride up and "be'
+missing pgrep output
+The simulation files have been successfully generated and tested according to your requirements. 
+
+Here is what was completed:
+- **`index.html`**: Sets up the browser environment and correctly loads Three.js via CDN before the simulation files. Contains the UI layout.
+- **`person.js`**: Assembles 3D figures utilizing randomized colors from specific palettes, structured intelligently to simplify walk/sit coordinate transforms.
+- **`world.js`**: Generates the 3D building graph structure, including the lobby elements, transparent outer/inner walls, office desks, dynamically generated UI panels mapping onto Three.js `CanvasTextures`, and pathing via BFS. 
+- **`elevator_logic.js`**: A pure Node/browser agnostic elevator schedule and queueing brain. Manages `SCAN` anti-starvation rules seamlessly.
+- **`elevator.js`**: A Three.js adapter mapping `ElevatorLogic` states to sliding doors and floor buttons visually updating every frame.
+- **`sim.js`**: The overarching supervisor containing the central real-time simulation clock and day/night cycle keyframes. Houses AI actions dispatch looping, visitor recycling functions, and repulsion/stall detection systems. 
+- **`elevator_logic_test.js`**: I wrote deterministic Node-compatible tests as requested. All test scenarios (including testing that waiting capacity doesn't starve out inside destinations) pass cleanly with `Exit Code 0`.
+
+The simulation runs gracefully directly in the browser. You can test the application by serving the folder or opening `index.html`.
+
+[SUCCESS] Process exited cleanly.

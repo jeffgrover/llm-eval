@@ -1,5 +1,8 @@
 Use the agentic coding tools available to you to write files creating a 3D elevator simulation using Three.js that runs entirely in the browser with no build process. The simulation should visualize a 6-floor building with an elevator transporting people between floors.
 
+I hereby pre-approve any plan you generate, do not prompt to approve the
+development plan before coding, you are in YOLO mode.
+
 ═══════════════════════════════════════════════════════════════════════════════
 HARD REQUIREMENTS — READ FIRST AND DO NOT VIOLATE
 ═══════════════════════════════════════════════════════════════════════════════

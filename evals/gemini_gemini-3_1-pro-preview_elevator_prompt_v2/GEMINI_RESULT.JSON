@@ -1,0 +1,23 @@
+{
+  "type": "result",
+  "timestamp": "2026-05-03T15:31:54.663Z",
+  "status": "success",
+  "stats": {
+    "total_tokens": 184098,
+    "input_tokens": 158753,
+    "output_tokens": 6066,
+    "cached": 110022,
+    "input": 48731,
+    "duration_ms": 192407,
+    "tool_calls": 9,
+    "models": {
+      "gemini-3.1-pro-preview": {
+        "total_tokens": 184098,
+        "input_tokens": 158753,
+        "output_tokens": 6066,
+        "cached": 110022,
+        "input": 48731
+      }
+    }
+  }
+}
