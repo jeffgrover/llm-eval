@@ -1,0 +1,12 @@
+{
+  "input_tokens": 422271,
+  "output_tokens": 25794,
+  "total_tokens": 448065,
+  "reasoning_tokens": 697,
+  "cache_read_tokens": 380032,
+  "num_turns": 1,
+  "provider_id": "OpenAI",
+  "model_id": "gpt-5.5",
+  "session_id": "019deb63-f9d0-7882-95be-505c8cfbe37c",
+  "codex_version": "codex-cli 0.128.0"
+}
