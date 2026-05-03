@@ -12,6 +12,7 @@ AGENT_DISPLAY_NAMES = {
     "mistral": "Mistral Vibe",
     "gemini": "Gemini CLI",
     "claude": "Claude Code",
+    "codex": "Codex CLI",
     "crush": "Charmbracelet Crush",
     "opencode": "OpenCode CLI",
     "pi": "Pi Coding Agent",
@@ -34,6 +35,7 @@ def get_display_name(agent_raw):
 # Per-agent badge colors
 AGENT_COLORS = {
     "Claude Code": "#d97706",
+    "Codex CLI": "#111827",
     "Gemini CLI": "#2563eb",
     "OpenCode CLI": "#059669",
     "Mistral Vibe": "#dc2626",

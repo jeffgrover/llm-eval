@@ -45,6 +45,7 @@ Install the agents you wish to evaluate. Each has its own setup requirements:
 | :--- | :--- | :--- |
 | **Mistral Vibe** | `vibe` | [mistralai/mistral-vibe](https://github.com/mistralai/mistral-vibe) |
 | **Claude Code** | `claude` | [Anthropic Claude Code Docs](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code) |
+| **Codex CLI** | `codex` | [OpenAI Codex CLI](https://github.com/openai/codex) |
 | **Gemini CLI** | `gemini` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
 | **Crush** | `crush` | [charmbracelet/crush](https://github.com/charmbracelet/crush) |
 | **OpenCode** | `opencode` | [opencode-ai/opencode](https://github.com/opencode-ai/opencode) |
@@ -65,12 +66,21 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 
 ### Parameters
 -   `--model`: The LM Studio model identifier (or cloud model name when using `--non-local`).
--   `--agent`: One of `vibe`, `gemini`, `claude`, `opencode`, `crush`, or `pi`.
+-   `--agent`: One of `vibe`, `gemini`, `claude`, `codex`, `opencode`, `crush`, or `pi`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
 -   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.
 -   `--headless`: (Optional) Run in headless mode (defaults to True).
 
 The script will automatically create a uniquely named workspace in `evals/`, capture all logs, detect generated scripts, and run them to capture `OUTPUT.TXT`.
+
+### Codex CLI
+Codex currently runs through your ChatGPT account service, so use it with `--non-local`:
+
+```bash
+./evaluate_agent.py --model gpt-5.5 --agent codex --prompt-file elevator_prompt.txt --non-local
+```
+
+Codex runs are saved with `CHAT_SESSION.TXT`, raw `CODEX_EVENTS.JSONL`, `CODEX_LAST_MESSAGE.TXT`, and aggregated token metrics in `CODEX_RESULT.JSON`.
 
 ---
 
