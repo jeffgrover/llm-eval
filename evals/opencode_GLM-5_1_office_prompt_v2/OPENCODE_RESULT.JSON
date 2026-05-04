@@ -1,0 +1,13 @@
+{
+  "input_tokens": 277678,
+  "output_tokens": 42005,
+  "total_tokens": 319683,
+  "reasoning_tokens": 589,
+  "cache_read_tokens": 2193568,
+  "cache_write_tokens": 0,
+  "cost_usd": 1.14649048,
+  "num_turns": 44,
+  "provider_id": "openrouter",
+  "model_id": "z-ai/glm-5.1",
+  "opencode_version": "1.14.33"
+}

@@ -27,6 +27,8 @@ OPENCODE_RESULT_FILENAME = "OPENCODE_RESULT.JSON"
 CODEX_RESULT_FILENAME = "CODEX_RESULT.JSON"
 CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
 CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
+VIBE_RESULT_FILENAME = "VIBE_RESULT.JSON"
+PI_RESULT_FILENAME = "PI_RESULT.JSON"
 
 # Tracks whether the lms CLI is responsive (set during model loading)
 _lms_cli_available = True
@@ -664,6 +666,33 @@ class MetadataCollector:
                 except Exception as e:
                     print(f"[-] Error parsing Pi result JSON: {e}")
 
+        # Check for Vibe result JSON
+        if chat_log_path:
+            vibe_result_path = chat_log_path.parent / VIBE_RESULT_FILENAME
+            if vibe_result_path.exists():
+                try:
+                    with open(vibe_result_path, "r", encoding="utf-8") as f:
+                        result_data = json.load(f)
+                    # Vibe CLI stores token usage in its session logs (meta.json)
+                    # which we extract and save to VIBE_RESULT.JSON
+                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
+                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
+                    usage["total_tokens"] = result_data.get("total_tokens", 0)
+                    
+                    cost = result_data.get("cost_usd")
+                    if cost:
+                        usage["cost_usd"] = cost
+                    
+                    num_turns = result_data.get("num_turns", 0)
+                    if num_turns:
+                        usage["num_turns"] = num_turns
+                    
+                    # If we have token info, return early
+                    if usage["total_tokens"] > 0:
+                        return usage
+                except Exception as e:
+                    print(f"[-] Error parsing Vibe result JSON: {e}")
+
         # Try server log first (LM Studio)
         if log_path and log_path.exists():
             try:
@@ -848,6 +877,11 @@ class MetadataCollector:
                 return info
             elif agent_name == "codex":
                 info["Provider"] = "OpenAI"
+                info["Type"] = "Cloud API"
+                info["Model ID"] = model_key
+                return info
+            elif agent_name in ("vibe", "mistral"):
+                info["Provider"] = "Mistral AI"
                 info["Type"] = "Cloud API"
                 info["Model ID"] = model_key
                 return info
@@ -1968,16 +2002,248 @@ class VibeRunner(AgentRunner):
         except Exception as e:
             print(f"[-] Failed to restore vibe config: {e}")
 
+    def _get_vibe_session_token_usage(self, start_time: datetime, work_dir: Path = None) -> Dict[str, int]:
+        """Extract token usage from Vibe's session log files.
+        
+        Vibe stores session metadata in ~/.vibe/logs/session/<session_id>/meta.json
+        which includes token usage statistics.
+        """
+        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        
+        # Find the most recent session that started around our run time
+        vibe_logs_dir = Path.home() / ".vibe" / "logs" / "session"
+        if not vibe_logs_dir.exists():
+            return usage
+        
+        # Look for session directories created within the last few minutes
+        # Vibe session dirs are named: session_YYYYMMDD_HHMMSS_xxxxxxxx
+        session_dirs = sorted(vibe_logs_dir.iterdir(), reverse=True)
+        
+        best_match = None
+        best_diff = float("inf")
+        
+        for session_dir in session_dirs:
+            if not session_dir.is_dir():
+                continue
+            
+            meta_path = session_dir / "meta.json"
+            if not meta_path.exists():
+                continue
+            
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                
+                # First, try to match by working directory if provided
+                # This is more reliable than timestamp matching
+                if work_dir and meta.get("environment", {}).get("working_directory"):
+                    session_work_dir = Path(meta["environment"]["working_directory"]).resolve()
+                    if session_work_dir == work_dir.resolve():
+                        best_match = meta
+                        break  # Exact match, no need to continue
+                
+                # Fallback to timestamp matching
+                session_start_str = meta.get("start_time")
+                if session_start_str:
+                    # Parse ISO format timestamp: "2026-05-03T23:49:21.668692+00:00"
+                    session_start_str_clean = session_start_str.replace("Z", "+00:00")
+                    try:
+                        session_start = datetime.fromisoformat(session_start_str_clean)
+                        # Make start_time timezone-aware if it's naive
+                        if start_time.tzinfo is None:
+                            # Assume local timezone; convert session_start to local for comparison
+                            import zoneinfo
+                            try:
+                                local_tz = zoneinfo.ZoneInfo(zoneinfo.ZoneInfo.local_key())
+                                session_start = session_start.astimezone(local_tz)
+                                start_time = start_time.replace(tzinfo=local_tz)
+                            except (zoneinfo.ZoneInfoNotFoundError, AttributeError):
+                                # Fallback: treat both as naive (remove tzinfo from session_start)
+                                session_start = session_start.replace(tzinfo=None)
+                        
+                        time_diff = abs((session_start - start_time).total_seconds())
+                        
+                        # Track the closest session within 10 minutes
+                        if time_diff <= 600 and time_diff < best_diff:
+                            best_diff = time_diff
+                            best_match = meta
+                    except ValueError:
+                        continue
+            except Exception:
+                continue
+        
+        # If we found a matching session, extract token usage
+        if best_match:
+            stats = best_match.get("stats", {})
+            usage["prompt_tokens"] = stats.get("session_prompt_tokens", 0)
+            usage["completion_tokens"] = stats.get("session_completion_tokens", 0)
+            usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+            
+            # Also get cost if available
+            cost = stats.get("session_cost", 0)
+            if cost:
+                usage["cost_usd"] = cost
+        
+        return usage
+
+    def get_model_extra_info(self) -> Dict[str, str]:
+        """Read provider/model info from Vibe result JSON."""
+        result_path = self.work_dir / VIBE_RESULT_FILENAME
+        if not result_path.exists():
+            return {}
+        try:
+            with open(result_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            extra = {}
+            if data.get("vibe_version"):
+                extra["Vibe Version"] = data["vibe_version"]
+            if data.get("model_id"):
+                extra["Model ID"] = data["model_id"]
+            if data.get("provider"):
+                extra["Provider"] = data["provider"]
+            if data.get("model_name"):
+                extra["Model Name"] = data["model_name"]
+            return extra
+        except Exception:
+            return {}
+
     def execute_agent(self):
-        # Mistral Vibe: `vibe -p "content"`
+        # Mistral Vibe: use --output streaming for JSON event stream
+        # This allows us to parse the output and extract metadata
         prompt_content = read_prompt_file(self.prompt_file)
 
-        cmd = ["vibe", "-p", prompt_content]
+        cmd = [
+            "vibe",
+            "-p",
+            prompt_content,
+            "--output",
+            "streaming",
+            "--trust",  # Trust the working directory for non-interactive runs
+        ]
+
+        env = self.get_env_vars()
+        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+        result_json_path = self.work_dir / VIBE_RESULT_FILENAME
+
+        print(f"[*] Executing: vibe -p <prompt> --output streaming --trust")
+        print(f"[*] Output logging to: {chat_log_path}")
+
+        # Track message info for result JSON
+        vibe_version = None
+        num_turns = 0
+        start_time = datetime.now()  # Track when we started the run
+
+        with open(chat_log_path, "w", encoding="utf-8") as log_file:
+            process = subprocess.Popen(
+                cmd,
+                cwd=self.work_dir,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
+            )
+
+            for line in process.stdout:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+
+                try:
+                    event = json.loads(stripped)
+                    role = event.get("role", "")
+
+                    # Extract readable text content for chat log and console
+                    content = event.get("content", "")
+                    if content:
+                        # Write content to stdout and log
+                        # Skip system prompt content to reduce noise
+                        if role != "system":
+                            sys.stdout.write(content)
+                            sys.stdout.flush()
+                        log_file.write(line)
+                        log_file.flush()
+
+                    # Count assistant messages as turns
+                    if role == "assistant":
+                        num_turns += 1
+
+                except json.JSONDecodeError:
+                    # Non-JSON line, pass through as-is
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    log_file.write(line)
+                    log_file.flush()
+
+            try:
+                process.wait(timeout=900)
+            except subprocess.TimeoutExpired:
+                print(f"[-] Agent process timed out after 900 seconds.")
+                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
+                process.kill()
+                process.wait()
+
+            if process.returncode == 0:
+                print(f"[+] Agent finished successfully.")
+                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+            else:
+                print(f"[-] Agent finished with error code {process.returncode}")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
+
+        # Try to get vibe version
         try:
-            self._run_process(cmd, display_cmd="vibe -p <prompt>")
-        finally:
-            if self.restore_agent_config:
-                self._restore_vibe_config()
+            vibe_version = subprocess.check_output(
+                ["vibe", "--version"], text=True, timeout=10
+            ).strip()
+        except Exception:
+            vibe_version = None
+
+        # Try to get token usage from Vibe's session logs
+        # Vibe stores session metadata with token usage in ~/.vibe/logs/session/
+        token_usage = self._get_vibe_session_token_usage(start_time, self.work_dir)
+
+        # Build result data with available metadata
+        result_data = {
+            "num_turns": num_turns,
+        }
+
+        # Add token usage if we found it
+        if token_usage["prompt_tokens"] > 0 or token_usage["completion_tokens"] > 0:
+            result_data["input_tokens"] = token_usage["prompt_tokens"]
+            result_data["output_tokens"] = token_usage["completion_tokens"]
+            result_data["total_tokens"] = token_usage["total_tokens"]
+            if token_usage.get("cost_usd"):
+                result_data["cost_usd"] = token_usage["cost_usd"]
+
+        # Add model info based on non_local mode
+        if self.non_local:
+            # For non-local mode, try to extract provider from model_name if it contains /
+            if "/" in self.model_name:
+                parts = self.model_name.split("/", 1)
+                result_data["provider"] = parts[0]
+                result_data["model_id"] = parts[1]
+                result_data["model_name"] = self.model_name
+            else:
+                result_data["model_id"] = self.model_name
+                result_data["model_name"] = self.model_name
+        else:
+            # For local mode, model info comes from LM Studio
+            result_data["model_name"] = self.model_name
+
+        if vibe_version:
+            result_data["vibe_version"] = vibe_version
+
+        # Save result JSON for metadata extraction
+        with open(result_json_path, "w", encoding="utf-8") as f:
+            json.dump(result_data, f, indent=2)
+        print(f"[+] Vibe metadata saved to: {result_json_path}")
+
+        if self.restore_agent_config:
+            self._restore_vibe_config()
 
 
 class OpenCodeRunner(AgentRunner):
@@ -2605,9 +2871,6 @@ class CrushRunner(AgentRunner):
             input_text=prompt_content,
             display_cmd="crush run -y < prompt",
         )
-
-
-PI_RESULT_FILENAME = "PI_RESULT.JSON"
 
 
 class PiRunner(AgentRunner):

@@ -1,0 +1,13 @@
+{
+  "input_tokens": 192790,
+  "output_tokens": 42792,
+  "total_tokens": 235582,
+  "reasoning_tokens": 6709,
+  "cache_read_tokens": 1699360,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.21919980000000003,
+  "num_turns": 33,
+  "provider_id": "openrouter",
+  "model_id": "minimax/minimax-m2.7",
+  "opencode_version": "1.14.33"
+}

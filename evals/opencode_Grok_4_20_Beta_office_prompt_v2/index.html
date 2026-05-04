@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Office Building Simulation</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #222233;
+            font-family: monospace;
+            color: #ccc;
+        }
+        canvas { display: block; }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px;
+            border-radius: 6px;
+            min-width: 220px;
+            pointer-events: none;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .slider {
+            width: 180px;
+            pointer-events: all;
+        }
+        #time { font-size: 24px; font-weight: bold; color: #ffdd88; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+<div id="hud">
+    <div id="time">07:30 AM</div>
+    <div>Speed: <input type="range" id="speedSlider" class="slider" min="0" max="5" value="3"></div>
+    <div id="speedValue">120×</div>
+    <div>Occupancy: <input type="range" id="occSlider" class="slider" min="1" max="100" value="45"></div>
+    <div id="occValue">45 / 100</div>
+    <div id="stats" style="margin-top:8px; font-size:11px; opacity:0.8;"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="person.js"></script>
+<script src="world.js"></script>
+<script src="elevator_logic.js"></script>
+<script src="elevator.js"></script>
+<script src="sim.js"></script>
+</body>
+</html>

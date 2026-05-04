@@ -1,0 +1,10 @@
+{
+  "num_turns": 75,
+  "input_tokens": 10818653,
+  "output_tokens": 94010,
+  "total_tokens": 10912663,
+  "cost_usd": 16.9330545,
+  "model_id": "mistral-medium-3.5",
+  "model_name": "mistral-medium-3.5",
+  "vibe_version": "vibe 2.9.3"
+}
