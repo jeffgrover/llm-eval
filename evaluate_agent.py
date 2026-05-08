@@ -19,6 +19,7 @@ from typing import Dict, List, Optional
 LM_STUDIO_API_URL = "http://localhost:1234/v1"
 LM_STUDIO_REST_BASE = "http://localhost:1234"
 EVALS_DIR = Path("evals")
+PROJECT_ROOT = Path(__file__).resolve().parent
 SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
 CLAUDE_RESULT_FILENAME = "CLAUDE_RESULT.JSON"
@@ -2247,6 +2248,10 @@ class VibeRunner(AgentRunner):
 
 
 class OpenCodeRunner(AgentRunner):
+    NON_CHAT_MODEL_PATTERNS = (
+        "whisper",
+    )
+
     def __init__(
         self,
         agent_name: str,
@@ -2319,7 +2324,48 @@ class OpenCodeRunner(AgentRunner):
     def execute_agent(self):
         prompt_content = read_prompt_file(self.prompt_file)
 
-        cmd = ["opencode", "run", prompt_content, "--format", "json", "--print-logs"]
+        lower_model_name = self.model_name.lower()
+        if any(pattern in lower_model_name for pattern in self.NON_CHAT_MODEL_PATTERNS):
+            message = (
+                f"OpenCode requires a chat/completions model, but '{self.model_name}' "
+                "appears to be a non-chat model."
+            )
+            chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+            result_json_path = self.work_dir / OPENCODE_RESULT_FILENAME
+            print(f"[-] {message}")
+            with open(chat_log_path, "w", encoding="utf-8") as log_file:
+                log_file.write(f"[ERROR] {message}\n")
+            with open(result_json_path, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "error": message,
+                        "provider_id": self.custom_provider,
+                        "model_id": self.model_name,
+                        "num_turns": 0,
+                    },
+                    f,
+                    indent=2,
+                )
+            return
+
+        opencode_prompt_prefix = (
+            "OpenCode harness note: use only tools that are present in the current "
+            "OpenCode tool schema. For file changes, use write/edit/bash as exposed "
+            "by OpenCode; do not call apply_patch unless it is explicitly listed as "
+            "an available tool.\n\n"
+        )
+        prompt_content = opencode_prompt_prefix + prompt_content
+
+        cmd = [
+            "opencode",
+            "run",
+            prompt_content,
+            "--format",
+            "json",
+            "--print-logs",
+            "--dir",
+            str(self.work_dir.resolve()),
+        ]
 
         if not self.non_local:
             provider_name = self.custom_provider if self.custom_provider else "lmstudio"
@@ -2348,11 +2394,12 @@ class OpenCodeRunner(AgentRunner):
         opencode_version = None
         provider_id = None
         model_id = None
+        error_messages: List[str] = []
 
         with open(chat_log_path, "w", encoding="utf-8") as log_file:
             process = subprocess.Popen(
                 cmd,
-                cwd=self.work_dir,
+                cwd=PROJECT_ROOT,
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -2390,6 +2437,8 @@ class OpenCodeRunner(AgentRunner):
                         if m:
                             provider_id = m.group(1)
                             model_id = m.group(2)
+                    if " stream error" in line or "service=session.processor" in line and " error=" in line:
+                        error_messages.append(line.strip())
 
             stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
             stderr_thread.start()
@@ -2431,6 +2480,13 @@ class OpenCodeRunner(AgentRunner):
                         num_turns += 1
                         log_file.write(line)
                         log_file.flush()
+                    elif event_type == "error":
+                        error = event.get("error", {})
+                        data = error.get("data", {})
+                        message = data.get("message") or error.get("message") or stripped
+                        error_messages.append(str(message))
+                        log_file.write(line)
+                        log_file.flush()
                     else:
                         # Log other event types as raw JSON for debugging
                         log_file.write(line)
@@ -2453,17 +2509,23 @@ class OpenCodeRunner(AgentRunner):
                 process.kill()
                 process.wait()
 
-            if process.returncode == 0:
+            if process.returncode == 0 and not error_messages:
                 print(f"[+] Agent finished successfully.")
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
             else:
-                print(f"[-] Agent finished with error code {process.returncode}")
+                error_code = process.returncode
+                if error_messages and error_code == 0:
+                    print("[-] Agent finished with provider/tool error.")
+                else:
+                    print(f"[-] Agent finished with error code {error_code}")
                 log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                    f"\n[ERROR] Process exited with code {error_code}\n"
                 )
+                for message in error_messages[-3:]:
+                    log_file.write(f"[ERROR] {message}\n")
 
         # Save accumulated token usage to result JSON
-        if total_input > 0 or total_output > 0:
+        if total_input > 0 or total_output > 0 or error_messages:
             result_data = {
                 "input_tokens": total_input,
                 "output_tokens": total_output,
@@ -2480,6 +2542,8 @@ class OpenCodeRunner(AgentRunner):
                 result_data["model_id"] = model_id
             if opencode_version:
                 result_data["opencode_version"] = opencode_version
+            if error_messages:
+                result_data["error"] = error_messages[-1]
             with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2)
             print(f"[+] OpenCode usage data saved to: {result_json_path}")
