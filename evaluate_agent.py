@@ -2273,6 +2273,48 @@ class OpenCodeRunner(AgentRunner):
         # Store provider for use in configure_agent
         self.custom_provider = custom_provider
 
+    def _model_ref(self) -> Optional[str]:
+        """Return the OpenCode provider/model reference to request, if known."""
+        if self.custom_provider:
+            return f"{self.custom_provider}/{self.model_name}"
+        if self.non_local:
+            # In non-local mode we do not synthesize a provider. If the caller
+            # supplied a full OpenCode model reference, pass it through. For a
+            # bare model id, resolve the provider from the user's OpenCode config.
+            if "/" in self.model_name:
+                return self.model_name
+            provider_name = self._resolve_global_provider_for_model(self.model_name)
+            return f"{provider_name}/{self.model_name}" if provider_name else None
+        return f"lmstudio/{self.model_name}"
+
+    @staticmethod
+    def _model_id_from_ref(model_ref: str) -> str:
+        """Extract the model id from an OpenCode provider/model reference."""
+        return model_ref.split("/", 1)[1] if "/" in model_ref else model_ref
+
+    @staticmethod
+    def _resolve_global_provider_for_model(model_name: str) -> Optional[str]:
+        """Find a provider in the user's OpenCode config that declares model_name."""
+        config_path = Path.home() / ".config" / "opencode" / "opencode.json"
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except Exception:
+            return None
+
+        providers = config.get("provider", {})
+        if not isinstance(providers, dict):
+            return None
+
+        for provider_name, provider_config in providers.items():
+            if not isinstance(provider_config, dict):
+                continue
+            models = provider_config.get("models", {})
+            if isinstance(models, dict) and model_name in models:
+                return provider_name
+
+        return None
+
     def get_model_extra_info(self) -> Dict[str, str]:
         result_path = self.work_dir / OPENCODE_RESULT_FILENAME
         if not result_path.exists():
@@ -2298,25 +2340,21 @@ class OpenCodeRunner(AgentRunner):
             "permission": "allow",  # Bypass all permission prompts for unattended evaluation
         }
 
-        if not self.non_local:
-            provider_name = self.custom_provider if self.custom_provider else "lmstudio"
+        model_ref = self._model_ref()
+        if model_ref:
+            config["model"] = model_ref
 
-            if self.custom_provider:
-                # If custom provider is specified, use it directly without defining a new one
-                # This allows using providers configured in the user's global opencode.json
-                config["model"] = f"{provider_name}/{self.model_name}"
-            else:
-                # Default case: define lmstudio provider pointing to localhost
-                base_url = LM_STUDIO_API_URL
-                config["provider"] = {
-                    "lmstudio": {
-                        "npm": "@ai-sdk/openai-compatible",
-                        "name": "LM Studio (local)",
-                        "options": {"baseURL": base_url},
-                        "models": {self.model_name: {"name": self.model_name}},
-                    }
+        if not self.non_local and not self.custom_provider:
+            # Default case: define lmstudio provider pointing to localhost.
+            base_url = LM_STUDIO_API_URL
+            config["provider"] = {
+                "lmstudio": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "LM Studio (local)",
+                    "options": {"baseURL": base_url},
+                    "models": {self.model_name: {"name": self.model_name}},
                 }
-                config["model"] = f"lmstudio/{self.model_name}"
+            }
 
         with open(self.work_dir / "opencode.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
@@ -2367,15 +2405,22 @@ class OpenCodeRunner(AgentRunner):
             str(self.work_dir.resolve()),
         ]
 
-        if not self.non_local:
-            provider_name = self.custom_provider if self.custom_provider else "lmstudio"
-            cmd.extend(["--model", f"{provider_name}/{self.model_name}"])
+        model_ref = self._model_ref()
+        if model_ref:
+            cmd.extend(["--model", model_ref])
 
         env = self.get_env_vars()
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / OPENCODE_RESULT_FILENAME
 
-        print(f"[*] Executing: opencode run <prompt> --format json --print-logs")
+        if model_ref:
+            print(
+                f"[*] Executing: opencode run <prompt> --model {model_ref} --format json --print-logs"
+            )
+        else:
+            print(
+                "[*] Executing: opencode run <prompt> --format json --print-logs (using OpenCode default model)"
+            )
         print(f"[*] Output logging to: {chat_log_path}")
 
         # Patterns to suppress from terminal and log file (high-volume internal bus noise)
@@ -2508,6 +2553,14 @@ class OpenCodeRunner(AgentRunner):
                 log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
                 process.kill()
                 process.wait()
+
+            if model_ref and model_id:
+                expected_model_id = self._model_id_from_ref(model_ref)
+                if model_id != expected_model_id:
+                    error_messages.append(
+                        "OpenCode selected "
+                        f"{provider_id}/{model_id}, expected {model_ref}"
+                    )
 
             if process.returncode == 0 and not error_messages:
                 print(f"[+] Agent finished successfully.")
