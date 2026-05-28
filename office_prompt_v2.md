@@ -19,7 +19,11 @@ hard capacity limit.
 Visual fidelity should be modest — simple Three.js primitives with semi-
 transparent surfaces so the viewer can see through walls and follow agents.
 The emphasis is on **behavioral fidelity**: the elevator acts like a real
-elevator; the people act like real office workers.
+elevator; the people act like real office workers.  Take special care that
+the people don't "bunch up" too close to (or on top of) each other in
+crowds or get blocked from progress toward their goals by the front door,
+the elevator doors, other people or obstacles.  When models fail this task,
+the reason is usually this "bunching up", and it happens often.
 
 ---
 
