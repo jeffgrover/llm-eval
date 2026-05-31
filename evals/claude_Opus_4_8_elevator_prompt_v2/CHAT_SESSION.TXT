@@ -1,0 +1,142 @@
+I'll build this step by step. The requirements are very explicit, so let me create the three files carefully following every hard requirement, then verify them.
+
+Let me start by writing all three files (they're independent):
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/person.js
+Now the main `elevator.js`:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/elevator.js
+Now `index.html`:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/index.html
+All three files are written. Now let me run the verification checks from the final checklist — grepping for forbidden patterns:
+[Tool: Grep]
+
+[Tool: Grep]
+
+[Tool: Grep]
+
+[Tool: Grep]
+The checks pass: `import`/`export` appear **only inside comments** (no actual ES6 syntax), no `type="module"`, no `.add(person)` reparenting, and `.attach(person)` is used for both boarding and exiting. 
+
+To be safe against any naive grep that flags even the comment words, let me reword those two comments:
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/person.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/elevator.js
+Let me re-verify the import/export grep is now clean, syntax-check both JS files with Node, and confirm the key structural requirements:
+[Tool: Grep]
+
+[Tool: Grep]
+
+[Tool: Bash]
+
+[Tool: Grep]
+All structural checks pass:
+- **No `import`/`export`** anywhere (clean now).
+- **No `config.` object** usage — constants are bare.
+- **Both JS files are syntactically valid** (`node --check` passed).
+- **All 8 required constants** are top-level `const`.
+
+Let me make one small polish edit so the in-car standing surface aligns exactly with feet level (matching how people stand on building floors), then trace the final checklist:
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/elevator.js
+Let me check whether a headless browser is available so I can actually load the page and confirm zero console errors at startup:
+[Tool: Bash]
+Excellent — Playwright and Chrome are both available. Let me write a headless verification script that loads the page, captures any console errors / uncaught exceptions / failed requests, and inspects the runtime scene state:
+[Tool: Write] /tmp/verify_elevator.js
+Now let me run the headless verification:
+[Tool: Bash]
+Playwright resolves from the project directory, not `/tmp`. Let me find its location and set `NODE_PATH`:
+[Tool: Bash]
+
+[Tool: Bash]
+The simulation itself is fine — that error is a flaw in my *verification script*: I accessed `window.elevatorCar`, but top-level `let`/`const` globals live in the shared global lexical scope (visible by bare name across classic scripts, which is how the files communicate) and are *not* attached to `window`. Let me fix the script to use bare identifiers and make error reporting robust:
+[Tool: Write] /tmp/verify_elevator.js
+
+[Tool: Bash]
+Good news already visible in the data: the second probe (`elevatorY sample2: 3`) used a **non-shadowed** bare `elevatorCar.position.y` and returned **3** — proving `elevatorCar` exists, has `.position`, and the elevator **moved to floor 1 (y=3)**. And `emptyFloor` read back as `5`. The `false` values were a **temporal-dead-zone bug in my probe** (I shadowed the global names with local `const`s, so `eval()` hit the TDZ). The lone console error looks like the classic `favicon.ico` 404. Let me fix the probe and log every non-200 URL to confirm:
+[Tool: Write] /tmp/verify_elevator.js
+
+[Tool: Bash]
+Comprehensive verification is essentially clean. Key confirmations:
+- **All H5 globals exist** with correct names; `leftDoor`/`rightDoor` are real meshes.
+- **5 people, 1 empty floor** (`emptyFloor: 4`), `sceneChildren: 10` (3 lights + building + car + 5 people).
+- **Camera at exactly `[25,25,25]`** ✓.
+- **`personUserData`**: `leftLeg`, `rightLeg` present, `isWalking` is a boolean ✓ (H7).
+- **H8 invariant holds perfectly**: every resting person's `worldY` exactly equals `floor × 3` (0→0, 1→3, 2→6, 3→9, 5→15). No teleporting.
+- **`doorGap: 6`** at capture = doors open mid-cycle (animation working); prior run caught `elevatorY: 3` proving vertical travel.
+- **Zero uncaught page errors.**
+
+The one console message is the classic `favicon.ico` 404 (browser auto-request, unrelated to my files). Let me suppress it for a truly pristine console, and add a longer-window check that definitively captures vertical travel + a boarding event:
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/index.html
+Now let me run a final, longer verification that polls over ~11 seconds to definitively capture vertical travel and a boarding event, and confirms the console is now completely clean:
+[Tool: Write] /tmp/verify_elevator.js
+
+[Tool: Bash]
+Everything is **error-clean now** (0 console errors, 0 page errors, 0 failed requests — favicon fix worked) and all mechanics are confirmed: smooth vertical travel through all floors (Y from 0→15), boarding (person becomes child of `elevatorCar`), walking, and doors opening + closing.
+
+The one `false` — `final feet-on-floor invariant` — is a **false positive in my check, not a simulation bug**: it caught a person mid-exit at the destination (`worldY:15`, physically correct for floor 5) whose `userData.floor` bookkeeping field still read `1` because I only update it in the final step of the cycle. The person's *visual* position is correct. Still, I'll tighten the data model so `userData.floor` updates the moment the person arrives — making the field consistent with world position at all times:
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_elevator_prompt_v2/elevator.js
+Let me re-run the full verification to confirm the invariant now holds at all sampled times:
+[Tool: Bash]
+**VERDICT: PASS** — all green now:
+- Vertical travel ✓, boarding (child of `elevatorCar`) ✓, walking ✓, doors open+close ✓
+- Feet-on-floor invariant **true** for all 5 people (every `worldY` exactly matches `floor × 3`)
+- **0 console errors, 0 page errors, 0 failed requests**
+
+Let me look at the captured screenshot for a final visual sanity check:
+[Tool: Read]
+The screenshot confirms it visually: a transparent blue building with clearly visible floor layers, a solid white roof, the semi-transparent **yellow elevator** with doors in the central shaft, and **blue humanoid figures** (head + body + darker legs) waiting on multiple floors in front of the elevator. The speed slider is in the top-left.
+
+Let me confirm the project directory contains exactly the three required files and nothing stray:
+[Tool: Bash]
+All three required files are present and non-empty (`index.html`, `elevator.js`, `person.js`). `CHAT_SESSION.TXT` is the eval harness's own log.
+
+## Done — and verified end-to-end in a real browser
+
+I created the three files and drove the page in headless Chrome (via Playwright) to confirm it actually works rather than just looks right on paper.
+
+**Files created:**
+- `index.html` — loads Three.js 0.128.0 + OrbitControls from the exact CDN URLs in the specified order, then `person.js` and `elevator.js`. Contains the 1×–20× speed slider. No `type="module"`.
+- `person.js` — global `createPerson()` factory; figure built bottom-up (legs → torso → head, arms hanging down), feet at local y=0, with `userData = { leftLeg, rightLeg, isWalking }`.
+- `elevator.js` — constants, building, elevator, the full animation pipeline, and a top-level auto-start call.
+
+**Every hard requirement checked:**
+- H1 ✓ all three files exist, valid (`node --check` passed both JS files)
+- H2 ✓ zero `import`/`export`, no `type="module"`
+- H3 ✓ auto-starts on load (scene built without being called externally)
+- H4 ✓ **0 console errors, 0 uncaught exceptions, 0 failed requests** (added an empty favicon to kill the phantom `/favicon.ico` 404)
+- H5 ✓ `scene`, `camera`, `renderer`, `controls`, `elevatorCar`, `elevatorCar.leftDoor/.rightDoor`, `people` all confirmed present at runtime with correct types
+- H6 ✓ all 8 constants are top-level `const`, no `config.` object
+- H7 ✓ `userData.leftLeg`/`rightLeg` present, `isWalking` is a boolean
+- H8 ✓ reparenting uses `.attach()` (boarding + exit); **the feet-on-floor invariant was machine-verified** — every person's world-Y exactly equals `floor × 3` (0→0, 1→3, 2→6, 3→9, 5→15)
+
+**Mechanics observed live over a full cycle:** elevator travels smoothly through all floors (Y 0→15), a person becomes a child of `elevatorCar` on boarding, leg-walk animation fires, and doors open *before* and close *after* movement.
+
+One design note worth flagging: the top-level `let` globals (`scene`, `elevatorCar`, etc.) live in the shared global *lexical* scope, so the scripts reference them by bare name — they are intentionally **not** on `window`. That's correct for this plain-script setup and is how the two files communicate.
+
+You can open `index.html` directly in a browser (or serve the folder) to watch it run.
+All three required files are present and non-empty (`index.html`, `elevator.js`, `person.js`). `CHAT_SESSION.TXT` is the eval harness's own log.
+
+## Done — and verified end-to-end in a real browser
+
+I created the three files and drove the page in headless Chrome (via Playwright) to confirm it actually works rather than just looks right on paper.
+
+**Files created:**
+- `index.html` — loads Three.js 0.128.0 + OrbitControls from the exact CDN URLs in the specified order, then `person.js` and `elevator.js`. Contains the 1×–20× speed slider. No `type="module"`.
+- `person.js` — global `createPerson()` factory; figure built bottom-up (legs → torso → head, arms hanging down), feet at local y=0, with `userData = { leftLeg, rightLeg, isWalking }`.
+- `elevator.js` — constants, building, elevator, the full animation pipeline, and a top-level auto-start call.
+
+**Every hard requirement checked:**
+- H1 ✓ all three files exist, valid (`node --check` passed both JS files)
+- H2 ✓ zero `import`/`export`, no `type="module"`
+- H3 ✓ auto-starts on load (scene built without being called externally)
+- H4 ✓ **0 console errors, 0 uncaught exceptions, 0 failed requests** (added an empty favicon to kill the phantom `/favicon.ico` 404)
+- H5 ✓ `scene`, `camera`, `renderer`, `controls`, `elevatorCar`, `elevatorCar.leftDoor/.rightDoor`, `people` all confirmed present at runtime with correct types
+- H6 ✓ all 8 constants are top-level `const`, no `config.` object
+- H7 ✓ `userData.leftLeg`/`rightLeg` present, `isWalking` is a boolean
+- H8 ✓ reparenting uses `.attach()` (boarding + exit); **the feet-on-floor invariant was machine-verified** — every person's world-Y exactly equals `floor × 3` (0→0, 1→3, 2→6, 3→9, 5→15)
+
+**Mechanics observed live over a full cycle:** elevator travels smoothly through all floors (Y 0→15), a person becomes a child of `elevatorCar` on boarding, leg-walk animation fires, and doors open *before* and close *after* movement.
+
+One design note worth flagging: the top-level `let` globals (`scene`, `elevatorCar`, etc.) live in the shared global *lexical* scope, so the scripts reference them by bare name — they are intentionally **not** on `window`. That's correct for this plain-script setup and is how the two files communicate.
+
+You can open `index.html` directly in a browser (or serve the folder) to watch it run.
+
+[SUCCESS] Process exited cleanly.

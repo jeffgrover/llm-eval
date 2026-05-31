@@ -1,0 +1,119 @@
+
+[Tool: Bash]
+No files exist yet — only an empty `CHAT_SESSION.TXT`. Starting fresh. Let me build the files in dependency order, beginning with the shell and the standalone pieces.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/index.html
+No files existed yet, so I'm starting from scratch. I'll ignore the MCP servers (not relevant) and build the simulation files in dependency order. `index.html` is done. Now `person.js`:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/person.js
+`person.js` done. Now the critical pure-logic brain, `elevator_logic.js`:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js
+Now the test file so I can verify the logic immediately:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/elevator_logic_test.js
+
+[Tool: Bash]
+All 7 logic tests pass. Now `world.js` — the building geometry, furniture, per-floor nav graphs, and call panels. This is the largest file:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/world.js
+I left a bug in the conference room walls — a solid south wall with no doorway, plus messy comments. Let me fix that:
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/world.js
+Now `elevator.js` — the Three.js car and the adapter that wraps `ElevatorLogic`:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/elevator.js
+Now the largest file, `sim.js` — clock, agents, schedules, plan compilers, render loop, collisions, and UI:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/sim.js
+All files written. Let me verify: re-run the logic tests and syntax-check every browser file (parse-only, so `window`/`THREE` references are fine):
+[Tool: Bash]
+Excellent — all 7 logic tests pass and all five browser files parse cleanly. Now let me try a real runtime smoke test to catch errors that parse-checking can't. Let me see what headless browser tooling is available:
+[Tool: Bash]
+Chrome and Playwright are available. Let me check whether Playwright is usable as a library and whether the CDN is reachable (the page loads Three.js from jsdelivr):
+[Tool: Bash]
+Playwright works, Chrome is installed, and the CDN is reachable. Let me write a headless smoke test that loads the page, fast-forwards through a simulated day (including a day-wrap reset), and captures any runtime errors:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/_smoke.js
+
+[Tool: Bash]
+No runtime errors and the day-wrap cleanly clears the elevator — but `present=0` the whole time: nobody ever spawns. I found the bug. `spawnAgent` never moves the agent out of `AWAY`, and the `AWAY` branch `return`s before dispatching — so each frame it just re-spawns in place and never runs its plan. Let me fix:
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/sim.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/sim.js
+
+[Tool: Bash]
+The simulation is alive and correct: people spawn and ramp up (present climbs to 33), agents sit (25 seated), the elevator ferries up to 4 passengers between floors with destinations, and the day-wrap cleanly clears the car. Zero runtime errors.
+
+Let me run a longer continuous run across a full day to confirm the lunch surge, evening exodus, occupancy reaching target, and check for agent bunching:
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/_smoke2.js
+
+[Tool: Bash]
+This is a healthy day in the life of an office:
+- **Occupancy** ramps to the target of 45 by ~11 AM and holds there all day.
+- **Meetings** are well-used (IN_MEETING peaks at 9, consistently 2–7) — the prompt specifically worried about empty conference rooms; they're busy.
+- **Lunch surge** around 1–2 PM (AT_LUNCH peaks at 6).
+- **Evening exodus**: present drops 45→34→18→0 from 6–7:40 PM, down-calls on floors, all 45 reach GONE.
+- **Zero runtime errors** across the entire simulated day.
+
+One blemish: `globalMinSep=0.00` at one sample — two agents momentarily landed on the exact same `elevWait` node when disembarking in the same frame (the collision resolver separates them the next frame, but it's worth preventing). Let me add a small landing jitter on disembark:
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/sim.js
+Let me capture a screenshot to confirm the building renders correctly, and programmatically verify seated agents face the right way (legs toward desk/table, not sitting backwards — a specific concern in the prompt):
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_4_8_office_prompt_v2/_capture.js
+
+[Tool: Bash]
+Seated orientation is correct — 19 sitting agents checked, 0 facing the wrong way (no one sitting backwards). Let me look at the rendered screenshot:
+[Tool: Read]
+The simulation renders beautifully — a transparent 6-floor building with the yellow elevator car in the central shaft (floor 3, doors closing), conference tables with seated people on the left of each floor, offices with desks/monitors on the right, lounges with couches and armchairs, and a ground-floor lobby with cafe tables, plants, and reception. The HUD shows the clock, sliders, live state breakdown, and elevator status. Transparency works cleanly — you can see through walls to follow agents.
+
+Let me run final verification (the required node test plus a quick re-check after the jitter edit), then clean up the temporary harness files:
+[Tool: Bash]
+All green. Now let me remove the temporary test-harness files so the deliverable is exactly the 7 specified files:
+[Tool: Bash]
+All seven deliverable files are in place with no truncation, temporary harness files removed.
+
+## Done — 3D office building simulation
+
+Built all seven files per spec, in the mandated load order:
+
+| File | Role |
+|------|------|
+| `index.html` | Exact shell: Three.js 0.128 + OrbitControls from CDN, scripts in order |
+| `person.js` | `createPerson()` factory (hip/shoulder-pivoted limbs, +Z nose, color palettes) + `animatePersonWalking()` |
+| `world.js` | Building shell (four-strip slabs around the shaft hole, front entrance gap on floor 0 only), per-floor offices/conference/lounge, full lobby (cafe, lounges, pit, reception, kiosk, coolers, loiter spots), BFS nav graph, `sitTargets`, canvas call panels |
+| `elevator_logic.js` | Pure SCAN scheduler/state machine (5 states), anti-starvation rules, capacity & logical spots, Node-compatible export |
+| `elevator.js` | Yellow car, sliding doors, destination buttons, in-car indicator; thin adapter delegating all scheduling to `ElevatorLogic` |
+| `sim.js` | Sim clock, 10-keyframe day/night, 20 workers + 80 recycled visitors, primitive-action plan compilers, lockstep render loop, soft collisions, HUD |
+| `elevator_logic_test.js` | 7 deterministic Node tests |
+
+### Verification
+- **`node elevator_logic_test.js` → 7/7 PASS** (lobby rush, dest-outranks-hall-call, no starvation, opposite-dir waits, door hold/safety cap, destination preserved through handshake, reset).
+- **Headless Chrome (real WebGL), full simulated day, zero runtime errors.** Occupancy ramps to the target (45) by ~11 AM and holds; conference rooms stay busy (IN_MEETING peaks at 9); lunch surge ~1–2 PM; evening exodus drains 45→0 by ~7:40 PM with down-calls on occupied floors; day-wrap resets the car with **0 phantom passengers**.
+- **Seated orientation: 19/19 sitting agents face their seat correctly** (no one sitting backwards — legs toward desk/table).
+- Screenshot confirmed transparent geometry, the yellow car in the shaft, furnished floors, and a populated lobby.
+
+### Two bugs caught and fixed during the verification pass
+1. **Agents never spawned** — `spawnAgent` left state at `AWAY` while the dispatcher `return`ed early, so agents re-spawned in place every frame instead of running their plan. Fixed by transitioning to `ARRIVING` on spawn and falling through to dispatch.
+2. **Momentary stacking on disembark** — multiple riders snapping to the same `elevWait` node in one frame. Added a small ring jitter on the disembark landing (collision resolver was already separating them the next frame, but this prevents the transient overlap).
+
+Open `index.html` in a browser to watch it run at 120× (≈5.5 real minutes per workday); the speed and occupancy sliders are live.
+All seven deliverable files are in place with no truncation, temporary harness files removed.
+
+## Done — 3D office building simulation
+
+Built all seven files per spec, in the mandated load order:
+
+| File | Role |
+|------|------|
+| `index.html` | Exact shell: Three.js 0.128 + OrbitControls from CDN, scripts in order |
+| `person.js` | `createPerson()` factory (hip/shoulder-pivoted limbs, +Z nose, color palettes) + `animatePersonWalking()` |
+| `world.js` | Building shell (four-strip slabs around the shaft hole, front entrance gap on floor 0 only), per-floor offices/conference/lounge, full lobby (cafe, lounges, pit, reception, kiosk, coolers, loiter spots), BFS nav graph, `sitTargets`, canvas call panels |
+| `elevator_logic.js` | Pure SCAN scheduler/state machine (5 states), anti-starvation rules, capacity & logical spots, Node-compatible export |
+| `elevator.js` | Yellow car, sliding doors, destination buttons, in-car indicator; thin adapter delegating all scheduling to `ElevatorLogic` |
+| `sim.js` | Sim clock, 10-keyframe day/night, 20 workers + 80 recycled visitors, primitive-action plan compilers, lockstep render loop, soft collisions, HUD |
+| `elevator_logic_test.js` | 7 deterministic Node tests |
+
+### Verification
+- **`node elevator_logic_test.js` → 7/7 PASS** (lobby rush, dest-outranks-hall-call, no starvation, opposite-dir waits, door hold/safety cap, destination preserved through handshake, reset).
+- **Headless Chrome (real WebGL), full simulated day, zero runtime errors.** Occupancy ramps to the target (45) by ~11 AM and holds; conference rooms stay busy (IN_MEETING peaks at 9); lunch surge ~1–2 PM; evening exodus drains 45→0 by ~7:40 PM with down-calls on occupied floors; day-wrap resets the car with **0 phantom passengers**.
+- **Seated orientation: 19/19 sitting agents face their seat correctly** (no one sitting backwards — legs toward desk/table).
+- Screenshot confirmed transparent geometry, the yellow car in the shaft, furnished floors, and a populated lobby.
+
+### Two bugs caught and fixed during the verification pass
+1. **Agents never spawned** — `spawnAgent` left state at `AWAY` while the dispatcher `return`ed early, so agents re-spawned in place every frame instead of running their plan. Fixed by transitioning to `ARRIVING` on spawn and falling through to dispatch.
+2. **Momentary stacking on disembark** — multiple riders snapping to the same `elevWait` node in one frame. Added a small ring jitter on the disembark landing (collision resolver was already separating them the next frame, but this prevents the transient overlap).
+
+Open `index.html` in a browser to watch it run at 120× (≈5.5 real minutes per workday); the speed and occupancy sliders are live.
+
+[SUCCESS] Process exited cleanly.

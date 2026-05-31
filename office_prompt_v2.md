@@ -23,7 +23,16 @@ elevator; the people act like real office workers.  Take special care that
 the people don't "bunch up" too close to (or on top of) each other in
 crowds or get blocked from progress toward their goals by the front door,
 the elevator doors, other people or obstacles.  When models fail this task,
-the reason is usually this "bunching up", and it happens often.
+the reason is usually this "bunching up", and it happens often.  Also, ensure
+that when the people assume a seated position their are positioned with
+their legs directed toward (and sometimes slightly underneath) the desk or
+table if present, and away from (in the opposite direction of) the backrest
+of the chair/sofa. Do NOT forget to check the orientation of the seated figure
+when the person first occupies the seat, this is another common error.  It
+may seem like a minor thing, but it is worth a separate system for keeping
+track of the direction of the legs in furniture... because it really breaks
+the "illusion" of the simulation to see someone sitting backwards on a chair.
+Also, people will laugh at you your simulation... not it a good way :)
 
 ---
 

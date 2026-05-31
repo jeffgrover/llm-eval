@@ -2,6 +2,7 @@
 import argparse
 import os
 import subprocess
+import threading
 import time
 import shutil
 import sys
@@ -42,14 +43,24 @@ def read_prompt_file(prompt_file: Path) -> str:
 
 
 def send_stdin(process: subprocess.Popen, input_text: Optional[str]) -> None:
-    """Send prompt text to a child process without putting it on the command line."""
+    """Send prompt text to a child process without putting it on the command line.
+
+    The write happens on a background thread so the caller can start draining
+    stdout immediately. Writing inline would deadlock on large prompts: once the
+    prompt exceeds the OS pipe buffer (~16 KB on macOS) and the child's stdout
+    pipe also fills during startup, both processes block waiting on each other.
+    """
     if input_text is None or process.stdin is None:
         return
-    try:
-        process.stdin.write(input_text)
-        process.stdin.close()
-    except BrokenPipeError:
-        pass
+
+    def _write():
+        try:
+            process.stdin.write(input_text)
+            process.stdin.close()
+        except (BrokenPipeError, ValueError):
+            pass
+
+    threading.Thread(target=_write, daemon=True).start()
 
 
 def format_display_cmd(cmd: List[str], prompt_placeholder: Optional[str] = None) -> str:
@@ -1746,7 +1757,12 @@ class ClaudeRunner(AgentRunner):
         cmd = [
             "claude",
             "-p",
-            "--dangerously-skip-permissions",
+            # bypassPermissions auto-approves every action without prompting.
+            # NOTE: --dangerously-skip-permissions alone hangs headless `-p` runs
+            # on claude >= 2.1.x (it now waits on an interactive confirmation that
+            # stdin never provides), so use the explicit permission mode instead.
+            "--permission-mode",
+            "bypassPermissions",
             "--output-format",
             "stream-json",
             "--verbose",
@@ -1769,7 +1785,7 @@ class ClaudeRunner(AgentRunner):
         result_json_path = self.work_dir / CLAUDE_RESULT_FILENAME
 
         print(
-            f"[*] Executing: claude -p <prompt> --dangerously-skip-permissions --output-format stream-json"
+            f"[*] Executing: claude -p <prompt> --permission-mode bypassPermissions --output-format stream-json"
         )
         print(f"[*] Output logging to: {chat_log_path}")
 
@@ -1798,7 +1814,24 @@ class ClaudeRunner(AgentRunner):
                     event = json.loads(stripped)
                     event_type = event.get("type", "")
 
-                    if event_type == "assistant":
+                    if event_type == "system":
+                        # Startup / progress events (init, thinking_tokens, etc.)
+                        # carry no transcript text, but printing them to the console
+                        # shows the run is alive during long max-effort thinking
+                        # phases instead of looking frozen.
+                        subtype = event.get("subtype", "")
+                        if subtype == "init":
+                            print(
+                                f"\n[*] Claude session started "
+                                f"(model={event.get('model', '?')}, "
+                                f"perm={event.get('permissionMode', '?')}). Thinking...",
+                                flush=True,
+                            )
+                        elif subtype == "thinking_tokens":
+                            sys.stdout.write(".")
+                            sys.stdout.flush()
+
+                    elif event_type == "assistant":
                         message = event.get("message", {})
                         for block in message.get("content", []):
                             if block.get("type") == "text":
