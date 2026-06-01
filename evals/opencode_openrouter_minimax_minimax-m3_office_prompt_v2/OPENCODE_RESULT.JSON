@@ -1,0 +1,14 @@
+{
+  "input_tokens": 259734,
+  "output_tokens": 44179,
+  "total_tokens": 303913,
+  "reasoning_tokens": 77428,
+  "cache_read_tokens": 1977518,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.34249968,
+  "num_turns": 31,
+  "provider_id": "openrouter",
+  "model_id": "minimax/minimax-m3",
+  "opencode_version": "1.15.13",
+  "error": "ERROR 2026-06-01T16:35:25 +5513ms service=llm providerID=openrouter modelID=minimax/minimax-m3 session.id=ses_17c0a35d6ffegWqqpOMKw4o2nW small=false agent=build mode=primary error={\"error\":{\"code\":\"ECONNRESET\",\"path\":\"https://openrouter.ai/api/v1/chat/completions\",\"errno\":0}} stream error"
+}
