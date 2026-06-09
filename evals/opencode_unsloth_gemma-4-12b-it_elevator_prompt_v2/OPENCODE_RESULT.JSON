@@ -1,0 +1,14 @@
+{
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "total_tokens": 0,
+  "reasoning_tokens": 0,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 0,
+  "provider_id": "lmstudio",
+  "model_id": "unsloth/gemma-4-12b-it",
+  "opencode_version": "1.15.13",
+  "error": "\"Error rendering prompt with jinja template: \\\"Cannot call something that is not a function: got UndefinedValue\\\".\\n\\nThis is usually an issue with the model's prompt template. If you are using a popular model, you can try to search the model under lmstudio-community, which will have fixed prompt templates. If you cannot find one, you are welcome to post this issue to our discord or issue tracker on GitHub. Alternatively, if you know how to write jinja templates, you can override the prompt template in My Models > model settings > Prompt Template.\""
+}
