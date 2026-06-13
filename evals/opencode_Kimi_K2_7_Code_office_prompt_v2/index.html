@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Office Building Simulation</title>
+<style>html,body{margin:0;padding:0;overflow:hidden;background:#222233}canvas{display:block}#hud{position:absolute;top:10px;left:10px;padding:12px 16px;background:rgba(0,0,0,0.65);color:#fff;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;border-radius:8px;pointer-events:auto;max-width:320px;line-height:1.4}#hud h1{margin:0 0 8px;font-size:16px}#hud .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0}#hud label{white-space:nowrap}#hud input[type=range]{flex:1}#hud .stat{color:#8f8}#hud .dim{color:#aaa}#hud .mono{font-family:monospace}</style>
+</head><body>
+<div id="hud"><h1>Office Simulation</h1><div class="row"><span>Time</span><span id="timeDisp" class="stat mono"> 8:30 AM</span></div><div class="row"><label>Speed</label><input id="speedSlider" type="range" min="0" max="6" step="1" value="4"></div><div class="row"><span id="speedLabel" class="dim">120x</span></div><div class="row"><label>Occupancy</label><input id="occSlider" type="range" min="1" max="100" value="45"></div><div class="row"><span id="occLabel" class="dim">45 / 100</span></div><div id="stateBreakdown" class="dim" style="margin-top:6px"></div><div id="elevInfo" class="dim" style="margin-top:6px"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="person.js"></script>
+<script src="world.js"></script>
+<script src="elevator_logic.js"></script>
+<script src="elevator.js"></script>
+<script src="sim.js"></script>
+</body></html>
