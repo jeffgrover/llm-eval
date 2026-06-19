@@ -2310,6 +2310,10 @@ class OpenCodeRunner(AgentRunner):
         """Return the OpenCode provider/model reference to request, if known."""
         if self.custom_provider:
             return f"{self.custom_provider}/{self.model_name}"
+        if not self.non_local:
+            provider_name = self._resolve_global_provider_for_model(self.model_name)
+            if provider_name:
+                return f"{provider_name}/{self.model_name}"
         if self.non_local:
             # In non-local mode we do not synthesize a provider. If the caller
             # supplied a full OpenCode model reference, pass it through. For a
@@ -2377,7 +2381,11 @@ class OpenCodeRunner(AgentRunner):
         if model_ref:
             config["model"] = model_ref
 
-        if not self.non_local and not self.custom_provider:
+        if (
+            not self.non_local
+            and not self.custom_provider
+            and self._resolve_global_provider_for_model(self.model_name) is None
+        ):
             # Default case: define lmstudio provider pointing to localhost.
             base_url = LM_STUDIO_API_URL
             config["provider"] = {
@@ -3315,7 +3323,12 @@ def main():
         sys.exit(1)
 
     # 1. Load Model (Local only)
-    if not args.non_local and not args.provider:
+    skip_local_model_load = False
+    if args.agent == "opencode" and not args.non_local and not args.provider:
+        provider_name = OpenCodeRunner._resolve_global_provider_for_model(args.model)
+        skip_local_model_load = provider_name not in (None, "lmstudio", "lm-studio")
+
+    if not args.non_local and not args.provider and not skip_local_model_load:
         load_lms_model(args.model)
 
     # 2. Get Runner
