@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Elevator Simulation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; font-family: Arial, sans-serif; }
+        #speed-control {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px 18px;
+            border-radius: 8px;
+            color: #fff;
+        }
+        #speed-control label { font-size: 14px; white-space: nowrap; }
+        #speed-slider { width: 150px; accent-color: #ffff00; }
+        #speed-value { font-size: 16px; font-weight: bold; min-width: 35px; text-align: center; color: #ffff00; }
+    </style>
+</head>
+<body>
+    <div id="speed-control">
+        <label for="speed-slider">Speed:</label>
+        <input type="range" id="speed-slider" min="1" max="20" value="3" step="1">
+        <span id="speed-value">3x</span>
+    </div>
+
+    <!-- 1. Load the core Three.js library first -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <!-- 2. Load OrbitControls, which depends on the core library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 3. Load your custom scripts last -->
+    <script src="person.js"></script>
+    <script src="elevator.js"></script>
+</body>
+</html>
