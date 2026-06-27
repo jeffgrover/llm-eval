@@ -2,7 +2,7 @@
 
 **[View the live dashboard](https://jeffgrover.github.io/llm-eval/)**
 
-This suite provides tools to automate the benchmarking of agentic CLI tools against both local LLMs (via LM Studio) and cloud API providers (Anthropic, Google, Groq, Cerebras, etc.). It captures detailed performance metrics, server logs, and command outputs, generating beautiful visual reports for every run.
+This suite provides tools to automate the benchmarking of agentic CLI tools against both local LLMs (via LM Studio) and cloud API providers (Anthropic, Google, Groq, Cerebras, etc.). It captures detailed performance metrics, server logs, command outputs, and generated artifacts, then builds self-contained run reports plus a scored comparison dashboard.
 
 ## Reference Implementations
 
@@ -11,6 +11,13 @@ The best results produced so far for each prompt. Click a preview to launch the 
 | [Elevator Simulation](reference/elevator/index.html) | [Office Building Simulation](reference/office/index.html) |
 | :---: | :---: |
 | [![Elevator preview](reference/elevator/preview.png)](reference/elevator/index.html) | [![Office preview](reference/office/preview.png)](reference/office/index.html) |
+
+## Current Benchmark Focus
+
+- **Elevator prompt**: the main local-model benchmark. It asks agents to build a browser-only Three.js elevator simulation.
+- **Office prompt / office prompt v2**: the main frontier/cloud benchmark. It asks agents to build a richer office-day simulation with persistent agents, schedules, navigation, and elevator behavior.
+
+The generated dashboard keeps these prompt families separate so local elevator runs and frontier office runs can be compared without one burying the other.
 
 ## 1. LM Studio Setup
 
@@ -86,7 +93,7 @@ Codex runs are saved with `CHAT_SESSION.TXT`, raw `CODEX_EVENTS.JSONL`, `CODEX_L
 
 ## 4. Exploring Results
 
-After running one or more experiments, you can generate a centralized dashboard to browse the results.
+After running one or more experiments, generate the centralized dashboard to browse and compare results.
 
 1.  **Generate Index**:
     ```bash
@@ -97,10 +104,19 @@ After running one or more experiments, you can generate a centralized dashboard 
     open index.html
     ```
 
-The dashboard groups results by agent, with each card clearly showing:
--   **Provider**: Cloud (blue) or Local (green) with matching icon
--   **Model name**: Prominently displayed
--   **Prompt**: Which coding task was used
+The dashboard starts with reference previews and then provides three tabs:
+
+-   **Elevator Prompt Scores**: deterministic scores and comparisons for elevator prompt runs.
+-   **Office Prompt Scores**: deterministic scores and comparisons for office prompt runs.
+-   **By Agent**: the catalog view grouped by agent, with provider, prompt, score, and report links.
+
+The scoring is intentionally deterministic. It does not claim to be a full qualitative judge; it rewards reproducible signals such as:
+
+-   required files and expected script structure
+-   browser readiness for no-build Three.js artifacts
+-   prompt-specific implementation cues
+-   run completion and machine-readable result metrics
+-   token/turn efficiency
 
 Click **View Report** on any card to see the full breakdown, including:
 -   **Prompt Trace**: Exactly what was sent (including newlines).
@@ -114,3 +130,4 @@ Click **View Report** on any card to see the full breakdown, including:
 
 -   **Report Isolation**: Reports use base64 encoding for artifacts, meaning they are completely self-contained and don't require a local web server to view.
 -   **Naming Convention**: Directories are segmented as `evals/{agent}_{model}_{prompt}` for easy searching.
+-   **Dashboard Regeneration**: `generate_index.py` is dependency-free and writes the static `index.html` home page.
