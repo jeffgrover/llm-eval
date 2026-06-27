@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-27T07:42:50.160Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_google_gemma-4-12b_elevator_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "page_errors": [],
+  "canvas_count": 0,
+  "nonblank_canvas": false,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5820,
+  "warnings": []
+}

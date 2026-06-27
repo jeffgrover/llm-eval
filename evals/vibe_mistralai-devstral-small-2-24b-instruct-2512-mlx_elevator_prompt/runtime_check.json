@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-27T07:48:00.106Z",
+  "url": "http://127.0.0.1:59332/evals/vibe_mistralai-devstral-small-2-24b-instruct-2512-mlx_elevator_prompt/elevator_simulation.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "buildingDepth is not defined"
+  ],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5878,
+  "warnings": []
+}

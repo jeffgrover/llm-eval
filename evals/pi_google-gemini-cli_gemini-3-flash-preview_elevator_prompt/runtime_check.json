@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:46:31.220Z",
+  "url": "http://127.0.0.1:59332/evals/pi_google-gemini-cli_gemini-3-flash-preview_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 348,
+  "scene_object_count": 92,
+  "dynamic_changes": 346,
+  "canvas_changed": false,
+  "duration_ms": 5943,
+  "warnings": []
+}

@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-06-27T07:43:50.720Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_MiniMax-M2_7_office_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "Cannot read properties of undefined (reading 'value')",
+    "Cannot read properties of undefined (reading 'value')",
+    "Cannot read properties of undefined (reading 'value')",
+    "Cannot read properties of undefined (reading 'value')",
+    "Cannot read properties of undefined (reading 'value')",
+    "Cannot read properties of undefined (reading 'value')",
+    "FLOOR_HEIGHT is not defined",
+    "FLOOR_HEIGHT is not defined",
+    "FLOOR_HEIGHT is not defined",
+    "FLOOR_HEIGHT is not defined"
+  ],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 348,
+  "scene_object_count": 2246,
+  "dynamic_changes": 17957,
+  "canvas_changed": false,
+  "duration_ms": 5949,
+  "warnings": []
+}

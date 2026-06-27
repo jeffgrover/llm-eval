@@ -17,6 +17,8 @@ RESULT_FILES = (
     "VIBE_RESULT.JSON",
 )
 
+RUNTIME_CHECK_FILE = "runtime_check.json"
+
 AGENT_DISPLAY_NAMES = {
     "mistral": "Mistral Vibe",
     "gemini": "Gemini CLI",
@@ -122,6 +124,17 @@ def parse_result_json(work_dir: Path) -> Dict:
     return {}
 
 
+def parse_runtime_check(work_dir: Path) -> Dict:
+    path = work_dir / RUNTIME_CHECK_FILE
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(read_text(path))
+        return data if isinstance(data, dict) else {"_parse_error": True}
+    except json.JSONDecodeError:
+        return {"_parse_error": True}
+
+
 def parse_metrics(result: Dict) -> Dict[str, float]:
     metrics = {
         "input_tokens": 0,
@@ -202,6 +215,10 @@ def contains_any(text: str, patterns: Tuple[str, ...]) -> bool:
     return any(re.search(pattern, text, re.IGNORECASE | re.MULTILINE) for pattern in patterns)
 
 
+def browser_js_source(files: Dict[str, str]) -> str:
+    return "\n".join(text for name, text in files.items() if name.lower().endswith(".js"))
+
+
 def is_elevator_prompt(prompt: str) -> bool:
     return prompt.startswith("elevator_prompt")
 
@@ -225,22 +242,61 @@ def score_efficiency(metrics: Dict[str, float], evidence: List[str]) -> int:
     if total <= 0:
         return 2
     if total <= 75_000:
-        score += 6
+        score += 3
         evidence.append("token use under 75k")
     elif total <= 175_000:
-        score += 4
+        score += 2
         evidence.append("token use under 175k")
     elif total <= 500_000:
-        score += 2
+        score += 1
         evidence.append("token use under 500k")
     if turns == 0 or turns <= 10:
-        score += 4
+        score += 2
         if turns:
             evidence.append("turn count under 10")
     elif turns <= 18:
-        score += 2
+        score += 1
         evidence.append("turn count under 18")
-    return min(score, 10)
+    return min(score, 5)
+
+
+def score_runtime(work_dir: Path, files: Dict[str, str], runtime: Dict, evidence: List[str], flags: List[str]) -> int:
+    index = files.get("index.html", "")
+    browser_code = browser_js_source(files)
+    preview_exists = first_preview_link(work_dir) is not None
+
+    if not runtime:
+        score = 0
+        score += points(not contains_any(browser_code, (r"^\s*import\s+", r"^\s*export\s+")), 5, "static browser preflight: no ES module syntax", evidence)
+        score += points(bool(index) and contains_any(index, (r"<script[^>]+\.js",)), 4, "static browser preflight: scripts loaded", evidence)
+        score += points(preview_exists, 3, "static browser preflight: HTML preview present", evidence)
+        flags.append("Runtime not verified")
+        return min(score, 12)
+
+    if runtime.get("_parse_error"):
+        flags.append("Runtime check parse error")
+        return 0
+
+    console_errors = runtime.get("console_errors") or []
+    page_errors = runtime.get("page_errors") or []
+    startup_clean = bool(runtime.get("loaded")) and not console_errors and not page_errors
+    canvas_count = int(runtime.get("canvas_count") or 0)
+    frame_count = int(runtime.get("animation_frames") or 0)
+    scene_objects = int(runtime.get("scene_object_count") or 0)
+    dynamic_changes = int(runtime.get("dynamic_changes") or 0)
+
+    score = 0
+    score += points(startup_clean, 15, "runtime verified: zero startup errors", evidence)
+    score += points(canvas_count > 0, 4, "runtime verified: canvas created", evidence)
+    score += points(bool(runtime.get("nonblank_canvas")), 4, "runtime verified: nonblank canvas", evidence)
+    score += points(frame_count >= 2, 5, "runtime verified: animation frames advanced", evidence)
+    score += points(scene_objects >= 3, 7, "runtime verified: scene objects detected", evidence)
+    score += points(dynamic_changes > 0, 5, "runtime verified: simulation changes over time", evidence)
+
+    warnings = runtime.get("warnings") or []
+    if warnings:
+        flags.extend(str(w) for w in warnings[:2])
+    return min(score, 40)
 
 
 def score_elevator(work_dir: Path, files: Dict[str, str], evidence: List[str]) -> Tuple[int, Dict[str, int]]:
@@ -248,29 +304,26 @@ def score_elevator(work_dir: Path, files: Dict[str, str], evidence: List[str]) -
     person = files.get("person.js", "")
     elevator = files.get("elevator.js", "")
     all_code = "\n".join(files.values())
-    categories = {"files": 0, "implementation": 0, "browser": 0}
+    categories = {"files": 0, "implementation": 0}
 
     for name in required_files_for_prompt("elevator_prompt"):
-        categories["files"] += points(bool(files.get(name)), 5, f"{name} present", evidence)
+        categories["files"] += points(bool(files.get(name)), 4, f"{name} present", evidence)
     categories["files"] += points(
         contains_any(index, (r"three@0\.128\.0/build/three\.min\.js",)) and contains_any(index, (r"OrbitControls\.js",)),
-        5,
+        3,
         "required Three.js scripts present",
         evidence,
     )
 
-    categories["implementation"] += points(contains_any(elevator, (r"FLOOR_COUNT\s*=\s*6", r"FLOOR_COUNT:\s*6")), 5, "six-floor building signal", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"depthWrite\s*:\s*false",)) and "DoubleSide" in elevator, 5, "transparent material settings", evidence)
-    categories["implementation"] += points("sortObjects" in elevator and contains_any(elevator, (r"alpha\s*:\s*true",)), 5, "renderer transparency setup", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"door",)) and contains_any(elevator, (r"open",)) and contains_any(elevator, (r"close",)), 5, "door open/close signals", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"add\s*\(\s*person", r"elevator(Car)?\.add", r"scene\.add\s*\(\s*person")), 5, "person reparenting signal", evidence)
-    categories["implementation"] += points(contains_any(elevator + person, (r"Math\.sin", r"isWalking", r"walkPhase")), 5, "walking animation signal", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"positive\s*Z", r"\+Z", r"Math\.PI", r"rotation\.y")), 5, "orientation/front-of-elevator signal", evidence)
-    categories["implementation"] += points(contains_any(elevator + index, (r"speed", r"slider", r"range", r"20x")), 5, "speed control signal", evidence)
+    categories["implementation"] += points(contains_any(elevator, (r"FLOOR_COUNT\s*=\s*6", r"FLOOR_COUNT:\s*6")), 3, "six-floor building signal", evidence)
+    categories["implementation"] += points(contains_any(elevator, (r"depthWrite\s*:\s*false",)) and "DoubleSide" in elevator, 3, "transparent material settings", evidence)
+    categories["implementation"] += points("sortObjects" in elevator and contains_any(elevator, (r"alpha\s*:\s*true",)), 3, "renderer transparency setup", evidence)
+    categories["implementation"] += points(contains_any(elevator, (r"door",)) and contains_any(elevator, (r"open",)) and contains_any(elevator, (r"close",)), 4, "door open/close signals", evidence)
+    categories["implementation"] += points(contains_any(elevator, (r"add\s*\(\s*person", r"elevator(Car)?\.add", r"scene\.add\s*\(\s*person")), 4, "person reparenting signal", evidence)
+    categories["implementation"] += points(contains_any(elevator + person, (r"Math\.sin", r"isWalking", r"walkPhase")), 3, "walking animation signal", evidence)
+    categories["implementation"] += points(contains_any(elevator, (r"positive\s*Z", r"\+Z", r"Math\.PI", r"rotation\.y")), 3, "orientation/front-of-elevator signal", evidence)
+    categories["implementation"] += points(contains_any(elevator + index, (r"speed", r"slider", r"range", r"20x")), 2, "speed control signal", evidence)
     categories["implementation"] += points(contains_any(all_code, (r"requestAnimationFrame",)), 5, "animation loop signal", evidence)
-    categories["browser"] += points(not contains_any(all_code, (r"^\s*import\s+", r"^\s*export\s+")), 4, "no ES module syntax detected", evidence)
-    categories["browser"] += points(contains_any(index, (r"<script[^>]+person\.js",)) and contains_any(index, (r"<script[^>]+elevator\.js",)), 3, "custom scripts loaded", evidence)
-    categories["browser"] += points(any((work_dir / name).exists() for name in ("index.html", "elevator_sim.html", "elevator_simulation.html")), 3, "HTML preview candidate present", evidence)
     return sum(categories.values()), categories
 
 
@@ -281,38 +334,34 @@ def score_office(work_dir: Path, files: Dict[str, str], evidence: List[str]) -> 
     elevator = files.get("elevator.js", "")
     sim = files.get("sim.js", "")
     all_code = "\n".join(files.values())
-    categories = {"files": 0, "implementation": 0, "browser": 0}
+    categories = {"files": 0, "implementation": 0}
 
     for name in required_files_for_prompt("office_prompt"):
-        categories["files"] += points(bool(files.get(name)), 3, f"{name} present", evidence)
+        categories["files"] += points(bool(files.get(name)), 2, f"{name} present", evidence)
     categories["files"] += points(
         all(token in index for token in ("person.js", "world.js", "elevator.js", "sim.js")),
         5,
         "office scripts loaded in shell",
         evidence,
     )
-    categories["implementation"] += points(contains_any(world, (r"FLOOR_COUNT\s*:\s*6", r"FLOOR_COUNT\s*=\s*6")), 4, "six-floor office signal", evidence)
-    categories["implementation"] += points(contains_any(world, (r"office", r"conference", r"lounge", r"desk", r"chair")), 6, "office layout vocabulary", evidence)
-    categories["implementation"] += points(contains_any(world + sim, (r"navigation", r"graph", r"waypoint", r"node")), 5, "navigation graph signal", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"SCAN", r"direction", r"queue", r"call", r"capacity")), 6, "elevator scheduler/capacity signals", evidence)
-    categories["implementation"] += points(contains_any(sim, (r"clock", r"schedule", r"lunch", r"meeting", r"home", r"arriv")), 7, "daily schedule signals", evidence)
-    categories["implementation"] += points(contains_any(sim, (r"state", r"agent", r"worker", r"goal", r"task")), 5, "agent state machine signals", evidence)
-    categories["implementation"] += points(contains_any(person + sim, (r"isSitting", r"walkPhase", r"Math\.sin")), 4, "walk/sit animation signal", evidence)
-    categories["implementation"] += points(contains_any(world + elevator, (r"call panel", r"indicator", r"button", r"lamp")), 4, "call panel/indicator signal", evidence)
-    categories["implementation"] += points(contains_any(sim + world, (r"light", r"sun", r"day", r"night")), 4, "day lighting signal", evidence)
-    categories["browser"] += points(contains_any(index, (r"three@0\.128\.0/build/three\.min\.js",)) and contains_any(index, (r"OrbitControls\.js",)), 4, "required Three.js scripts present", evidence)
-    categories["browser"] += points(not contains_any(all_code, (r"^\s*import\s+", r"^\s*export\s+")), 3, "no ES module syntax detected", evidence)
-    categories["browser"] += points(contains_any(all_code, (r"requestAnimationFrame",)), 3, "animation loop signal", evidence)
+    categories["implementation"] += points(contains_any(world, (r"FLOOR_COUNT\s*:\s*6", r"FLOOR_COUNT\s*=\s*6")), 3, "six-floor office signal", evidence)
+    categories["implementation"] += points(contains_any(world, (r"office", r"conference", r"lounge", r"desk", r"chair")), 4, "office layout vocabulary", evidence)
+    categories["implementation"] += points(contains_any(world + sim, (r"navigation", r"graph", r"waypoint", r"node")), 4, "navigation graph signal", evidence)
+    categories["implementation"] += points(contains_any(elevator, (r"SCAN", r"direction", r"queue", r"call", r"capacity")), 5, "elevator scheduler/capacity signals", evidence)
+    categories["implementation"] += points(contains_any(sim, (r"clock", r"schedule", r"lunch", r"meeting", r"home", r"arriv")), 5, "daily schedule signals", evidence)
+    categories["implementation"] += points(contains_any(sim, (r"state", r"agent", r"worker", r"goal", r"task")), 3, "agent state machine signals", evidence)
+    categories["implementation"] += points(contains_any(person + sim, (r"isSitting", r"walkPhase", r"Math\.sin")), 3, "walk/sit animation signal", evidence)
+    categories["implementation"] += points(contains_any(world + elevator, (r"call panel", r"indicator", r"button", r"lamp")), 2, "call panel/indicator signal", evidence)
+    categories["implementation"] += points(contains_any(sim + world, (r"light", r"sun", r"day", r"night")), 1, "day lighting signal", evidence)
     return sum(categories.values()), categories
 
 
 def score_generic(files: Dict[str, str], evidence: List[str]) -> Tuple[int, Dict[str, int]]:
-    categories = {"files": 0, "implementation": 0, "browser": 0}
+    categories = {"files": 0, "implementation": 0}
     categories["files"] += min(len(files) * 3, 15)
     if files:
         evidence.append("generated artifact files present")
     categories["implementation"] += points(any(name.endswith((".py", ".js", ".html")) for name in files), 15, "code artifact present", evidence)
-    categories["browser"] += points(any(name.endswith(".html") for name in files), 5, "HTML artifact present", evidence)
     return sum(categories.values()), categories
 
 
@@ -321,18 +370,21 @@ def deterministic_score(ev: Dict) -> Dict:
     metrics = ev.get("Metrics", {})
     prompt = ev.get("Prompt", "")
     evidence: List[str] = []
+    flags = []
     files = {
         p.name: read_text(p, limit=500_000)
         for p in work_dir.iterdir()
         if p.is_file() and p.suffix.lower() in {".html", ".js", ".py", ".md", ".txt"}
     }
+    all_code = "\n".join(files.values())
+    runtime = ev.get("Runtime") or {}
 
     completion = 0
-    completion += points(ev["HasReport"], 4, "summary report present", evidence)
-    completion += points(bool(files), 3, "artifact files present", evidence)
-    completion += points(bool(ev.get("Result")), 3, "machine-readable result metrics present", evidence)
-    completion += points(metrics.get("success") is True, 3, "agent result marked successful", evidence)
-    completion += points(not metrics.get("error"), 2, "no result error flag", evidence)
+    completion += points(ev["HasReport"], 3, "summary report present", evidence)
+    completion += points(bool(files), 2, "artifact files present", evidence)
+    completion += points(bool(ev.get("Result")), 2, "machine-readable result metrics present", evidence)
+    completion += points(metrics.get("success") is True, 2, "agent result marked successful", evidence)
+    completion += points(not metrics.get("error"), 1, "no result error flag", evidence)
 
     if is_office_prompt(prompt):
         quality, detail_categories = score_office(work_dir, files, evidence)
@@ -341,8 +393,50 @@ def deterministic_score(ev: Dict) -> Dict:
     else:
         quality, detail_categories = score_generic(files, evidence)
 
-    categories = {"completion": completion, **detail_categories, "efficiency": score_efficiency(metrics, evidence)}
-    total = min(sum(categories.values()), 100)
+    runtime_score = score_runtime(work_dir, files, runtime, evidence, flags)
+    categories = {"completion": completion, **detail_categories, "runtime": runtime_score, "efficiency": score_efficiency(metrics, evidence)}
+    raw_total = min(sum(categories.values()), 100)
+
+    caps = []
+    if missing := [name for name in required_files_for_prompt(prompt) if not (work_dir / name).exists()]:
+        flags.append(f"Missing: {', '.join(missing)}")
+        caps.append((50, "required files missing"))
+    if not first_preview_link(work_dir):
+        flags.append("No runnable HTML preview")
+        caps.append((35, "no runnable HTML preview"))
+    if contains_any(browser_js_source(files), (r"^\s*import\s+", r"^\s*export\s+")):
+        flags.append("ES module syntax in browser artifact")
+        caps.append((45, "classic-script module syntax failure"))
+    if not runtime:
+        caps.append((85, "runtime not verified"))
+    elif runtime.get("_parse_error"):
+        caps.append((55, "runtime check parse error"))
+    else:
+        console_errors = runtime.get("console_errors") or []
+        page_errors = runtime.get("page_errors") or []
+        if console_errors or page_errors or not runtime.get("loaded"):
+            flags.append("Runtime startup failed")
+            caps.append((45, "runtime startup failed"))
+        elif int(runtime.get("canvas_count") or 0) <= 0:
+            flags.append("No runtime canvas")
+            caps.append((35, "no canvas at runtime"))
+        elif not runtime.get("nonblank_canvas"):
+            flags.append("Blank runtime canvas")
+            caps.append((55, "blank runtime canvas"))
+        elif int(runtime.get("animation_frames") or 0) < 2:
+            flags.append("Animation loop not verified")
+            caps.append((55, "animation loop not verified"))
+        elif int(runtime.get("dynamic_changes") or 0) <= 0:
+            flags.append("No runtime motion detected")
+            caps.append((70, "no runtime motion detected"))
+
+    total = raw_total
+    if caps:
+        cap_value, cap_reason = min(caps, key=lambda item: item[0])
+        if raw_total > cap_value:
+            flags.append(f"Capped at {cap_value}: {cap_reason}")
+        total = min(raw_total, cap_value)
+
     if total >= 85:
         grade = "Excellent"
     elif total >= 70:
@@ -354,10 +448,6 @@ def deterministic_score(ev: Dict) -> Dict:
     else:
         grade = "Incomplete"
 
-    missing = [name for name in required_files_for_prompt(prompt) if not (work_dir / name).exists()]
-    flags = []
-    if missing:
-        flags.append(f"Missing: {', '.join(missing)}")
     if metrics.get("error"):
         flags.append("Result flagged error")
     if not ev["HasReport"]:
@@ -365,10 +455,12 @@ def deterministic_score(ev: Dict) -> Dict:
 
     return {
         "total": total,
+        "raw_total": raw_total,
         "grade": grade,
         "categories": categories,
-        "evidence": evidence[:8],
+        "evidence": evidence[:10],
         "flags": flags,
+        "runtime_errors": runtime_error_summary(runtime),
     }
 
 
@@ -425,6 +517,43 @@ def score_bar(score: int) -> str:
     return f'<div class="score-bar" aria-label="Score {score} of 100"><span style="width: {max(2, min(score, 100))}%"></span></div>'
 
 
+def short_runtime_error(message: str, limit: int = 140) -> str:
+    text = re.sub(r"\s+", " ", str(message)).strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
+
+
+def runtime_error_summary(runtime: Dict, limit: int = 5) -> List[str]:
+    seen = set()
+    errors = []
+    for err in (runtime.get("page_errors") or []) + (runtime.get("console_errors") or []):
+        text = short_runtime_error(err)
+        key = text.lower()
+        if not text or key in seen:
+            continue
+        seen.add(key)
+        errors.append(text)
+        if len(errors) >= limit:
+            break
+    return errors
+
+
+def scoring_methodology_tooltip() -> str:
+    text = (
+        "Scores prioritize working browser simulations. Runtime verification can contribute up to 40 points for "
+        "zero startup errors, a nonblank canvas, animation frames, scene complexity, and visible changes over time. "
+        "Prompt-specific implementation signals, required files, completion metadata, and efficiency make up the "
+        "remaining points. Hard caps prevent browser-dead, blank, missing-file, or unverified runs from ranking as excellent."
+    )
+    return (
+        '<span class="info-wrap" tabindex="0" aria-label="Scoring methodology">'
+        '<span class="info-icon" aria-hidden="true">i</span>'
+        f'<span class="info-tooltip" role="tooltip">{esc(text)}</span>'
+        '</span>'
+    )
+
+
 def scan_evaluations() -> List[Dict]:
     known_prompts = get_known_prompts()
     evaluations = []
@@ -437,6 +566,7 @@ def scan_evaluations() -> List[Dict]:
         summary_path = item / "summary.html"
         result = parse_result_json(item)
         metrics = parse_metrics(result)
+        runtime = parse_runtime_check(item)
         info = parse_directory_name(item.name, known_prompts)
         info["Path"] = item
         info["HasReport"] = summary_path.exists()
@@ -445,6 +575,7 @@ def scan_evaluations() -> List[Dict]:
         info["Provider"] = detect_provider(summary_path)
         info["Result"] = result
         info["Metrics"] = metrics
+        info["Runtime"] = runtime
         info["Score"] = deterministic_score(info)
         evaluations.append(info)
 
@@ -513,10 +644,18 @@ def render_comparison_rows(evaluations: List[Dict]) -> str:
         cats = ev["Score"]["categories"]
         flags = ev["Score"]["flags"]
         evidence = ev["Score"]["evidence"]
+        runtime_errors = ev["Score"].get("runtime_errors", [])
         report = f'<a class="link-btn" href="{esc(ev["ReportLink"])}">Report</a>' if ev["HasReport"] else '<span class="muted">No report</span>'
         preview = f'<a class="link-btn subtle" href="{esc(ev["PreviewLink"])}" target="_blank" rel="noopener">Preview</a>' if ev["PreviewLink"] else ""
         flag_html = "".join(f'<span class="flag">{esc(flag)}</span>' for flag in flags)
         evidence_html = ", ".join(esc(item) for item in evidence[:3])
+        runtime_error_html = ""
+        if runtime_errors:
+            runtime_error_html = (
+                '<div class="runtime-errors"><strong>Runtime errors</strong>'
+                + "".join(f"<span>{esc(err)}</span>" for err in runtime_errors)
+                + "</div>"
+            )
         rows.append(
             f"""
             <tr>
@@ -538,16 +677,17 @@ def render_comparison_rows(evaluations: List[Dict]) -> str:
                 <td class="metric">{fmt_int(metrics.get("total_tokens"))}</td>
                 <td class="metric">{fmt_cost(metrics.get("cost_usd"))}</td>
                 <td class="metric">{fmt_duration(metrics.get("duration_ms"))}</td>
-                <td>
+                <td class="breakdown-cell">
                     <div class="category-pills">
                         <span>C {cats.get("completion", 0)}</span>
                         <span>F {cats.get("files", 0)}</span>
                         <span>I {cats.get("implementation", 0)}</span>
-                        <span>B {cats.get("browser", 0)}</span>
+                        <span>R {cats.get("runtime", 0)}</span>
                         <span>E {cats.get("efficiency", 0)}</span>
                     </div>
                     <div class="evidence">{evidence_html}</div>
                     <div>{flag_html}</div>
+                    {runtime_error_html}
                 </td>
                 <td><div class="actions">{report}{preview}</div></td>
             </tr>
@@ -573,7 +713,7 @@ def render_score_tab(tab_id: str, title: str, evaluations: List[Dict], descripti
             <section class="leaderboard">
                 <div class="section-heading">
                     <div>
-                        <h2>{esc(title)}</h2>
+                        <h2 class="title-with-info">{esc(title)} {scoring_methodology_tooltip()}</h2>
                         <p>{esc(description)}</p>
                     </div>
                 </div>
@@ -585,11 +725,21 @@ def render_score_tab(tab_id: str, title: str, evaluations: List[Dict], descripti
                 <div class="section-heading">
                     <div>
                         <h2>Comparison Matrix</h2>
-                        <p>C=completion, F=files, I=implementation signals, B=browser readiness, E=efficiency.</p>
+                        <p>C=completion, F=files, I=implementation signals, R=runtime verification, E=efficiency.</p>
                     </div>
                 </div>
                 <div class="table-scroll">
                     <table class="comparison-table">
+                        <colgroup>
+                            <col class="score-col">
+                            <col class="agent-col">
+                            <col class="provider-col">
+                            <col class="metric-col">
+                            <col class="metric-col">
+                            <col class="metric-col">
+                            <col class="breakdown-col">
+                            <col class="links-col">
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>Score</th>
@@ -720,6 +870,61 @@ def render_styles() -> str:
         .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin: 22px 0 14px; }
         .section-heading h2 { margin: 0 0 5px; font-size: 21px; }
         .section-heading p { margin: 0; color: var(--muted); line-height: 1.45; }
+        .title-with-info { display: inline-flex; align-items: center; gap: 7px; position: relative; }
+        .info-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; outline: none; }
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border: 1px solid #93c5fd;
+            border-radius: 50%;
+            color: var(--accent-strong);
+            background: #eff6ff;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: help;
+        }
+        .info-tooltip {
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 10px);
+            transform: translateX(-50%) translateY(4px);
+            width: min(360px, calc(100vw - 48px));
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #0f172a;
+            color: white;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.45;
+            text-transform: none;
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            z-index: 20;
+            transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
+        }
+        .info-tooltip::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            border: 7px solid transparent;
+            border-top-color: #0f172a;
+        }
+        .info-wrap:hover .info-tooltip,
+        .info-wrap:focus .info-tooltip,
+        .info-wrap:focus-visible .info-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
         .reference-section { margin: 18px 0 18px; }
         .reference-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
         .reference-card, .eval-card, .leader-card, .stat-card, .table-scroll {
@@ -750,13 +955,19 @@ def render_styles() -> str:
         .mini-flag { margin-top: 8px; color: #b45309; font-size: 12px; font-weight: 800; }
         .comparison-table-wrap, .agent-section { margin-top: 26px; }
         .table-scroll { overflow-x: auto; }
-        table { border-collapse: collapse; width: 100%; min-width: 1040px; }
+        table { border-collapse: collapse; width: 100%; min-width: 1160px; table-layout: fixed; }
+        .score-col { width: 82px; }
+        .agent-col { width: 200px; }
+        .provider-col { width: 108px; }
+        .metric-col { width: 76px; }
+        .breakdown-col { width: auto; }
+        .links-col { width: 104px; }
         th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
         th { color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; background: #f1f5f9; }
         tr:last-child td { border-bottom: 0; }
         .score-cell strong { display: block; font-size: 24px; color: var(--accent-strong); }
         .score-cell span { color: var(--muted); font-size: 12px; font-weight: 800; }
-        .identity { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; min-width: 220px; }
+        .identity { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; min-width: 0; }
         .identity strong { grid-column: 2; }
         .identity span:last-child { grid-column: 2; color: #475569; font-size: 13px; word-break: break-word; }
         .agent-dot { width: 10px; height: 10px; border-radius: 999px; margin-top: 5px; }
@@ -768,8 +979,12 @@ def render_styles() -> str:
         .metric { font-variant-numeric: tabular-nums; white-space: nowrap; }
         .category-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
         .category-pills span { background: #eef2ff; color: #3730a3; border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 800; }
-        .evidence { color: var(--muted); font-size: 12px; max-width: 360px; line-height: 1.4; }
+        .breakdown-cell { min-width: 390px; }
+        .evidence { color: var(--muted); font-size: 12px; line-height: 1.4; }
         .flag { display: inline-block; margin: 7px 5px 0 0; color: var(--red); background: #fee2e2; border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 800; }
+        .runtime-errors { margin-top: 8px; display: grid; gap: 4px; color: #7f1d1d; font-size: 12px; line-height: 1.35; }
+        .runtime-errors strong { color: #991b1b; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+        .runtime-errors span { display: block; padding: 5px 7px; border: 1px solid #fecaca; border-radius: 6px; background: #fff1f2; overflow-wrap: anywhere; }
         .actions { display: flex; gap: 6px; flex-wrap: wrap; }
         .link-btn, .view-btn { display: inline-flex; justify-content: center; align-items: center; min-height: 34px; padding: 8px 10px; border-radius: 6px; color: white; background: var(--accent); text-decoration: none; font-size: 13px; font-weight: 800; }
         .link-btn.subtle { color: #1e293b; background: #e2e8f0; }
@@ -834,8 +1049,8 @@ def generate_index_html() -> None:
                 <button class="tab-btn" type="button" data-tab="agents" onclick="showTab('agents')">By Agent</button>
             </nav>
         </header>
-        {render_score_tab("elevator", "Elevator Prompt Scores", elevator_evals, "Local-model focused elevator simulations, scored by file completeness, Three.js signals, behavior cues, and efficiency.")}
-        {render_score_tab("office", "Office Prompt Scores", office_evals, "Frontier/cloud office simulations, scored by file completeness, office-world behavior signals, elevator scheduling cues, and efficiency.")}
+        {render_score_tab("elevator", "Elevator Prompt Scores", elevator_evals, "Local-model focused elevator simulations, scored primarily by runtime viability, then file completeness, Three.js behavior cues, and efficiency.")}
+        {render_score_tab("office", "Office Prompt Scores", office_evals, "Frontier/cloud office simulations, scored primarily by runtime viability, then office-world behavior, elevator scheduling cues, and efficiency.")}
         {render_agent_tab(evaluations)}
     </div>
 </body>

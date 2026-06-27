@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:47:42.416Z",
+  "url": "http://127.0.0.1:59332/evals/vibe_devstral-small-linux_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": false,
+  "animation_frames": 344,
+  "scene_object_count": 59,
+  "dynamic_changes": 347,
+  "canvas_changed": false,
+  "duration_ms": 5836,
+  "warnings": []
+}

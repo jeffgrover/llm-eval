@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-27T07:45:01.934Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "wallThickness is not defined"
+  ],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5855,
+  "warnings": []
+}

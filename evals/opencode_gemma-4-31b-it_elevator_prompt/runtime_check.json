@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:41:50.252Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_gemma-4-31b-it_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 347,
+  "scene_object_count": 86,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5939,
+  "warnings": []
+}

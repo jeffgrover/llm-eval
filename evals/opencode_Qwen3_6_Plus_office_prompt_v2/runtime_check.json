@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-27T07:45:19.803Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_Qwen3_6_Plus_office_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "sd is not defined"
+  ],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5872,
+  "warnings": []
+}

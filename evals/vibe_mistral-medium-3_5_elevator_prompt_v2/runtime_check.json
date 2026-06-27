@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:47:48.333Z",
+  "url": "http://127.0.0.1:59332/evals/vibe_mistral-medium-3_5_elevator_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 343,
+  "scene_object_count": 70,
+  "dynamic_changes": 217,
+  "canvas_changed": false,
+  "duration_ms": 5883,
+  "warnings": []
+}

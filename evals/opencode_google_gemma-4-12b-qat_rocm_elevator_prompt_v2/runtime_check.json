@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:42:44.301Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_google_gemma-4-12b-qat_rocm_elevator_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 354,
+  "scene_object_count": 108,
+  "dynamic_changes": 26,
+  "canvas_changed": false,
+  "duration_ms": 5905,
+  "warnings": []
+}

@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:40:56.070Z",
+  "url": "http://127.0.0.1:59332/evals/codex_gpt-5_5_office_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 121,
+  "scene_object_count": 1353,
+  "dynamic_changes": 680,
+  "canvas_changed": false,
+  "duration_ms": 6339,
+  "warnings": []
+}

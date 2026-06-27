@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-27T07:46:25.245Z",
+  "url": "http://127.0.0.1:59332/evals/pi_glm-4_7-flash_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "Unexpected identifier 'fro'"
+  ],
+  "canvas_count": 0,
+  "nonblank_canvas": false,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5737,
+  "warnings": []
+}

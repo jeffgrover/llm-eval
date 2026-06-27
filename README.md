@@ -99,6 +99,25 @@ After running one or more experiments, generate the centralized dashboard to bro
     ```bash
     ./generate_index.py
     ```
+    To add browser-runtime verification before generating the dashboard, install
+    the Node dependency once and run the checker before regenerating:
+    ```bash
+    npm install
+    npx playwright install chromium
+    npm run runtime-check
+    ./generate_index.py
+    ```
+    The runtime checker uses Playwright and writes `runtime_check.json` into
+    each evaluated run directory. To verify only one run:
+    ```bash
+    npm install
+    npx playwright install chromium
+    node runtime_check.js evals/opencode_glm-4_7-flash_office_prompt_v2
+    ./generate_index.py
+    ```
+    `npm install` and `npx playwright install chromium` are one-time setup
+    steps on a machine. After that, rerun only `node runtime_check.js ...` and
+    `./generate_index.py` when new evals arrive.
 2.  **View Dashboard**: Open the generated `index.html` in your favorite browser, or visit the **[live dashboard on GitHub Pages](https://jeffgrover.github.io/llm-eval/)**.
     ```bash
     open index.html
@@ -110,13 +129,14 @@ The dashboard starts with reference previews and then provides three tabs:
 -   **Office Prompt Scores**: deterministic scores and comparisons for office prompt runs.
 -   **By Agent**: the catalog view grouped by agent, with provider, prompt, score, and report links.
 
-The scoring is intentionally deterministic. It does not claim to be a full qualitative judge; it rewards reproducible signals such as:
+The scoring is intentionally deterministic. It does not claim to be a full qualitative judge; it rewards reproducible signals, with functional browser behavior weighted most heavily:
 
+-   runtime verification for no startup errors, a visible nonblank canvas, animation frames, scene complexity, and visible changes over time
+-   hard caps that prevent browser-dead, blank, missing-file, or unverified runs from ranking as excellent
 -   required files and expected script structure
--   browser readiness for no-build Three.js artifacts
 -   prompt-specific implementation cues
 -   run completion and machine-readable result metrics
--   token/turn efficiency
+-   token/turn efficiency, intentionally weighted lower than functionality
 
 Click **View Report** on any card to see the full breakdown, including:
 -   **Prompt Trace**: Exactly what was sent (including newlines).

@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:43:32.321Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_KimiK2Instruct0905_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 626,
+  "scene_object_count": 87,
+  "dynamic_changes": 283,
+  "canvas_changed": false,
+  "duration_ms": 5858,
+  "warnings": []
+}

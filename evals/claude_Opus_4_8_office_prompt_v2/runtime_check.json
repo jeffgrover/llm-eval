@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:40:43.718Z",
+  "url": "http://127.0.0.1:59332/evals/claude_Opus_4_8_office_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 242,
+  "scene_object_count": 2085,
+  "dynamic_changes": 2229,
+  "canvas_changed": false,
+  "duration_ms": 6025,
+  "warnings": []
+}

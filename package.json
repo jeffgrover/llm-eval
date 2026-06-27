@@ -1,0 +1,14 @@
+{
+  "name": "llm-eval",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local dashboard tooling for LLM agent evaluation runs.",
+  "scripts": {
+    "runtime-check": "node runtime_check.js --all",
+    "runtime-check:one": "node runtime_check.js",
+    "dashboard": "python generate_index.py"
+  },
+  "devDependencies": {
+    "playwright": "^1.57.0"
+  }
+}

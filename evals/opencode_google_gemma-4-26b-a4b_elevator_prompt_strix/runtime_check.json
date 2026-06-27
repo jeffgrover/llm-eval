@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:43:08.423Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_google_gemma-4-26b-a4b_elevator_prompt_strix/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 332,
+  "scene_object_count": 126,
+  "dynamic_changes": 65,
+  "canvas_changed": false,
+  "duration_ms": 6094,
+  "warnings": []
+}

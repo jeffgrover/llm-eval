@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:47:24.716Z",
+  "url": "http://127.0.0.1:59332/evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 318,
+  "scene_object_count": 98,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5922,
+  "warnings": []
+}

@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:48:06.065Z",
+  "url": "http://127.0.0.1:59332/evals/vibe_mistralaidevstral-small-2-2512_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 506,
+  "scene_object_count": 81,
+  "dynamic_changes": 228,
+  "canvas_changed": false,
+  "duration_ms": 5926,
+  "warnings": []
+}

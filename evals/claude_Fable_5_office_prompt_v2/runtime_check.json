@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:40:01.407Z",
+  "url": "http://127.0.0.1:59332/evals/claude_Fable_5_office_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 311,
+  "scene_object_count": 1794,
+  "dynamic_changes": 1680,
+  "canvas_changed": false,
+  "duration_ms": 6140,
+  "warnings": []
+}

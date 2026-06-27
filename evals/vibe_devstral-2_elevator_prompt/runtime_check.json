@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:47:36.545Z",
+  "url": "http://127.0.0.1:59332/evals/vibe_devstral-2_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 576,
+  "scene_object_count": 67,
+  "dynamic_changes": 227,
+  "canvas_changed": false,
+  "duration_ms": 5931,
+  "warnings": []
+}

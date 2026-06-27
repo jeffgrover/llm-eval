@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:43:14.573Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_GPTOSS120B_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 488,
+  "scene_object_count": 58,
+  "dynamic_changes": 242,
+  "canvas_changed": false,
+  "duration_ms": 6107,
+  "warnings": []
+}

@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:40:37.649Z",
+  "url": "http://127.0.0.1:59332/evals/claude_Opus_4_8_elevator_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 275,
+  "scene_object_count": 85,
+  "dynamic_changes": 242,
+  "canvas_changed": false,
+  "duration_ms": 5956,
+  "warnings": []
+}

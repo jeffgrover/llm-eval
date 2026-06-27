@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:46:01.619Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_ZAIGLM-47_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 348,
+  "scene_object_count": 101,
+  "dynamic_changes": 210,
+  "canvas_changed": false,
+  "duration_ms": 5950,
+  "warnings": []
+}

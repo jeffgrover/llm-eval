@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-06-27T07:44:20.526Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_nvidia-nemotron-3-super-120b-a12b_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "Unexpected token 'export'",
+    "Cannot use import statement outside a module"
+  ],
+  "canvas_count": 0,
+  "nonblank_canvas": false,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5832,
+  "warnings": []
+}

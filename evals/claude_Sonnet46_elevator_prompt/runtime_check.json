@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:40:49.695Z",
+  "url": "http://127.0.0.1:59332/evals/claude_Sonnet46_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 344,
+  "scene_object_count": 118,
+  "dynamic_changes": 368,
+  "canvas_changed": false,
+  "duration_ms": 5938,
+  "warnings": []
+}

@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:41:14.198Z",
+  "url": "http://127.0.0.1:59332/evals/gemini_gemini-3_1-pro-preview_elevator_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 349,
+  "scene_object_count": 86,
+  "dynamic_changes": 291,
+  "canvas_changed": false,
+  "duration_ms": 5975,
+  "warnings": []
+}

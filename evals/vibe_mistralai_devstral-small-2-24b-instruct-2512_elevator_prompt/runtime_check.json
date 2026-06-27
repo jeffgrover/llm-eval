@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:48:12.060Z",
+  "url": "http://127.0.0.1:59332/evals/vibe_mistralai_devstral-small-2-24b-instruct-2512_elevator_prompt/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 544,
+  "scene_object_count": 54,
+  "dynamic_changes": 273,
+  "canvas_changed": false,
+  "duration_ms": 5953,
+  "warnings": []
+}

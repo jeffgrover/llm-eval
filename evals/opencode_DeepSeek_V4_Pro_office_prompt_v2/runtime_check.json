@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-27T07:41:26.157Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_DeepSeek_V4_Pro_office_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "Cannot read properties of undefined (reading 'push')"
+  ],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5867,
+  "warnings": []
+}

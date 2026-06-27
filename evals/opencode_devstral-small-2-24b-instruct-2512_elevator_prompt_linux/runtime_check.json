@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:41:32.232Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_devstral-small-2-24b-instruct-2512_elevator_prompt_linux/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 142,
+  "scene_object_count": 54,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 6040,
+  "warnings": []
+}

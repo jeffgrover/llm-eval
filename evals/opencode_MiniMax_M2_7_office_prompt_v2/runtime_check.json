@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-27T07:43:56.622Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_MiniMax_M2_7_office_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "Cannot read properties of undefined (reading 'extractPoints')"
+  ],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5868,
+  "warnings": []
+}

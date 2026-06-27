@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-06-27T07:42:26.583Z",
+  "url": "http://127.0.0.1:59332/evals/opencode_GLM-5_1_office_prompt_v2/index.html",
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 188,
+  "scene_object_count": 2089,
+  "dynamic_changes": 4234,
+  "canvas_changed": false,
+  "duration_ms": 6170,
+  "warnings": []
+}
