@@ -1,0 +1,444 @@
+Use the agentic coding tools available to you to write files creating a 3D elevator simulation using Three.js that runs entirely in the browser with no build process. The simulation should visualize a 6-floor building with an elevator transporting people between floors.
+
+I hereby pre-approve any plan you generate, do not prompt to approve the
+development plan before coding, you are in YOLO mode.
+
+===============================================================================
+HARD REQUIREMENTS - READ FIRST AND DO NOT VIOLATE
+===============================================================================
+
+These are non-negotiable. If you violate any of them the page will fail to load
+or display a blank screen with console errors. The majority of past failures
+have been caused by ignoring one of these rules. Re-read this block before you
+start writing code and again before you finish.
+
+H1. **FILES THAT MUST EXIST.** You must create exactly these three files and
+    every one of them must be non-empty and syntactically valid JavaScript/HTML:
+        - `index.html`
+        - `elevator.js`
+        - `person.js`
+    `index.html` references `elevator.js` and `person.js` via `<script src=...>`.
+    If either .js file is missing, the browser will log `404 Not Found` and the
+    page will be blank. Before finishing, use your file-read tool to open each
+    of the three files and visually confirm they contain complete code.
+
+H2. **NO ES6 MODULES. NO `import`. NO `export`.** This is a plain-script
+    project using global variables. Writing `import { createPerson } from ...`
+    or `export function ...` will produce the console error
+    `SyntaxError: Cannot use import statement outside a module` and the whole
+    simulation will fail to start. Communicate between files using global
+    functions/variables attached to `window` or declared at the top level. Do
+    not add `type="module"` to any `<script>` tag.
+
+H3. **THE SIMULATION MUST AUTO-START ON PAGE LOAD.** At the bottom of
+    `elevator.js`, after all functions are declared, invoke your `init()` /
+    `main()` / `startSimulation()` function at the top level (either directly,
+    or inside a `window.addEventListener('DOMContentLoaded', ...)` handler).
+    Do NOT only attach it to `window.foo` and wait for something to call it.
+    If nothing runs at load time the page will be blank with zero errors,
+    which is the worst kind of failure to debug.
+    Your final lines in `elevator.js` should look like this, adapted only for
+    your actual start function name:
+
+        if (document.readyState === "loading") {
+            window.addEventListener("DOMContentLoaded", startSimulation);
+        } else {
+            startSimulation();
+        }
+
+    If your function is named `init` or `main`, use that same name in both
+    places. Do not leave the start function uncalled.
+
+H4. **ZERO CONSOLE ERRORS AT STARTUP.** Open the browser's DevTools console
+    mentally as you write: any `ReferenceError`, `TypeError`, `SyntaxError`,
+    or 404 on a script file at startup counts as a total failure. Code
+    defensively: before reading `someObject.someProp.someField`, make sure
+    `someObject.someProp` was actually assigned.
+
+H4A. **RUN THE AVAILABLE CHECKERS BEFORE FINISHING.** This eval repository
+    provides checker scripts two directories above your workspace. After you
+    create or edit the files, run:
+
+        node ../../static_check.js .
+
+    Fix every reported issue. The static checker catches syntax errors, likely
+    unresolved references, and duplicate top-level `let` / `const` / `class`
+    declarations across classic browser scripts. If Playwright is available,
+    also run:
+
+        node ../../runtime_check.js .
+
+    Fix any startup, canvas, animation, or browser page errors it reports.
+    Do not report success while either checker reports errors.
+
+H4D. **RENDER-FIRST FALLBACK.** Before adding complex elevator behavior, make
+    the page visibly render a nonblank Three.js scene: camera, renderer,
+    lights, a 6-floor building shape, the elevator car, and at least one
+    person mesh. Preserve that visible baseline while adding movement. If the
+    behavior loop is incomplete, a static visible scene is still much better
+    than a blank page. `node ../../runtime_check.js .` should at minimum report
+    a nonblank canvas, animation frames, and scene objects; `no-motion` is
+    acceptable while debugging, but `no-canvas`, `no-animation`, or `errors`
+    must be fixed before you stop.
+
+H4B. **NO SELF-EMBEDDING, NO `file://` URLS, NO LOCAL ABSOLUTE PATHS.**
+    `index.html` is the simulation page. Do NOT put an `<iframe>`, `<object>`,
+    `<embed>`, or preview panel inside `index.html` that points to
+    `index.html`, `summary.html`, or any local path. Do NOT write URLs like
+    `file:///Users/...`, `file:///home/...`, or `C:\Users\...` anywhere in the
+    generated browser files. Browsers treat `file:` pages as unique security
+    origins, so self-loading or local-file embedding produces console errors
+    such as "Unsafe attempt to load URL file://... from frame with URL
+    file://...". The body of `index.html` should contain only optional UI
+    controls and the required script tags; create the 3D scene directly in
+    JavaScript with `document.body.appendChild(renderer.domElement)`.
+
+H4C. **TYPO-PROOF ALL GLOBALS BEFORE FINISHING.** Use one spelling for each
+    global and state variable, declare it before first use with `let` or
+    `const`, and do not invent near-duplicate names later. If you create a
+    clock/speed object, pick exactly one name such as `simClock` or `clock`
+    and use that spelling everywhere. The static checker in H4A is the final
+    guardrail for unbound identifiers and duplicate top-level declarations.
+
+H5. **NAMING CONTRACT - use these exact variable names, spelled exactly this way:**
+        - `scene`, `camera`, `renderer`, `controls` - top-level Three.js objects
+        - `elevatorCar` - the THREE.Group representing the elevator (NOT
+          `elevatorGroup`, NOT `lift`, NOT `car`). Doors and passengers are
+          added as children of `elevatorCar`.
+        - `elevatorCar.leftDoor` and `elevatorCar.rightDoor` - direct THREE.Mesh
+          references stored as properties on `elevatorCar` for animation access.
+        - `people` - array of person objects
+    A common past failure: the model created a local `elevatorGroup` inside
+    `createElevator()` but never assigned it to the global `elevatorCar`, then
+    later did `elevatorCar.leftDoor = ...` and crashed with
+    `Cannot set properties of undefined`. Either declare `elevatorCar` as a
+    global `let` and assign to it inside the factory, OR have the factory
+    `return` the group and do `elevatorCar = createElevator();` at the call site.
+
+H6. **CONSTANTS ARE TOP-LEVEL `const` DECLARATIONS - NOT wrapped in a config object.**
+    Write exactly this shape at the top of `elevator.js`:
+        ```
+        const FLOOR_HEIGHT = 3;
+        const FLOOR_COUNT = 6;
+        const BUILDING_WIDTH = 20;
+        const BUILDING_DEPTH = 15;
+        const SHAFT_WIDTH = 5;
+        const SHAFT_DEPTH = 5;
+        const ELEVATOR_SPEED = 2;
+        const PERSON_MOVE_SPEED = 1;
+        ```
+    Do NOT wrap them in `const config = { FLOOR_COUNT: 6, ... }`; the rest of
+    the prompt expects these exact bare names, and the static checker must pass
+    with no unresolved references.
+
+H7. **`person.userData` CONTRACT.** Every person object returned by
+    `createPerson()` in `person.js` must have this structure populated before
+    it is returned:
+        ```
+        person.userData = {
+            leftLeg:  <THREE.Object3D reference to the left leg mesh>,
+            rightLeg: <THREE.Object3D reference to the right leg mesh>,
+            isWalking: false
+        };
+        ```
+    The animation loop in `elevator.js` reads these fields every frame. If
+    `userData.leftLeg` is missing you will see hundreds of repeated
+    `TypeError: Cannot read properties of undefined` errors.
+    `person.js` must define the person factory only. Do not declare shared
+    simulation globals such as `people`, `scene`, `camera`, `renderer`, or
+    `elevatorCar` in `person.js`; those belong in `elevator.js`. Duplicating
+    top-level `let` / `const` / `class` names across classic scripts fails the
+    static checker and can prevent the browser from loading either file.
+
+H8. **REPARENTING PRESERVES WORLD TRANSFORM - USE `.attach()`, NOT `.add()`.**
+    This is the single most common visual bug and has affected nearly every
+    prior model. When you move the person between `scene` and `elevatorCar`,
+    you MUST use `THREE.Object3D.attach()`:
+        ```
+        // BOARDING (scene -> elevator): preserves world position
+        elevatorCar.attach(person);
+
+        // EXITING (elevator -> scene): preserves world position
+        scene.attach(person);
+        ```
+    Do NOT use `elevatorCar.add(person)` or `scene.add(person)` for reparenting
+    a person that already has a meaningful position in the world. `.add()`
+    keeps the raw `.position` numbers unchanged, which means the coordinate
+    frame silently switches underneath the object.
+
+    Concrete failure this rule prevents: after the elevator travels up, if you
+    do `scene.add(person)` while the person is a child of the elevator at
+    local `y = 0`, the person's `position.y` is still `0` but is now interpreted
+    in world coordinates - the passenger teleports down to the ground floor
+    (or walks out into mid-air above the roof in the reverse case).
+
+    If for some reason you cannot use `.attach()`, you must manually convert
+    before reparenting:
+        ```
+        const worldPos = new THREE.Vector3();
+        person.getWorldPosition(worldPos);
+        elevatorCar.remove(person);
+        scene.add(person);
+        person.position.copy(worldPos);    // restore world-space position
+        ```
+    Do NOT try to "fix it later" by setting `person.position.y = floorY`
+    after the fact - that causes a visible teleport/snap.
+
+    Additional invariant: at any moment, the person's WORLD y-coordinate must
+    equal the Y of the floor they are currently standing on (or traveling
+    through inside the elevator). Sanity-check this: right before the exit
+    animation starts, `person.getWorldPosition(v).y` should equal the
+    destination floor's Y. After `scene.attach(person)`, it should still equal
+    that value.
+
+===============================================================================
+## Core Requirements
+===============================================================================
+
+### Visual Structure
+1. **Building**:
+   - 6 usable floors with transparent floor surfaces (opacity: 0.3)
+   - Semi-transparent walls (opacity: 0.2) to see inside
+   - Elevator shaft cutout through the center of all floors
+   - Solid ground floor and roof
+
+2. **Elevator Car**:
+   - Semi-transparent yellow frame (opacity: 0.5) so passengers are VISIBLE inside
+   - Two sliding doors on the front that open/close horizontally:
+     - Doors retract from center outward when opening
+     - Doors meet in the middle when closing
+     - Doors should be slightly more opaque (0.7) than the frame
+   - Solid back wall, transparent side walls
+   - Position at floor level, not floating
+
+3. **People**:
+   - Simple 3D humanoid figures made from Three.js primitives
+   - CRITICAL: Feet must align exactly with floor level (not protruding through floor)
+   - CRITICAL: Arms must hang DOWN from shoulders, not up from hips
+   - Body structure from bottom to top: legs -> torso -> head, with arms at shoulder level
+   - Must populate `person.userData` per rule H7 above.
+
+### Positioning & Movement
+
+4. **Person Positioning**:
+   - People wait IN FRONT of the elevator doors (on positive Z-axis)
+   - People must FACE the elevator (rotate 180 degrees to look toward doors)
+   - When boarding/exiting, people walk FORWARD through the doors (not sideways)
+   - Never position people to the side of the elevator
+
+5. **Walking Animation**:
+   - Animate legs with alternating swing motion during walking
+   - Use sine wave for smooth leg rotation on X-axis
+   - Reset legs to standing position when stationary
+   - The legs should pivot from the hips/body, not the knees/mid-leg
+   - The animation loop reads `person.userData.leftLeg` / `rightLeg` / `isWalking`
+     - set `isWalking = true` when the person starts walking, `false` when they stop.
+
+6. **Door Animation**:
+   - Doors open BEFORE person enters/exits
+   - Doors close AFTER person is fully inside/outside
+   - Add brief delays (300ms) between steps for realism
+
+Scene Graph & Parent-Child Relationships:
+  - When person boards the elevator, they must become a child of `elevatorCar`
+    (not the scene) so they travel with it during vertical movement.
+  - When the person exits, they must be re-parented back to `scene`.
+  - **Use `elevatorCar.attach(person)` on boarding and `scene.attach(person)`
+    on exit - NOT `.add()`.** See rule H8. Using `.add()` for reparenting
+    silently re-interprets the person's local `position` as world coords and
+    causes the passenger to appear on the wrong floor (typically the ground
+    floor, or above the roof) after the elevator has traveled.
+
+### Animation Sequence
+Complete cycle should be:
+1. Elevator moves to pickup floor
+2. Doors open (sliding animation)
+3. Person walks forward into elevator (with leg animation) then becomes a child of elevator object
+4. Doors close
+5. Elevator travels to destination
+6. Doors open at destination
+7. Person walks forward to waiting spot (with leg animation) then is removed from elevator and added back to scene
+8. Doors close
+
+### Transparency Rendering (CRITICAL)
+
+7. **Three.js Transparency Setup**:
+   - Enable `renderer.sortObjects = true` for proper depth sorting
+   - Add `renderer.alpha = true` to WebGL renderer
+   - ALL transparent materials MUST have `depthWrite: false` to prevent z-fighting
+   - ALL transparent materials should have `side: THREE.DoubleSide`
+   - Use `renderOrder` property: building=0, elevator=1
+   - This prevents floors/walls from disappearing when camera rotates
+
+### Simulation Logic
+
+8. **Floor Management**:
+   - One floor is always empty
+   - One person on each occupied floor
+   - Randomly select person to move to empty floor
+   - Update empty floor after each move
+
+9. **Camera & Controls**:
+   - Position camera at (25, 25, 25) looking at building center
+   - Use OrbitControls for user interaction
+   - Ensure all objects remain visible during rotation
+
+### Technical Specifications
+
+10. **Files** (see H1 above for the hard requirement):
+   - `index.html`: Load Three.js and OrbitControls from CDN, then load custom scripts
+   - `elevator.js`: Main simulation logic, building creation, animations, AND a top-level call that starts the simulation (see H3)
+   - `person.js`: Person model factory function `createPerson()` that returns a THREE.Group with `userData` populated per H7
+
+11. **Constants** (see H6 above for the hard requirement on shape):
+   - FLOOR_HEIGHT, FLOOR_COUNT, BUILDING_WIDTH, BUILDING_DEPTH
+   - SHAFT_WIDTH, SHAFT_DEPTH
+   - ELEVATOR_SPEED, PERSON_MOVE_SPEED
+
+12. **Animation Style**:
+   - Use `requestAnimationFrame` for smooth animations
+   - Use callback-based sequential animation pipeline
+   - Distance-based completion checks (< 0.01)
+   - Include a slider control to allow the user to vary the animation speed 1x-20x
+
+### Color Scheme
+- Elevator frame: Yellow (#ffff00)
+- Elevator doors: Darker yellow (#cccc00)
+- Building floors: Gray (#cccccc)
+- Building walls: Blue (#9999ff)
+- People: Blue body (#3498db), skin tone head (#ffdbac), dark legs (#2c3e50)
+
+## Key Implementation Details
+
+- Coordinate system: Y=vertical, Z=front/back (positive Z = in front of elevator)
+- Person height calculation must account for all parts (legs + torso + head)
+- Doors are split into left/right halves, each sliding on X-axis
+- Store door references on `elevatorCar` as `elevatorCar.leftDoor` / `elevatorCar.rightDoor` (see H5)
+- Track door state (open/closed) to prevent animation conflicts
+
+===============================================================================
+## index.html Setup (prevents Three.js versioning and loading errors)
+===============================================================================
+
+   1. HTML Structure: The body of the HTML should be empty except for an
+      optional speed-slider control and the script tags. All 3D content will be
+      generated and appended by the scripts.
+
+   2. Script Loading (Crucial): The scripts must be loaded in a specific order
+      using exact URLs to ensure compatibility and proper dependency resolution.
+      Add the following <script> tags to the <body> in this exact sequence:
+
+         <!-- 1. Load the core Three.js library first -->
+         <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+
+         <!-- 2. Load OrbitControls, which depends on the core library -->
+         <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+
+         <!-- 3. Load your custom scripts last -->
+         <script src="person.js"></script>
+         <script src="elevator.js"></script>
+
+   3. Technical Notes to Follow:
+       * Use these exact URLs. They point to a specific, compatible version
+         (0.147.0) of both the library and the controls. Do not mix versions or CDNs.
+       * The order is mandatory. OrbitControls.js requires the global `THREE`
+         object to be created by three.min.js, so it must be loaded second.
+         Your custom scripts, which also depend on the `THREE` object, must be
+         loaded last.
+       * NONE of the <script> tags may have `type="module"` (see H2).
+       * `person.js` and `elevator.js` use plain global declarations - no
+         `import`, no `export` (see H2).
+       * Do not add `<iframe>`, `<object>`, `<embed>`, a generated
+         `summary.html`, or any `file://` / absolute local path preview. The
+         simulation page must not load itself or any local report inside a
+         frame. This prevents browser security-origin errors when the artifact
+         is opened directly from disk or through a local static server.
+
+   4. Minimal render bootstrap to preserve while building features. Adapt this
+      shape in `elevator.js`; do not omit the canvas append, lights, controls
+      update, render call, or top-level startup call:
+
+         function startSimulation() {
+             scene = new THREE.Scene();
+             scene.background = new THREE.Color(0x20242a);
+             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+             camera.position.set(25, 25, 25);
+             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+             renderer.setSize(window.innerWidth, window.innerHeight);
+             renderer.sortObjects = true;
+             document.body.appendChild(renderer.domElement);
+             controls = new THREE.OrbitControls(camera, renderer.domElement);
+             scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+             const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+             sun.position.set(20, 30, 10);
+             scene.add(sun);
+             createBuilding();
+             elevatorCar = createElevatorCar();
+             scene.add(elevatorCar);
+             function animate() {
+                 requestAnimationFrame(animate);
+                 controls.update();
+                 renderer.render(scene, camera);
+             }
+             animate();
+         }
+
+         if (document.readyState === "loading") {
+             window.addEventListener("DOMContentLoaded", startSimulation);
+         } else {
+             startSimulation();
+         }
+
+## Expected Behavior
+
+When running, you should see:
+- Transparent building with visible floors and elevator shaft
+- Yellow semi-transparent elevator with clearly visible passengers inside
+- Realistic door opening/closing animations
+- People facing the elevator, walking forward through open doors
+- Smooth leg animation during walking
+- No z-fighting or disappearing surfaces when rotating view
+
+===============================================================================
+## FINAL VERIFICATION CHECKLIST - DO ALL OF THESE BEFORE REPORTING DONE
+===============================================================================
+
+After generating the files, run through this checklist. For each item, use
+your file-read tool to open the relevant file and verify with your own eyes.
+Do not claim "done" until every box is checked.
+
+  [ ] `index.html` exists and is syntactically valid HTML.
+  [ ] `elevator.js` exists and is more than a stub (contains building creation,
+      elevator creation, animation loop, and a top-level call to start it).
+  [ ] `person.js` exists and exports nothing but defines a global
+      `createPerson()` function that sets `person.userData = { leftLeg,
+      rightLeg, isWalking: false }`.
+  [ ] No occurrence of the words `import ` or `export ` anywhere in the .js
+      files (grep for it).
+  [ ] No `type="module"` attribute anywhere in `index.html`.
+  [ ] No occurrence of `file://`, `summary.html`, `<iframe`, `<object`, or
+      `<embed` anywhere in `index.html`, `elevator.js`, or `person.js`.
+  [ ] At the bottom of `elevator.js`, your main/init function is actually
+      invoked (not just defined).
+  [ ] `node ../../static_check.js .` reports no static errors.
+  [ ] If Playwright is available, `node ../../runtime_check.js .` reports no
+      startup, canvas, animation, or browser page errors.
+  [ ] Every identifier used in runtime code is declared exactly once with the
+      intended spelling, and shared symbols are not duplicated across classic
+      browser scripts.
+  [ ] The global variable `elevatorCar` is assigned (not left undefined)
+      before any code writes to `elevatorCar.leftDoor` / `.rightDoor`.
+  [ ] All eight required constants from H6 are declared as top-level `const`
+      (not nested inside a config object).
+  [ ] All references to `FLOOR_COUNT`, `FLOOR_HEIGHT`, etc. use the bare
+      names (not `config.FLOOR_COUNT`).
+  [ ] Reparenting the person between `scene` and `elevatorCar` uses
+      `.attach()` (NOT `.add()`) - grep the file to confirm there is no
+      `scene.add(person)` or `elevatorCar.add(person)` for a person that
+      already has a meaningful position (it's OK to `scene.add(person)` when
+      the person is first created with no prior position).
+  [ ] Passenger's world y-coordinate tracks the floor they are on at every
+      stage of the animation (not locked to ground level after exit, not
+      floating above the roof).
+
+If any check fails, fix it before reporting completion.

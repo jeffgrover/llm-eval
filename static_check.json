@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-06-29T03:06:56.394Z",
+  "files_checked": [
+    "runtime_check.js",
+    "static_check.js"
+  ],
+  "static_errors": [
+    "Duplicate top-level lexical declaration 'fs' in classic scripts: runtime_check.js:2:7, static_check.js:2:7",
+    "Duplicate top-level lexical declaration 'require' in classic scripts: runtime_check.js:2:12, runtime_check.js:3:14, runtime_check.js:4:14, static_check.js:2:12, static_check.js:3:14",
+    "Duplicate top-level lexical declaration 'path' in classic scripts: runtime_check.js:4:7, runtime_check.js:18:19, static_check.js:3:7, static_check.js:7:19",
+    "Duplicate top-level lexical declaration 'ROOT' in classic scripts: runtime_check.js:17:7, static_check.js:6:7",
+    "Duplicate top-level lexical declaration 'process' in classic scripts: runtime_check.js:17:14, static_check.js:6:14",
+    "Duplicate top-level lexical declaration 'EVALS_DIR' in classic scripts: runtime_check.js:18:7, static_check.js:7:7",
+    "Duplicate top-level lexical declaration 'new' in classic scripts: static_check.js:9:18, static_check.js:18:23",
+    "Duplicate top-level lexical declaration 'Set' in classic scripts: static_check.js:9:22, static_check.js:18:27",
+    "runtime_check.js:1:4 'usr' is not defined",
+    "runtime_check.js:1:8 'bin' is not defined",
+    "runtime_check.js:1:12 'env' is not defined",
+    "runtime_check.js:1:16 'node' is not defined",
+    "runtime_check.js:244:15 'err' is not defined",
+    "runtime_check.js:54:23 'resolve' is not defined",
+    "runtime_check.js:44:29 'err' is not defined",
+    "runtime_check.js:44:34 'data' is not defined",
+    "runtime_check.js:40:7 'res' is not defined",
+    "runtime_check.js:41:7 'res' is not defined",
+    "runtime_check.js:45:11 'err' is not defined",
+    "runtime_check.js:50:7 'res' is not defined",
+    "runtime_check.js:51:7 'res' is not defined",
+    "runtime_check.js:51:15 'data' is not defined",
+    "runtime_check.js:46:9 'res' is not defined",
+    "runtime_check.js:47:9 'res' is not defined",
+    "runtime_check.js:55:41 'resolve' is not defined",
+    "runtime_check.js:71:13 'name' is not defined",
+    "runtime_check.js:71:43 'name' is not defined",
+    "runtime_check.js:72:16 'item' is not defined",
+    "runtime_check.js:72:37 'item' is not defined",
+    "runtime_check.js:72:72 'item' is not defined"
+  ],
+  "static_warnings": []
+}

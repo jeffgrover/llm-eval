@@ -277,9 +277,10 @@ def score_runtime(work_dir: Path, files: Dict[str, str], runtime: Dict, evidence
         flags.append("Runtime check parse error")
         return 0
 
+    static_errors = runtime.get("static_errors") or []
     console_errors = runtime.get("console_errors") or []
     page_errors = runtime.get("page_errors") or []
-    startup_clean = bool(runtime.get("loaded")) and not console_errors and not page_errors
+    startup_clean = bool(runtime.get("loaded")) and not static_errors and not console_errors and not page_errors
     canvas_count = int(runtime.get("canvas_count") or 0)
     frame_count = int(runtime.get("animation_frames") or 0)
     scene_objects = int(runtime.get("scene_object_count") or 0)
@@ -296,6 +297,8 @@ def score_runtime(work_dir: Path, files: Dict[str, str], runtime: Dict, evidence
     warnings = runtime.get("warnings") or []
     if warnings:
         flags.extend(str(w) for w in warnings[:2])
+    if static_errors:
+        flags.append("Static JS reference check failed")
     return min(score, 40)
 
 
@@ -412,8 +415,12 @@ def deterministic_score(ev: Dict) -> Dict:
     elif runtime.get("_parse_error"):
         caps.append((55, "runtime check parse error"))
     else:
+        static_errors = runtime.get("static_errors") or []
         console_errors = runtime.get("console_errors") or []
         page_errors = runtime.get("page_errors") or []
+        if static_errors:
+            flags.append("Static JS reference check failed")
+            caps.append((55, "static JS reference check failed"))
         if console_errors or page_errors or not runtime.get("loaded"):
             flags.append("Runtime startup failed")
             caps.append((45, "runtime startup failed"))
@@ -527,7 +534,7 @@ def short_runtime_error(message: str, limit: int = 140) -> str:
 def runtime_error_summary(runtime: Dict, limit: int = 5) -> List[str]:
     seen = set()
     errors = []
-    for err in (runtime.get("page_errors") or []) + (runtime.get("console_errors") or []):
+    for err in (runtime.get("static_errors") or []) + (runtime.get("page_errors") or []) + (runtime.get("console_errors") or []):
         text = short_runtime_error(err)
         key = text.lower()
         if not text or key in seen:

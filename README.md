@@ -107,13 +107,22 @@ After running one or more experiments, generate the centralized dashboard to bro
     npm run runtime-check
     ./generate_index.py
     ```
-    The runtime checker uses Playwright and writes `runtime_check.json` into
-    each evaluated run directory. To verify only one run:
+    The runtime checker first runs a dependency-free static JavaScript preflight
+    for syntax, likely unresolved references, and duplicate top-level `let` /
+    `const` / `class` declarations across classic scripts, then uses
+    Playwright to load each artifact in Chromium. It writes `runtime_check.json` into each
+    evaluated run directory. To verify only one run:
     ```bash
     npm install
     npx playwright install chromium
     node runtime_check.js evals/opencode_glm-4_7-flash_office_prompt_v2
     ./generate_index.py
+    ```
+    For a faster static-only pass that catches common `ReferenceError` failures
+    such as undeclared animation-loop variables or duplicate global constants:
+    ```bash
+    npm run static-check
+    node static_check.js evals/opencode_glm-4_7-flash_office_prompt_v2
     ```
     `npm install` and `npx playwright install chromium` are one-time setup
     steps on a machine. After that, rerun only `node runtime_check.js ...` and

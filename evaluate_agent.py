@@ -63,6 +63,16 @@ def send_stdin(process: subprocess.Popen, input_text: Optional[str]) -> None:
     threading.Thread(target=_write, daemon=True).start()
 
 
+def safe_stdout_write(text: str) -> None:
+    """Write text to the console even when Windows uses a legacy code page."""
+    try:
+        sys.stdout.write(text)
+    except UnicodeEncodeError:
+        encoding = sys.stdout.encoding or "utf-8"
+        sys.stdout.write(text.encode(encoding, errors="backslashreplace").decode(encoding))
+    sys.stdout.flush()
+
+
 def format_display_cmd(cmd: List[str], prompt_placeholder: Optional[str] = None) -> str:
     """Format a command for logs without dumping the full prompt."""
     if prompt_placeholder is None:
@@ -1197,6 +1207,39 @@ def generate_html_report(
 
     import base64
 
+    def build_embedded_html_preview(artifact_name: str) -> str:
+        """Inline local JS dependencies so summary previews work from file://."""
+        artifact_path = work_dir / artifact_name
+        html_text = artifact_path.read_text(encoding="utf-8", errors="replace")
+
+        def inline_script(match):
+            attrs = f"{match.group(1)}{match.group(4)}"
+            src = match.group(3)
+            src_lower = src.lower()
+            if (
+                "://" in src
+                or src_lower.startswith(("data:", "about:", "javascript:"))
+                or src.startswith(("/", "\\"))
+            ):
+                return match.group(0)
+            local_path = (artifact_path.parent / src).resolve()
+            try:
+                local_path.relative_to(artifact_path.parent.resolve())
+            except ValueError:
+                return match.group(0)
+            if not local_path.exists() or local_path.suffix.lower() != ".js":
+                return match.group(0)
+            script_text = local_path.read_text(encoding="utf-8", errors="replace")
+            safe_script = script_text.replace("</script", "<\\/script")
+            return f"<script{attrs}>\n{safe_script}\n</script>"
+
+        return re.sub(
+            r"<script\b([^>]*)\bsrc\s*=\s*([\"'])([^\"']+)\2([^>]*)>\s*</script>",
+            inline_script,
+            html_text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
     for art in artifacts:
         is_html = art.lower().endswith((".html", ".htm"))
         is_image = art.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".svg"))
@@ -1204,7 +1247,8 @@ def generate_html_report(
         if is_html:
             # Add Preview item with base64 content for proper HTML rendering
             try:
-                b64_content = base64.b64encode((work_dir / art).read_bytes()).decode()
+                preview_html = build_embedded_html_preview(art)
+                b64_content = base64.b64encode(preview_html.encode("utf-8")).decode()
                 html_content += f"""
                 <div class="file-list-item" onclick="loadHTMLPreview('{art}', '{b64_content}')">
                     {art} <span class="badge">Preview</span>
@@ -1319,6 +1363,11 @@ class AgentRunner:
     def get_env_vars(self) -> Dict[str, str]:
         """Returns the environment variables needed for the agent to talk to localhost."""
         env = os.environ.copy()
+        # Several CLIs are Python entrypoints on Windows. If they inherit a
+        # legacy console code page, their own JSON/status output can crash
+        # before this evaluator has a chance to decode it.
+        env["PYTHONUTF8"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
         if not self.non_local:
             # Standard OpenAI-compatible env vars
             env["OPENAI_API_BASE"] = LM_STUDIO_API_URL
@@ -1609,8 +1658,7 @@ class AgentRunner:
 
             # Stream output
             for line in process.stdout:
-                sys.stdout.write(line)
-                sys.stdout.flush()
+                safe_stdout_write(line)
                 log_file.write(line)
                 log_file.flush()
 
@@ -1698,30 +1746,26 @@ class GeminiRunner(AgentRunner):
                         content = event.get("content", "")
                         if content and event.get("role") == "assistant":
                             # It streams delta updates usually.
-                            sys.stdout.write(content)
-                            sys.stdout.flush()
+                            safe_stdout_write(content)
                             log_file.write(content)
                             log_file.flush()
 
                     elif event_type == "tool_call":
                         tool_name = event.get("function", "")
                         info_line = f"\n[Tool: {tool_name}]\n"
-                        sys.stdout.write(info_line)
-                        sys.stdout.flush()
+                        safe_stdout_write(info_line)
                         log_file.write(info_line)
                         log_file.flush()
 
                     elif event_type == "result":
                         result_data = event
-                        sys.stdout.write("\n")
-                        sys.stdout.flush()
+                        safe_stdout_write("\n")
                         log_file.write("\n")
                         log_file.flush()
 
                 except json.JSONDecodeError:
                     # Non-JSON line, pass through as-is
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
+                    safe_stdout_write(line)
                     log_file.write(line)
                     log_file.flush()
 
@@ -1828,16 +1872,14 @@ class ClaudeRunner(AgentRunner):
                                 flush=True,
                             )
                         elif subtype == "thinking_tokens":
-                            sys.stdout.write(".")
-                            sys.stdout.flush()
+                            safe_stdout_write(".")
 
                     elif event_type == "assistant":
                         message = event.get("message", {})
                         for block in message.get("content", []):
                             if block.get("type") == "text":
                                 text = block.get("text", "")
-                                sys.stdout.write(text)
-                                sys.stdout.flush()
+                                safe_stdout_write(text)
                                 log_file.write(text)
                                 log_file.flush()
                             elif block.get("type") == "tool_use":
@@ -1848,8 +1890,7 @@ class ClaudeRunner(AgentRunner):
                                     info_line = f"\n[Tool: {tool_name}] {file_path}\n"
                                 else:
                                     info_line = f"\n[Tool: {tool_name}]\n"
-                                sys.stdout.write(info_line)
-                                sys.stdout.flush()
+                                safe_stdout_write(info_line)
                                 log_file.write(info_line)
                                 log_file.flush()
 
@@ -1857,15 +1898,13 @@ class ClaudeRunner(AgentRunner):
                         result_data = event
                         result_text = event.get("result", "")
                         if result_text:
-                            sys.stdout.write("\n" + result_text + "\n")
-                            sys.stdout.flush()
+                            safe_stdout_write("\n" + result_text + "\n")
                             log_file.write("\n" + result_text + "\n")
                             log_file.flush()
 
                 except json.JSONDecodeError:
                     # Non-JSON line, pass through as-is
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
+                    safe_stdout_write(line)
                     log_file.write(line)
                     log_file.flush()
 
@@ -2152,6 +2191,7 @@ class VibeRunner(AgentRunner):
             prompt_content,
             "--output",
             "streaming",
+            "--auto-approve",  # Approve all tool calls in programmatic evals
             "--trust",  # Trust the working directory for non-interactive runs
         ]
 
@@ -2159,7 +2199,7 @@ class VibeRunner(AgentRunner):
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / VIBE_RESULT_FILENAME
 
-        print(f"[*] Executing: vibe -p <prompt> --output streaming --trust")
+        print(f"[*] Executing: vibe -p <prompt> --output streaming --auto-approve --trust")
         print(f"[*] Output logging to: {chat_log_path}")
 
         # Track message info for result JSON
@@ -2195,8 +2235,7 @@ class VibeRunner(AgentRunner):
                         # Write content to stdout and log
                         # Skip system prompt content to reduce noise
                         if role != "system":
-                            sys.stdout.write(content)
-                            sys.stdout.flush()
+                            safe_stdout_write(content)
                         log_file.write(line)
                         log_file.flush()
 
@@ -2206,8 +2245,7 @@ class VibeRunner(AgentRunner):
 
                 except json.JSONDecodeError:
                     # Non-JSON line, pass through as-is
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
+                    safe_stdout_write(line)
                     log_file.write(line)
                     log_file.flush()
 
@@ -2541,15 +2579,13 @@ class OpenCodeRunner(AgentRunner):
                     if event_type == "text":
                         text = event.get("content", event.get("text", ""))
                         if text:
-                            sys.stdout.write(text)
-                            sys.stdout.flush()
+                            safe_stdout_write(text)
                             log_file.write(text)
                             log_file.flush()
                     elif event_type == "tool_call":
                         tool_name = event.get("name", event.get("tool", "unknown"))
                         info_line = f"\n[Tool: {tool_name}]\n"
-                        sys.stdout.write(info_line)
-                        sys.stdout.flush()
+                        safe_stdout_write(info_line)
                         log_file.write(info_line)
                         log_file.flush()
                     elif event_type == "step_finish":
@@ -2580,8 +2616,7 @@ class OpenCodeRunner(AgentRunner):
 
                 except json.JSONDecodeError:
                     # Non-JSON line (e.g. log output), pass through
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
+                    safe_stdout_write(line)
                     log_file.write(line)
                     log_file.flush()
 
@@ -2931,8 +2966,7 @@ class CodexRunner(AgentRunner):
 
                     readable = self._extract_readable_event(event)
                     if readable:
-                        sys.stdout.write(readable)
-                        sys.stdout.flush()
+                        safe_stdout_write(readable)
                         log_file.write(readable)
                         log_file.flush()
 
@@ -2962,8 +2996,7 @@ class CodexRunner(AgentRunner):
                             num_turns += 1
 
                 except json.JSONDecodeError:
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
+                    safe_stdout_write(line)
                     log_file.write(line)
                     log_file.flush()
 
@@ -3191,15 +3224,13 @@ class PiRunner(AgentRunner):
                         if ae_type == "text_delta":
                             delta = ae.get("delta", "")
                             if delta:
-                                sys.stdout.write(delta)
-                                sys.stdout.flush()
+                                safe_stdout_write(delta)
                                 log_file.write(delta)
                                 log_file.flush()
                         elif ae_type == "tool_call_start":
                             tool_name = ae.get("name", "unknown")
                             info_line = f"\n[Tool: {tool_name}]\n"
-                            sys.stdout.write(info_line)
-                            sys.stdout.flush()
+                            safe_stdout_write(info_line)
                             log_file.write(info_line)
                             log_file.flush()
 
@@ -3213,8 +3244,7 @@ class PiRunner(AgentRunner):
 
                 except json.JSONDecodeError:
                     # Non-JSON line, pass through
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
+                    safe_stdout_write(line)
                     log_file.write(line)
                     log_file.flush()
 

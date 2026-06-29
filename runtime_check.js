@@ -2,6 +2,7 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const { staticCheckEval } = require("./static_check");
 
 let chromium;
 try {
@@ -116,6 +117,7 @@ async function boostSimulationControls(page) {
 }
 
 async function probeEval(browser, serverPort, evalDir) {
+  const staticCheck = staticCheckEval(evalDir);
   const preview = previewFile(evalDir);
   const rel = path.relative(ROOT, path.join(evalDir, preview)).replace(/\\/g, "/");
   const url = `http://127.0.0.1:${serverPort}/${rel}`;
@@ -199,6 +201,9 @@ async function probeEval(browser, serverPort, evalDir) {
   return {
     checked_at: new Date().toISOString(),
     url,
+    static_errors: staticCheck.static_errors,
+    static_warnings: staticCheck.static_warnings,
+    static_files_checked: staticCheck.files_checked,
     loaded,
     console_errors: consoleErrors.slice(0, 10),
     page_errors: pageErrors.slice(0, 10),
@@ -227,8 +232,29 @@ async function main() {
       const result = await probeEval(browser, port, evalDir);
       const outPath = path.join(evalDir, "runtime_check.json");
       fs.writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
-      const status = result.console_errors.length || result.page_errors.length ? "errors" : "ok";
+      let status = "ok";
+      if (result.static_errors.length || result.console_errors.length || result.page_errors.length || !result.loaded) {
+        status = "errors";
+      } else if (!result.canvas_count || !result.nonblank_canvas) {
+        status = "no-canvas";
+      } else if (result.animation_frames < 2) {
+        status = "no-animation";
+      } else if (result.dynamic_changes <= 0) {
+        status = "no-motion";
+      }
       console.log(`${path.relative(ROOT, evalDir)}: ${status}, R probe written`);
+      console.log(
+        `  metrics: loaded=${result.loaded} canvas=${result.canvas_count} nonblank=${result.nonblank_canvas} frames=${result.animation_frames} objects=${result.scene_object_count} changes=${result.dynamic_changes}`
+      );
+      const details = [
+        ...result.static_errors.map((err) => `static: ${err}`),
+        ...result.page_errors.map((err) => `page: ${err}`),
+        ...result.console_errors.map((err) => `console: ${err}`),
+        ...result.warnings.map((err) => `warning: ${err}`),
+      ];
+      for (const detail of details.slice(0, 5)) {
+        console.log(`  - ${detail}`);
+      }
     }
   } finally {
     await browser.close();

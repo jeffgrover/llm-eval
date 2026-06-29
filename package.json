@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "description": "Local dashboard tooling for LLM agent evaluation runs.",
   "scripts": {
+    "static-check": "node static_check.js --all",
+    "static-check:one": "node static_check.js",
     "runtime-check": "node runtime_check.js --all",
     "runtime-check:one": "node runtime_check.js",
     "dashboard": "python generate_index.py"
