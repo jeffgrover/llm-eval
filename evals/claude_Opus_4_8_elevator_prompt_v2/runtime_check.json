@@ -1,15 +1,21 @@
 {
-  "checked_at": "2026-06-27T07:40:37.649Z",
-  "url": "http://127.0.0.1:59332/evals/claude_Opus_4_8_elevator_prompt_v2/index.html",
+  "checked_at": "2026-06-29T05:25:10.740Z",
+  "url": "http://127.0.0.1:52627/evals/claude_Opus_4_8_elevator_prompt_v2/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\claude_Opus_4_8_elevator_prompt_v2\\person.js",
+    "evals\\claude_Opus_4_8_elevator_prompt_v2\\elevator.js"
+  ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 275,
+  "animation_frames": 265,
   "scene_object_count": 85,
-  "dynamic_changes": 242,
+  "dynamic_changes": 232,
   "canvas_changed": false,
-  "duration_ms": 5956,
+  "duration_ms": 5942,
   "warnings": []
 }

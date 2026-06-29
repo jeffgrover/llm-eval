@@ -1,15 +1,26 @@
 {
-  "checked_at": "2026-06-27T07:47:24.716Z",
-  "url": "http://127.0.0.1:59332/evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/index.html",
+  "checked_at": "2026-06-29T05:32:04.252Z",
+  "url": "http://127.0.0.1:52627/evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/index.html",
+  "static_errors": [
+    "evals\\pi_unsloth_gemma-4-e4b-it_elevator_prompt\\elevator.js:307:9 'personFactory' is not defined",
+    "evals\\pi_unsloth_gemma-4-e4b-it_elevator_prompt\\elevator.js:545:14 'person' is not defined",
+    "evals\\pi_unsloth_gemma-4-e4b-it_elevator_prompt\\elevator.js:545:43 'floorIdx' is not defined",
+    "evals\\pi_unsloth_gemma-4-e4b-it_elevator_prompt\\elevator.js:547:27 'floorIdx' is not defined"
+  ],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\pi_unsloth_gemma-4-e4b-it_elevator_prompt\\person.js",
+    "evals\\pi_unsloth_gemma-4-e4b-it_elevator_prompt\\elevator.js"
+  ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 318,
+  "animation_frames": 308,
   "scene_object_count": 98,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5922,
+  "duration_ms": 5897,
   "warnings": []
 }

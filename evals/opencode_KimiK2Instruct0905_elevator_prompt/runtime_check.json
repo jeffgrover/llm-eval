@@ -1,15 +1,21 @@
 {
-  "checked_at": "2026-06-27T07:43:32.321Z",
-  "url": "http://127.0.0.1:59332/evals/opencode_KimiK2Instruct0905_elevator_prompt/index.html",
+  "checked_at": "2026-06-29T05:28:08.395Z",
+  "url": "http://127.0.0.1:52627/evals/opencode_KimiK2Instruct0905_elevator_prompt/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\opencode_KimiK2Instruct0905_elevator_prompt\\person.js",
+    "evals\\opencode_KimiK2Instruct0905_elevator_prompt\\elevator.js"
+  ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 626,
+  "animation_frames": 624,
   "scene_object_count": 87,
-  "dynamic_changes": 283,
+  "dynamic_changes": 282,
   "canvas_changed": false,
-  "duration_ms": 5858,
+  "duration_ms": 5853,
   "warnings": []
 }

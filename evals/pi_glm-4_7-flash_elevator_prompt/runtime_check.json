@@ -1,6 +1,9 @@
 {
-  "checked_at": "2026-06-27T07:46:25.245Z",
-  "url": "http://127.0.0.1:59332/evals/pi_glm-4_7-flash_elevator_prompt/index.html",
+  "checked_at": "2026-06-29T05:31:04.175Z",
+  "url": "http://127.0.0.1:52627/evals/pi_glm-4_7-flash_elevator_prompt/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [],
   "loaded": true,
   "console_errors": [],
   "page_errors": [
@@ -12,6 +15,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5737,
+  "duration_ms": 5753,
   "warnings": []
 }

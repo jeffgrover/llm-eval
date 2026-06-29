@@ -1,6 +1,19 @@
 {
-  "checked_at": "2026-06-27T07:45:01.934Z",
-  "url": "http://127.0.0.1:59332/evals/opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2/index.html",
+  "checked_at": "2026-06-29T05:29:39.727Z",
+  "url": "http://127.0.0.1:52627/evals/opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2/index.html",
+  "static_errors": [
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\elevator.js:152:132 'wallThickness' is not defined",
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\elevator.js:159:132 'wallThickness' is not defined",
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\elevator.js:496:39 'CLOSED_DOOR_X_OFFSET' is not defined",
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\elevator.js:497:48 'CLOSED_DOOR_X_OFFSET' is not defined",
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\elevator.js:511:37 'CLOSED_DOOR_X_OFFSET' is not defined",
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\elevator.js:512:48 'CLOSED_DOOR_X_OFFSET' is not defined"
+  ],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\person.js",
+    "evals\\opencode_qwen3_5-9b-glm5_1-distill-v1_elevator_prompt_v2\\elevator.js"
+  ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [
@@ -12,6 +25,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5855,
+  "duration_ms": 5872,
   "warnings": []
 }

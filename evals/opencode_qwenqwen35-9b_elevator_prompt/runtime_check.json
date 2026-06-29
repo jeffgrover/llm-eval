@@ -1,6 +1,14 @@
 {
-  "checked_at": "2026-06-27T07:45:31.837Z",
-  "url": "http://127.0.0.1:59332/evals/opencode_qwenqwen35-9b_elevator_prompt/index.html",
+  "checked_at": "2026-06-29T05:30:10.256Z",
+  "url": "http://127.0.0.1:52627/evals/opencode_qwenqwen35-9b_elevator_prompt/index.html",
+  "static_errors": [
+    "evals\\opencode_qwenqwen35-9b_elevator_prompt\\elevator.js:421:44 'door' is not defined"
+  ],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\opencode_qwenqwen35-9b_elevator_prompt\\person.js",
+    "evals\\opencode_qwenqwen35-9b_elevator_prompt\\elevator.js"
+  ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [
@@ -12,6 +20,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5833,
+  "duration_ms": 5830,
   "warnings": []
 }

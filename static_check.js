@@ -154,6 +154,29 @@ function parseParamNames(tokens, startIndex) {
   return { params, paramIndices, end: startIndex };
 }
 
+function arrowParamsBefore(tokens, arrowIndex) {
+  const prev = tokens[arrowIndex - 1];
+  if (!prev) return [];
+  if (isIdent(prev.value) && !KEYWORDS.has(prev.value)) return [{ name: prev.value, tokenIndex: arrowIndex - 1 }];
+  if (prev.value !== ")") return [];
+  let depth = 0;
+  for (let i = arrowIndex - 1; i >= 0; i -= 1) {
+    const value = tokens[i].value;
+    if (value === ")") depth += 1;
+    else if (value === "(") {
+      depth -= 1;
+      if (depth === 0) {
+        const params = [];
+        for (let j = i + 1; j < arrowIndex - 1; j += 1) {
+          if (isIdent(tokens[j].value) && !KEYWORDS.has(tokens[j].value)) params.push({ name: tokens[j].value, tokenIndex: j });
+        }
+        return params;
+      }
+    }
+  }
+  return [];
+}
+
 function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootDeclarations) {
   const source = fs.readFileSync(filePath, "utf8");
   const tokens = tokenize(source);
@@ -162,8 +185,11 @@ function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootD
   let scope = fileRoot;
   const scopeStack = [fileRoot];
   let pendingFunctionParams = null;
+  let pendingFunctionParamEndIndex = -1;
+  let pendingClassBody = false;
   let declarationMode = null;
   let declarationDepth = 0;
+  let declarationExpectName = false;
   let skipRefs = new Set();
 
   function pushScope(kind, params) {
@@ -188,9 +214,13 @@ function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootD
     const next = tokens[i + 1] && tokens[i + 1].value;
 
     if (value === "{") {
-      if (pendingFunctionParams) {
+      if (pendingClassBody) {
+        pushScope("class", []);
+        pendingClassBody = false;
+      } else if (pendingFunctionParams && i > pendingFunctionParamEndIndex) {
         pushScope("function", pendingFunctionParams);
         pendingFunctionParams = null;
+        pendingFunctionParamEndIndex = -1;
       } else {
         pushScope("block", []);
       }
@@ -214,6 +244,7 @@ function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootD
       if (parenIndex !== -1) {
         const parsed = parseParamNames(tokens, parenIndex);
         pendingFunctionParams = parsed.params;
+        pendingFunctionParamEndIndex = parsed.end;
         for (const idx of parsed.paramIndices) skipRefs.add(idx);
       }
       continue;
@@ -223,7 +254,28 @@ function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootD
       const nameTok = tokens[i + 2];
       if (nameTok && isIdent(nameTok.value)) {
         pendingFunctionParams = [nameTok.value];
+        pendingFunctionParamEndIndex = i + 3;
         skipRefs.add(i + 2);
+      }
+      continue;
+    }
+
+    if (next === "=>") {
+      skipRefs.add(i);
+      continue;
+    }
+
+    if (value === "=>") {
+      const params = arrowParamsBefore(tokens, i);
+      const paramNames = params.map((param) => param.name);
+      const paramIndexes = new Set(params.map((param) => tokens[param.tokenIndex].index));
+      for (const param of params) skipRefs.add(param.tokenIndex);
+      scope.refs = scope.refs.filter((ref) => !paramIndexes.has(ref.index));
+      if (next === "{") {
+        pendingFunctionParams = paramNames;
+        pendingFunctionParamEndIndex = i;
+      } else {
+        for (const param of paramNames) declare(scope, param);
       }
       continue;
     }
@@ -231,14 +283,27 @@ function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootD
     if ((value === "var" || value === "let" || value === "const")) {
       declarationMode = value;
       declarationDepth = 0;
+      declarationExpectName = true;
       continue;
     }
 
     if (declarationMode) {
       if (value === "(" || value === "[" || value === "{") declarationDepth += 1;
       if (value === ")" || value === "]" || value === "}") declarationDepth -= 1;
-      if ((value === ";" || value === "for") && declarationDepth <= 0) declarationMode = null;
-      if (isIdent(value) && declarationDepth === 0 && prev !== "." && next !== ":") {
+      if ((value === ";" || value === "for") && declarationDepth <= 0) {
+        declarationMode = null;
+        declarationExpectName = false;
+        continue;
+      }
+      if (value === "," && declarationDepth === 0) {
+        declarationExpectName = true;
+        continue;
+      }
+      if (value === "=" && declarationDepth === 0) {
+        declarationExpectName = false;
+        continue;
+      }
+      if (declarationExpectName && isIdent(value) && !KEYWORDS.has(value) && declarationDepth === 0 && prev !== "." && next !== ":") {
         const targetScope = declarationMode === "var" ? nearestFunctionScope(scope) : scope;
         declare(targetScope, value);
         if (targetScope.kind === "root") {
@@ -249,6 +314,7 @@ function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootD
           }
         }
         skipRefs.add(i);
+        declarationExpectName = false;
         continue;
       }
       continue;
@@ -262,10 +328,30 @@ function collectDeclarationsAndRefs(filePath, globalScope, projectGlobals, rootD
         rootDeclarations.get(next).push({ kind: "class", file: filePath, line: token.line, column: token.column });
       }
       skipRefs.add(i + 1);
+      pendingClassBody = true;
       continue;
     }
 
-    if (value === "window" && next === "." && tokens[i + 2] && isIdent(tokens[i + 2].value)) {
+    if (scope.kind === "class" && isIdent(value) && next === "(") {
+      const parsed = parseParamNames(tokens, i + 1);
+      pendingFunctionParams = parsed.params;
+      pendingFunctionParamEndIndex = parsed.end;
+      skipRefs.add(i);
+      for (const idx of parsed.paramIndices) skipRefs.add(idx);
+      continue;
+    }
+
+    if (scope.kind === "class" && (value === "get" || value === "set") && tokens[i + 2] && tokens[i + 2].value === "(") {
+      const parsed = parseParamNames(tokens, i + 2);
+      pendingFunctionParams = parsed.params;
+      pendingFunctionParamEndIndex = parsed.end;
+      skipRefs.add(i);
+      skipRefs.add(i + 1);
+      for (const idx of parsed.paramIndices) skipRefs.add(idx);
+      continue;
+    }
+
+    if ((value === "window" || value === "globalThis" || value === "root") && next === "." && tokens[i + 2] && isIdent(tokens[i + 2].value)) {
       const afterProp = tokens[i + 3] && tokens[i + 3].value;
       if (afterProp === "=") projectGlobals.add(tokens[i + 2].value);
     }

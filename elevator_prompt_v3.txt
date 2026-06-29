@@ -21,6 +21,9 @@ H1. **FILES THAT MUST EXIST.** You must create exactly these three files and
     If either .js file is missing, the browser will log `404 Not Found` and the
     page will be blank. Before finishing, use your file-read tool to open each
     of the three files and visually confirm they contain complete code.
+    Do not add script tags for any other local JavaScript file unless you also
+    create that exact file. A missing `app.js`, `main.js`, or renamed helper
+    script is a blank-page failure.
 
 H2. **NO ES6 MODULES. NO `import`. NO `export`.** This is a plain-script
     project using global variables. Writing `import { createPerson } from ...`
@@ -99,6 +102,13 @@ H4C. **TYPO-PROOF ALL GLOBALS BEFORE FINISHING.** Use one spelling for each
     clock/speed object, pick exactly one name such as `simClock` or `clock`
     and use that spelling everywhere. The static checker in H4A is the final
     guardrail for unbound identifiers and duplicate top-level declarations.
+    Every callback or promise value you use must be declared in that callback's
+    parameter list: use `(event) => ...`, `array.forEach((person) => ...)`, and
+    `new Promise((resolve) => ...)`. Do not rely on implicit globals such as
+    `event`, `e`, `p`, `person`, `resolve`, `x`, or `z`.
+    Do not redeclare top-level `let` / `const` / `class` names later in the
+    same file or in another classic script; use unique local names inside
+    helper functions instead.
 
 H5. **NAMING CONTRACT - use these exact variable names, spelled exactly this way:**
         - `scene`, `camera`, `renderer`, `controls` - top-level Three.js objects

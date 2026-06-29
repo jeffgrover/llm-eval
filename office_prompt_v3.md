@@ -50,6 +50,9 @@ page even when the files look impressive in a static review.
    to `window`, for example `window.createPerson = createPerson`,
    `window.WORLD = WORLD`, `window.createWorld = createWorld`, and
    `window.Elevator = Elevator`.
+   Every local script referenced by `index.html` must exist with that exact
+   filename. Do not add script tags for extra local files such as `app.js`,
+   `main.js`, or renamed helper files unless you also create those exact files.
 3. **`elevator_logic.js` is the only dual-environment file.** It may use the
    IIFE pattern shown below to expose `window.ElevatorLogic` in the browser
    and `module.exports = { ElevatorLogic }` for Node tests. It must not use
@@ -117,6 +120,13 @@ page even when the files look impressive in a static review.
    `simClock`, use that spelling consistently everywhere. The static checker
    in rule 6 is the final guardrail for unbound identifiers and duplicate
    top-level declarations.
+   Every callback or promise value you use must be declared in that callback's
+   parameter list: use `(event) => ...`, `array.forEach((agent) => ...)`, and
+   `new Promise((resolve) => ...)`. Do not rely on implicit globals such as
+   `event`, `e`, `p`, `agent`, `resolve`, `x`, or `z`. Do not redeclare
+   top-level `let` / `const` / `class` names later in the same file or in
+   another classic script; use unique local names inside helper functions
+   instead.
 
 Before reporting completion, mentally grep the generated browser files:
 `person.js`, `world.js`, `elevator.js`, and `sim.js` must contain no top-level

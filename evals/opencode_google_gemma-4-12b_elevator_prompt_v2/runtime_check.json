@@ -1,6 +1,11 @@
 {
-  "checked_at": "2026-06-27T07:42:50.160Z",
-  "url": "http://127.0.0.1:59332/evals/opencode_google_gemma-4-12b_elevator_prompt_v2/index.html",
+  "checked_at": "2026-06-29T05:27:25.611Z",
+  "url": "http://127.0.0.1:52627/evals/opencode_google_gemma-4-12b_elevator_prompt_v2/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\opencode_google_gemma-4-12b_elevator_prompt_v2\\person.js"
+  ],
   "loaded": true,
   "console_errors": [
     "Failed to load resource: the server responded with a status of 404 (Not Found)"
@@ -12,6 +17,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5820,
+  "duration_ms": 5832,
   "warnings": []
 }

@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-06-29T05:22:36.525Z",
+  "files_checked": [
+    "evals\\claude_Fable_5_office_prompt_v2\\person.js",
+    "evals\\claude_Fable_5_office_prompt_v2\\world.js",
+    "evals\\claude_Fable_5_office_prompt_v2\\elevator_logic.js",
+    "evals\\claude_Fable_5_office_prompt_v2\\elevator.js",
+    "evals\\claude_Fable_5_office_prompt_v2\\sim.js"
+  ],
+  "static_errors": [
+    "evals\\claude_Fable_5_office_prompt_v2\\elevator_logic.js:339:71 'e' is not defined",
+    "evals\\claude_Fable_5_office_prompt_v2\\elevator_logic.js:350:71 'e' is not defined",
+    "evals\\claude_Fable_5_office_prompt_v2\\sim.js:291:21 'e' is not defined",
+    "evals\\claude_Fable_5_office_prompt_v2\\sim.js:836:26 'e' is not defined"
+  ],
+  "static_warnings": []
+}

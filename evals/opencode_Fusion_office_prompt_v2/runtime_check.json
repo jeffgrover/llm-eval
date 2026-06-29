@@ -1,14 +1,26 @@
 {
-  "checked_at": "2026-06-27T07:41:44.278Z",
-  "url": "http://127.0.0.1:59332/evals/opencode_Fusion_office_prompt_v2/index.html",
+  "checked_at": "2026-06-29T05:26:18.564Z",
+  "url": "http://127.0.0.1:52627/evals/opencode_Fusion_office_prompt_v2/index.html",
+  "static_errors": [
+    "evals\\opencode_Fusion_office_prompt_v2\\sim.js:843:26 'e' is not defined",
+    "evals\\opencode_Fusion_office_prompt_v2\\sim.js:845:66 'e' is not defined"
+  ],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\opencode_Fusion_office_prompt_v2\\person.js",
+    "evals\\opencode_Fusion_office_prompt_v2\\world.js",
+    "evals\\opencode_Fusion_office_prompt_v2\\elevator_logic.js",
+    "evals\\opencode_Fusion_office_prompt_v2\\elevator.js",
+    "evals\\opencode_Fusion_office_prompt_v2\\sim.js"
+  ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 278,
+  "animation_frames": 285,
   "scene_object_count": 1973,
-  "dynamic_changes": 4368,
+  "dynamic_changes": 4764,
   "canvas_changed": false,
   "duration_ms": 6117,
   "warnings": []

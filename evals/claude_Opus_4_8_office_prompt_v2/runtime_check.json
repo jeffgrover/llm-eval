@@ -1,15 +1,36 @@
 {
-  "checked_at": "2026-06-27T07:40:43.718Z",
-  "url": "http://127.0.0.1:59332/evals/claude_Opus_4_8_office_prompt_v2/index.html",
+  "checked_at": "2026-06-29T05:25:16.950Z",
+  "url": "http://127.0.0.1:52627/evals/claude_Opus_4_8_office_prompt_v2/index.html",
+  "static_errors": [
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:119:43 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:119:61 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:127:43 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:127:61 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:135:43 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:135:61 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:210:46 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js:212:46 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\sim.js:455:18 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\sim.js:458:25 'e' is not defined",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\sim.js:695:26 'e' is not defined"
+  ],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals\\claude_Opus_4_8_office_prompt_v2\\person.js",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\world.js",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator_logic.js",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\elevator.js",
+    "evals\\claude_Opus_4_8_office_prompt_v2\\sim.js"
+  ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 242,
+  "animation_frames": 257,
   "scene_object_count": 2085,
-  "dynamic_changes": 2229,
+  "dynamic_changes": 2487,
   "canvas_changed": false,
-  "duration_ms": 6025,
+  "duration_ms": 5986,
   "warnings": []
 }
