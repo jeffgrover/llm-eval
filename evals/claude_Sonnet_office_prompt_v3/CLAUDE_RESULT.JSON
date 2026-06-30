@@ -1,0 +1,72 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "api_error_status": null,
+  "duration_ms": 2904667,
+  "duration_api_ms": 2681274,
+  "ttft_ms": 21968,
+  "ttft_stream_ms": 1539,
+  "time_to_request_ms": 273,
+  "num_turns": 77,
+  "result": "The simulation is complete and fully verified in `/Users/jeffgrover/Code/llm-eval/evals/claude_Sonnet_office_prompt_v3/`:\n\n**Files**: `person.js`, `world.js`, `elevator_logic.js`, `elevator.js`, `sim.js`, `elevator_logic_test.js`, `index.html` \u2014 exactly as specified, classic scripts with no ES modules, all cross-file APIs on `window`.\n\n**Verification performed**:\n- `elevator_logic_test.js` \u2014 7/7 deterministic tests pass (lobby-rush starvation, destination-outranks-hall-call, repeated-call starvation, opposite-direction deferral, door hold/safety cap, destination-preserved-across-handshake, reset)\n- `static_check.js` \u2014 zero errors (caught and fixed one real bug: `1e-4`/`1e-3` scientific notation literals that the checker's tokenizer misreads as a bare `e` identifier)\n- `runtime_check.js` (Playwright) \u2014 zero console/page errors, nonblank canvas, 120+ animation frames, ~2700 scene objects, thousands of dynamic position changes\n- Extended headless soak test through a full simulated day at 600x speed: morning rush \u2192 lunch surge \u2192 meetings \u2192 evening exodus with stragglers trailing off correctly in the 18:30\u201319:45 window \u2192 elevator parking IDLE with zero phantom passengers \u2192 clean midnight day-wrap restarting the cycle. Zero errors, zero NaN positions throughout.\n- Screenshots confirmed: building renders with transparent walls/furniture, entrance has a clear unobstructed 3-unit gap with people passing through (no bunching), elevator boards/cycles with proper indicators, and seated workers have correct posture \u2014 chair backrest behind the torso, body and legs oriented toward the desk/monitor (verified both by position/rotation data and direct visual inspection).",
+  "stop_reason": "end_turn",
+  "session_id": "e9041591-9e14-4974-b5a6-bff1194b7421",
+  "total_cost_usd": 11.315643500000004,
+  "usage": {
+    "input_tokens": 9022,
+    "cache_creation_input_tokens": 376856,
+    "cache_read_input_tokens": 14980785,
+    "output_tokens": 301189,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 376856,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 645,
+        "cache_read_input_tokens": 327106,
+        "cache_creation_input_tokens": 701,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 701
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 15291,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.015371000000000001,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 9022,
+      "outputTokens": 301189,
+      "cacheReadInputTokens": 14980785,
+      "cacheCreationInputTokens": 376856,
+      "webSearchRequests": 0,
+      "costUSD": 11.300272500000004,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "uuid": "319e7ff1-09f6-41da-91f8-f4652f1ef07c"
+}

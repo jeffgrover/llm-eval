@@ -1,21 +1,21 @@
 {
-  "checked_at": "2026-06-29T05:25:41.736Z",
-  "url": "http://127.0.0.1:52627/evals/gemini_gemini-3-pro-preview_elevator_prompt/index.html",
+  "checked_at": "2026-06-30T22:19:33.249Z",
+  "url": "http://127.0.0.1:49420/evals/gemini_gemini-3-pro-preview_elevator_prompt/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\gemini_gemini-3-pro-preview_elevator_prompt\\person.js",
-    "evals\\gemini_gemini-3-pro-preview_elevator_prompt\\elevator.js"
+    "evals/gemini_gemini-3-pro-preview_elevator_prompt/person.js",
+    "evals/gemini_gemini-3-pro-preview_elevator_prompt/elevator.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 659,
+  "animation_frames": 773,
   "scene_object_count": 76,
-  "dynamic_changes": 393,
+  "dynamic_changes": 423,
   "canvas_changed": false,
-  "duration_ms": 5885,
+  "duration_ms": 5853,
   "warnings": []
 }

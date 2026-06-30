@@ -1,20 +1,20 @@
 {
-  "checked_at": "2026-06-29T05:29:15.550Z",
-  "url": "http://127.0.0.1:52627/evals/opencode_qwen3-coder-next_elevator_prompt/index.html",
+  "checked_at": "2026-06-30T22:23:31.230Z",
+  "url": "http://127.0.0.1:49420/evals/opencode_qwen3-coder-next_elevator_prompt/index.html",
   "static_errors": [
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:466:11 'scene' is not defined",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:466:18 'camera' is not defined",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:466:26 'controls' is not defined",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:466:36 'renderer' is not defined",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:481:5 'scene' is not defined",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:498:5 'renderer' is not defined",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:498:21 'scene' is not defined",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js:498:28 'camera' is not defined"
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:466:11 'scene' is not defined",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:466:18 'camera' is not defined",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:466:26 'controls' is not defined",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:466:36 'renderer' is not defined",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:481:5 'scene' is not defined",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:498:5 'renderer' is not defined",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:498:21 'scene' is not defined",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js:498:28 'camera' is not defined"
   ],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\person.js",
-    "evals\\opencode_qwen3-coder-next_elevator_prompt\\elevator.js"
+    "evals/opencode_qwen3-coder-next_elevator_prompt/person.js",
+    "evals/opencode_qwen3-coder-next_elevator_prompt/elevator.js"
   ],
   "loaded": true,
   "console_errors": [],
@@ -25,6 +25,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5840,
+  "duration_ms": 5823,
   "warnings": []
 }

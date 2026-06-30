@@ -1,21 +1,21 @@
 {
-  "checked_at": "2026-06-29T05:26:43.206Z",
-  "url": "http://127.0.0.1:52627/evals/opencode_glm-4_7-flash_elevator_prompt/index.html",
+  "checked_at": "2026-06-30T22:22:07.009Z",
+  "url": "http://127.0.0.1:49420/evals/opencode_glm-4_7-flash_elevator_prompt/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\opencode_glm-4_7-flash_elevator_prompt\\person.js",
-    "evals\\opencode_glm-4_7-flash_elevator_prompt\\elevator.js"
+    "evals/opencode_glm-4_7-flash_elevator_prompt/person.js",
+    "evals/opencode_glm-4_7-flash_elevator_prompt/elevator.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 107,
+  "animation_frames": 195,
   "scene_object_count": 80,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 6323,
+  "duration_ms": 6232,
   "warnings": []
 }

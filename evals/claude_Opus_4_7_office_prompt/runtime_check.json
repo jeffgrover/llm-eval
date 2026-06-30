@@ -1,32 +1,32 @@
 {
-  "checked_at": "2026-06-29T05:24:58.322Z",
-  "url": "http://127.0.0.1:52627/evals/claude_Opus_4_7_office_prompt/index.html",
+  "checked_at": "2026-06-30T22:18:43.944Z",
+  "url": "http://127.0.0.1:49420/evals/claude_Opus_4_7_office_prompt/index.html",
   "static_errors": [
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:41:9 'tick' is not defined",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:41:14 'realDt' is not defined",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:49:9 'format' is not defined",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:43:31 'realDt' is not defined",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:564:18 'e' is not defined",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:917:27 'e' is not defined",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:1070:70 '_' is not defined",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js:1070:72 'g' is not defined"
+    "evals/claude_Opus_4_7_office_prompt/sim.js:41:9 'tick' is not defined",
+    "evals/claude_Opus_4_7_office_prompt/sim.js:41:14 'realDt' is not defined",
+    "evals/claude_Opus_4_7_office_prompt/sim.js:49:9 'format' is not defined",
+    "evals/claude_Opus_4_7_office_prompt/sim.js:43:31 'realDt' is not defined",
+    "evals/claude_Opus_4_7_office_prompt/sim.js:564:18 'e' is not defined",
+    "evals/claude_Opus_4_7_office_prompt/sim.js:917:27 'e' is not defined",
+    "evals/claude_Opus_4_7_office_prompt/sim.js:1070:70 '_' is not defined",
+    "evals/claude_Opus_4_7_office_prompt/sim.js:1070:72 'g' is not defined"
   ],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\claude_Opus_4_7_office_prompt\\person.js",
-    "evals\\claude_Opus_4_7_office_prompt\\world.js",
-    "evals\\claude_Opus_4_7_office_prompt\\elevator.js",
-    "evals\\claude_Opus_4_7_office_prompt\\sim.js"
+    "evals/claude_Opus_4_7_office_prompt/person.js",
+    "evals/claude_Opus_4_7_office_prompt/world.js",
+    "evals/claude_Opus_4_7_office_prompt/elevator.js",
+    "evals/claude_Opus_4_7_office_prompt/sim.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 272,
-  "scene_object_count": 1019,
-  "dynamic_changes": 7,
+  "animation_frames": 235,
+  "scene_object_count": 1003,
+  "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 6005,
+  "duration_ms": 5968,
   "warnings": []
 }

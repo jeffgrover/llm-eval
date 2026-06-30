@@ -1,27 +1,27 @@
 {
-  "checked_at": "2026-06-29T05:28:02.428Z",
-  "url": "http://127.0.0.1:52627/evals/opencode_Hy3_preview_Free_office_prompt_v2/index.html",
+  "checked_at": "2026-06-30T22:20:28.927Z",
+  "url": "http://127.0.0.1:49420/evals/opencode_Hy3_preview_Free_office_prompt_v2/index.html",
   "static_errors": [
-    "evals\\opencode_Hy3_preview_Free_office_prompt_v2\\elevator_logic.js:90:21 'pid' is not defined",
-    "evals\\opencode_Hy3_preview_Free_office_prompt_v2\\elevator_logic.js:90:51 'idx' is not defined"
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js:90:21 'pid' is not defined",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js:90:51 'idx' is not defined"
   ],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\opencode_Hy3_preview_Free_office_prompt_v2\\person.js",
-    "evals\\opencode_Hy3_preview_Free_office_prompt_v2\\world.js",
-    "evals\\opencode_Hy3_preview_Free_office_prompt_v2\\elevator_logic.js",
-    "evals\\opencode_Hy3_preview_Free_office_prompt_v2\\elevator.js",
-    "evals\\opencode_Hy3_preview_Free_office_prompt_v2\\sim.js"
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/person.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/world.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/sim.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 234,
+  "animation_frames": 155,
   "scene_object_count": 1277,
-  "dynamic_changes": 18,
+  "dynamic_changes": 2,
   "canvas_changed": false,
-  "duration_ms": 5939,
+  "duration_ms": 5935,
   "warnings": []
 }

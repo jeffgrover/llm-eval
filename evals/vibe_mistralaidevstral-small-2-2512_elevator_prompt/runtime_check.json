@@ -1,21 +1,21 @@
 {
-  "checked_at": "2026-06-29T05:32:52.128Z",
-  "url": "http://127.0.0.1:52627/evals/vibe_mistralaidevstral-small-2-2512_elevator_prompt/index.html",
+  "checked_at": "2026-06-30T22:26:48.948Z",
+  "url": "http://127.0.0.1:49420/evals/vibe_mistralaidevstral-small-2-2512_elevator_prompt/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\vibe_mistralaidevstral-small-2-2512_elevator_prompt\\person.js",
-    "evals\\vibe_mistralaidevstral-small-2-2512_elevator_prompt\\elevator.js"
+    "evals/vibe_mistralaidevstral-small-2-2512_elevator_prompt/person.js",
+    "evals/vibe_mistralaidevstral-small-2-2512_elevator_prompt/elevator.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 494,
+  "animation_frames": 809,
   "scene_object_count": 81,
-  "dynamic_changes": 0,
+  "dynamic_changes": 372,
   "canvas_changed": false,
-  "duration_ms": 5947,
+  "duration_ms": 5858,
   "warnings": []
 }

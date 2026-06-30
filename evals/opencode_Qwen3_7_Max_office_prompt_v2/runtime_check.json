@@ -1,33 +1,33 @@
 {
-  "checked_at": "2026-06-29T05:30:04.315Z",
-  "url": "http://127.0.0.1:52627/evals/opencode_Qwen3_7_Max_office_prompt_v2/index.html",
+  "checked_at": "2026-06-30T22:21:18.641Z",
+  "url": "http://127.0.0.1:49420/evals/opencode_Qwen3_7_Max_office_prompt_v2/index.html",
   "static_errors": [
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\world.js:23:21 'name' is not defined",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\world.js:23:27 'path' is not defined",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\sim.js:712:31 'name' is not defined",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\sim.js:922:33 'e' is not defined",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\sim.js:1102:9 'timeDisplay' is not defined",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\sim.js:1123:9 'stateDiv' is not defined",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\sim.js:1101:17 'timeDisplay' is not defined",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\sim.js:1101:30 'stateDiv' is not defined"
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/world.js:23:21 'name' is not defined",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/world.js:23:27 'path' is not defined",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/sim.js:712:31 'name' is not defined",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/sim.js:922:33 'e' is not defined",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/sim.js:1102:9 'timeDisplay' is not defined",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/sim.js:1123:9 'stateDiv' is not defined",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/sim.js:1101:17 'timeDisplay' is not defined",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/sim.js:1101:30 'stateDiv' is not defined"
   ],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\person.js",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\world.js",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\elevator_logic.js",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\elevator.js",
-    "evals\\opencode_Qwen3_7_Max_office_prompt_v2\\sim.js"
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/person.js",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/world.js",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/elevator_logic.js",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/elevator.js",
+    "evals/opencode_Qwen3_7_Max_office_prompt_v2/sim.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 237,
+  "animation_frames": 199,
   "scene_object_count": 1616,
-  "dynamic_changes": 13506,
+  "dynamic_changes": 11643,
   "canvas_changed": false,
-  "duration_ms": 6165,
+  "duration_ms": 6355,
   "warnings": []
 }

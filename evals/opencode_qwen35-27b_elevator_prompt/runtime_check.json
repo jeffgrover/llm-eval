@@ -1,21 +1,21 @@
 {
-  "checked_at": "2026-06-29T05:29:27.735Z",
-  "url": "http://127.0.0.1:52627/evals/opencode_qwen35-27b_elevator_prompt/index.html",
+  "checked_at": "2026-06-30T22:23:43.528Z",
+  "url": "http://127.0.0.1:49420/evals/opencode_qwen35-27b_elevator_prompt/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\opencode_qwen35-27b_elevator_prompt\\person.js",
-    "evals\\opencode_qwen35-27b_elevator_prompt\\elevator.js"
+    "evals/opencode_qwen35-27b_elevator_prompt/person.js",
+    "evals/opencode_qwen35-27b_elevator_prompt/elevator.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 638,
+  "animation_frames": 923,
   "scene_object_count": 124,
-  "dynamic_changes": 531,
+  "dynamic_changes": 772,
   "canvas_changed": false,
-  "duration_ms": 5998,
+  "duration_ms": 6013,
   "warnings": []
 }

@@ -1,21 +1,21 @@
 {
-  "checked_at": "2026-06-29T05:26:24.616Z",
-  "url": "http://127.0.0.1:52627/evals/opencode_gemma-4-31b-it_elevator_prompt/index.html",
+  "checked_at": "2026-06-30T22:21:48.615Z",
+  "url": "http://127.0.0.1:49420/evals/opencode_gemma-4-31b-it_elevator_prompt/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\opencode_gemma-4-31b-it_elevator_prompt\\person.js",
-    "evals\\opencode_gemma-4-31b-it_elevator_prompt\\elevator.js"
+    "evals/opencode_gemma-4-31b-it_elevator_prompt/person.js",
+    "evals/opencode_gemma-4-31b-it_elevator_prompt/elevator.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 627,
+  "animation_frames": 942,
   "scene_object_count": 86,
-  "dynamic_changes": 280,
+  "dynamic_changes": 443,
   "canvas_changed": false,
-  "duration_ms": 5942,
+  "duration_ms": 6051,
   "warnings": []
 }

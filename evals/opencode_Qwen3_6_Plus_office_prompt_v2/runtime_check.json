@@ -1,18 +1,18 @@
 {
-  "checked_at": "2026-06-29T05:29:57.934Z",
-  "url": "http://127.0.0.1:52627/evals/opencode_Qwen3_6_Plus_office_prompt_v2/index.html",
+  "checked_at": "2026-06-30T22:21:12.125Z",
+  "url": "http://127.0.0.1:49420/evals/opencode_Qwen3_6_Plus_office_prompt_v2/index.html",
   "static_errors": [
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\world.js:309:53 'sd' is not defined",
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\world.js:313:51 'sd' is not defined",
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\sim.js:1080:30 'e' is not defined"
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/world.js:309:53 'sd' is not defined",
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/world.js:313:51 'sd' is not defined",
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/sim.js:1080:30 'e' is not defined"
   ],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\person.js",
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\world.js",
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\elevator_logic.js",
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\elevator.js",
-    "evals\\opencode_Qwen3_6_Plus_office_prompt_v2\\sim.js"
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/person.js",
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/world.js",
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/elevator_logic.js",
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/elevator.js",
+    "evals/opencode_Qwen3_6_Plus_office_prompt_v2/sim.js"
   ],
   "loaded": true,
   "console_errors": [],
@@ -25,6 +25,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5868,
+  "duration_ms": 5884,
   "warnings": []
 }
