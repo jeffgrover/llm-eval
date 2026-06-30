@@ -111,11 +111,16 @@ After running one or more experiments, generate the centralized dashboard to bro
     for syntax, likely unresolved references, and duplicate top-level `let` /
     `const` / `class` declarations across classic scripts, then uses
     Playwright to load each artifact in Chromium. It writes `runtime_check.json` into each
-    evaluated run directory. To verify only one run:
+    evaluated run directory. Running it with no arguments (or `-h`/`--help`)
+    prints usage instead of checking everything — pass `--all` explicitly to
+    process every run. To verify only one run, pass its directory name (a bare
+    run name resolves under `evals/` automatically, or you can give a full
+    path):
     ```bash
     npm install
     npx playwright install chromium
-    node runtime_check.js evals/opencode_glm-4_7-flash_office_prompt_v2
+    node runtime_check.js opencode_glm-4_7-flash_office_prompt_v2
+    # equivalent: node runtime_check.js evals/opencode_glm-4_7-flash_office_prompt_v2
     ./generate_index.py
     ```
     For a faster static-only pass that catches common `ReferenceError` failures

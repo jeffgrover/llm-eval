@@ -64,15 +64,57 @@ function previewFile(evalDir) {
   return null;
 }
 
+function printUsage() {
+  console.log(`Usage: node runtime_check.js <eval-dir> | --all
+
+Runs a headless-browser smoke check (static check + canvas/animation probe)
+against one or more evaluation runs, writing runtime_check.json into each.
+
+Arguments:
+  <eval-dir>     Process a single evaluation run. Accepts a bare run name
+                 (e.g. claude_sonnet-4_prompt1), a path relative to evals/,
+                 or a path relative to the repo root.
+  --all          Process every evaluation run under evals/.
+  -h, --help     Show this help message.
+
+Examples:
+  node runtime_check.js claude_sonnet-4_prompt1
+  node runtime_check.js evals/claude_sonnet-4_prompt1
+  node runtime_check.js --all`);
+}
+
+function resolveEvalDir(arg) {
+  const candidates = [
+    path.resolve(ROOT, arg),
+    path.join(EVALS_DIR, arg),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 function evalTargets(arg) {
   if (!fs.existsSync(EVALS_DIR)) return [];
-  if (!arg || arg === "--all") {
+  if (arg === "--all") {
     return fs.readdirSync(EVALS_DIR)
       .map((name) => path.join(EVALS_DIR, name))
       .filter((item) => fs.statSync(item).isDirectory() && previewFile(item));
   }
-  const direct = path.resolve(ROOT, arg);
-  return fs.statSync(direct).isDirectory() ? [direct] : [];
+  const evalDir = resolveEvalDir(arg);
+  if (!evalDir) {
+    console.error(`No evaluation directory found for "${arg}".`);
+    console.error(`Looked for: ${path.resolve(ROOT, arg)}`);
+    console.error(`        and: ${path.join(EVALS_DIR, arg)}`);
+    return [];
+  }
+  if (!previewFile(evalDir)) {
+    console.error(`"${path.relative(ROOT, evalDir)}" has no preview file (${PREVIEW_FILES.join(", ")}).`);
+    return [];
+  }
+  return [evalDir];
 }
 
 async function canvasSnapshot(page) {
@@ -219,7 +261,12 @@ async function probeEval(browser, serverPort, evalDir) {
 }
 
 async function main() {
-  const targets = evalTargets(process.argv[2] || "--all");
+  const arg = process.argv[2];
+  if (!arg || arg === "-h" || arg === "--help") {
+    printUsage();
+    process.exit(arg ? 0 : 1);
+  }
+  const targets = evalTargets(arg);
   if (!targets.length) {
     console.error("No evaluation directories with previews found.");
     process.exit(1);
