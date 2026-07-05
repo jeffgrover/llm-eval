@@ -242,9 +242,9 @@
         
         <section id="elevator-tab" class="tab-panel active">
             <div class="stats-grid">
-                <div class="stat-card"><span>Total Runs</span><strong>60</strong></div>
-                <div class="stat-card"><span>Average Score</span><strong>66.5</strong></div>
-                <div class="stat-card"><span>Local Runs</span><strong>41</strong></div>
+                <div class="stat-card"><span>Total Runs</span><strong>61</strong></div>
+                <div class="stat-card"><span>Average Score</span><strong>66.9</strong></div>
+                <div class="stat-card"><span>Local Runs</span><strong>42</strong></div>
                 <div class="stat-card"><span>Cloud Runs</span><strong>16</strong></div>
             </div>
             <section class="leaderboard">
@@ -1064,6 +1064,41 @@
                     
                 </td>
                 <td><div class="actions"><a class="link-btn" href="evals/vibe_mistral-medium-3_5_elevator_prompt_v2/summary.html">Report</a><a class="link-btn subtle" href="evals/vibe_mistral-medium-3_5_elevator_prompt_v2/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+            </tr>
+            
+
+            <tr>
+                <td>
+                    <div class="score-cell">
+                        <strong>93</strong>
+                        <div class="score-bar" aria-label="Score 93 of 100"><span style="width: 93%"></span></div>
+                        <span>Excellent</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="identity">
+                        <span class="agent-dot" style="background:#0e7490"></span>
+                        <strong>Pi Coding Agent</strong>
+                        <span>coder-next</span>
+                    </div>
+                </td>
+                <td><span class="provider-badge provider-local">Local (LM Studio)</span></td>
+                <td class="metric">23,464</td>
+                <td class="metric">-</td>
+                <td class="metric">-</td>
+                <td class="breakdown-cell">
+                    <div class="category-pills">
+                        <span>C 8</span>
+                        <span>F 12</span>
+                        <span>I 30</span>
+                        <span>R 40</span>
+                        <span>E 3</span>
+                    </div>
+                    <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
+                    <div></div>
+                    
+                </td>
+                <td><div class="actions"><a class="link-btn" href="evals/pi_coder-next_elevator_prompt_v3/summary.html">Report</a><a class="link-btn subtle" href="evals/pi_coder-next_elevator_prompt_v3/index.html" target="_blank" rel="noopener">Preview</a></div></td>
             </tr>
             
 
@@ -2546,7 +2581,7 @@
                     <div class="leader-score">55</div>
                     <div class="leader-title">Claude Code</div>
                     <div class="leader-model">Opus_4_7</div>
-                    <div class="leader-meta">Office Prompt V2 / Anthropic</div>
+                    <div class="leader-meta">Office Prompt / Anthropic</div>
                     <div class="score-bar" aria-label="Score 55 of 100"><span style="width: 55%"></span></div>
                     <div class="mini-flag">Static JS reference check failed</div>
                 </div>
@@ -2559,7 +2594,7 @@
                     <div class="leader-score">55</div>
                     <div class="leader-title">Claude Code</div>
                     <div class="leader-model">Opus_4_7</div>
-                    <div class="leader-meta">Office Prompt / Anthropic</div>
+                    <div class="leader-meta">Office Prompt V2 / Anthropic</div>
                     <div class="score-bar" aria-label="Score 55 of 100"><span style="width: 55%"></span></div>
                     <div class="mini-flag">Static JS reference check failed</div>
                 </div>
@@ -2755,22 +2790,22 @@
                     </div>
                 </td>
                 <td><span class="provider-badge provider-cloud">Anthropic</span></td>
-                <td class="metric">4,041,245</td>
-                <td class="metric">$6.13</td>
-                <td class="metric">26.2m</td>
+                <td class="metric">3,857,839</td>
+                <td class="metric">$7.93</td>
+                <td class="metric">34.6m</td>
                 <td class="breakdown-cell">
                     <div class="category-pills">
-                        <span>C 10</span>
+                        <span>C 9</span>
                         <span>F 15</span>
                         <span>I 30</span>
-                        <span>R 25</span>
+                        <span>R 20</span>
                         <span>E 0</span>
                     </div>
                     <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
-                    <div><span class="flag">Static JS reference check failed</span><span class="flag">Static JS reference check failed</span><span class="flag">Capped at 55: static JS reference check failed</span></div>
-                    <div class="runtime-errors"><strong>Runtime errors</strong><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:17 &#x27;leftLeg&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:26 &#x27;rightLeg&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:36 &#x27;leftArm&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:45 &#x27;rightArm&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:124:13 &#x27;leftLeg&#x27; is not defined</span></div>
+                    <div><span class="flag">Static JS reference check failed</span><span class="flag">Static JS reference check failed</span><span class="flag">No runtime motion detected</span><span class="flag">Capped at 55: static JS reference check failed</span><span class="flag">Result flagged error</span></div>
+                    <div class="runtime-errors"><strong>Runtime errors</strong><span>evals/claude_Opus_4_7_office_prompt/sim.js:41:9 &#x27;tick&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:41:14 &#x27;realDt&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:49:9 &#x27;format&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:43:31 &#x27;realDt&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:564:18 &#x27;e&#x27; is not defined</span></div>
                 </td>
-                <td><div class="actions"><a class="link-btn" href="evals/claude_Opus_4_7_office_prompt_v2/summary.html">Report</a><a class="link-btn subtle" href="evals/claude_Opus_4_7_office_prompt_v2/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+                <td><div class="actions"><a class="link-btn" href="evals/claude_Opus_4_7_office_prompt/summary.html">Report</a><a class="link-btn subtle" href="evals/claude_Opus_4_7_office_prompt/index.html" target="_blank" rel="noopener">Preview</a></div></td>
             </tr>
             
 
@@ -2790,22 +2825,22 @@
                     </div>
                 </td>
                 <td><span class="provider-badge provider-cloud">Anthropic</span></td>
-                <td class="metric">3,857,839</td>
-                <td class="metric">$7.93</td>
-                <td class="metric">34.6m</td>
+                <td class="metric">4,041,245</td>
+                <td class="metric">$6.13</td>
+                <td class="metric">26.2m</td>
                 <td class="breakdown-cell">
                     <div class="category-pills">
-                        <span>C 9</span>
+                        <span>C 10</span>
                         <span>F 15</span>
                         <span>I 30</span>
-                        <span>R 20</span>
+                        <span>R 25</span>
                         <span>E 0</span>
                     </div>
                     <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
-                    <div><span class="flag">Static JS reference check failed</span><span class="flag">Static JS reference check failed</span><span class="flag">No runtime motion detected</span><span class="flag">Capped at 55: static JS reference check failed</span><span class="flag">Result flagged error</span></div>
-                    <div class="runtime-errors"><strong>Runtime errors</strong><span>evals/claude_Opus_4_7_office_prompt/sim.js:41:9 &#x27;tick&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:41:14 &#x27;realDt&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:49:9 &#x27;format&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:43:31 &#x27;realDt&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt/sim.js:564:18 &#x27;e&#x27; is not defined</span></div>
+                    <div><span class="flag">Static JS reference check failed</span><span class="flag">Static JS reference check failed</span><span class="flag">Capped at 55: static JS reference check failed</span></div>
+                    <div class="runtime-errors"><strong>Runtime errors</strong><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:17 &#x27;leftLeg&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:26 &#x27;rightLeg&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:36 &#x27;leftArm&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:120:45 &#x27;rightArm&#x27; is not defined</span><span>evals/claude_Opus_4_7_office_prompt_v2/person.js:124:13 &#x27;leftLeg&#x27; is not defined</span></div>
                 </td>
-                <td><div class="actions"><a class="link-btn" href="evals/claude_Opus_4_7_office_prompt/summary.html">Report</a><a class="link-btn subtle" href="evals/claude_Opus_4_7_office_prompt/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+                <td><div class="actions"><a class="link-btn" href="evals/claude_Opus_4_7_office_prompt_v2/summary.html">Report</a><a class="link-btn subtle" href="evals/claude_Opus_4_7_office_prompt_v2/index.html" target="_blank" rel="noopener">Preview</a></div></td>
             </tr>
             
 
@@ -4899,9 +4934,39 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #0e7490;">Pi Coding Agent</span>
-                    <span class="agent-section-count">13 evaluations</span>
+                    <span class="agent-section-count">15 evaluations</span>
                 </div>
                 <div class="eval-grid">
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-local">Local (LM Studio)</span>
+                        <span class="score-badge">93</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">coder-next</div>
+                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt V3</span></div>
+                        <div class="score-bar" aria-label="Score 93 of 100"><span style="width: 93%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/pi_coder-next_elevator_prompt_v3/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+                
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-local">Local (LM Studio)</span>
+                        <span class="score-badge">81</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">coder-next_elevator_prompt_v3_vulkan</div>
+                        <div class="prompt-row"><span class="prompt-chip">Unknown Prompt</span></div>
+                        <div class="score-bar" aria-label="Score 81 of 100"><span style="width: 81%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/pi_coder-next_elevator_prompt_v3_vulkan/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+                
                 <div class="eval-card">
                     <div class="card-header">
                         <span class="provider-badge provider-local">Local (LM Studio)</span>
