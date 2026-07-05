@@ -97,8 +97,8 @@ function resolveEvalDir(arg) {
 }
 
 function evalTargets(arg) {
-  if (!fs.existsSync(EVALS_DIR)) return [];
   if (arg === "--all") {
+    if (!fs.existsSync(EVALS_DIR)) return [];
     return fs.readdirSync(EVALS_DIR)
       .map((name) => path.join(EVALS_DIR, name))
       .filter((item) => fs.statSync(item).isDirectory() && previewFile(item));

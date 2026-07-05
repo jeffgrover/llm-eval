@@ -12,6 +12,7 @@ RESULT_FILES = (
     "CLAUDE_RESULT.JSON",
     "GEMINI_RESULT.JSON",
     "OPENCODE_RESULT.JSON",
+    "PI_WIGGUM_RESULT.JSON",
     "PI_RESULT.JSON",
     "CODEX_RESULT.JSON",
     "VIBE_RESULT.JSON",
@@ -26,6 +27,7 @@ AGENT_DISPLAY_NAMES = {
     "codex": "Codex CLI",
     "crush": "Charmbracelet Crush",
     "opencode": "OpenCode CLI",
+    "pi-wiggum": "Pi Wiggum",
     "pi": "Pi Coding Agent",
     "vibe": "Mistral Vibe",
 }
@@ -38,6 +40,7 @@ AGENT_COLORS = {
     "Mistral Vibe": "#dc2626",
     "Charmbracelet Crush": "#7c3aed",
     "Pi Coding Agent": "#0e7490",
+    "Pi Wiggum": "#be123c",
 }
 
 
@@ -92,6 +95,9 @@ def parse_directory_name(dir_name: str, known_prompts: set) -> Dict[str, str]:
         return {"Agent": "Unknown", "Model": dir_name, "Prompt": "", "Raw": dir_name}
 
     agent = parts[0]
+    if len(parts) > 1 and f"{parts[0]}-{parts[1]}" in AGENT_DISPLAY_NAMES:
+        agent = f"{parts[0]}-{parts[1]}"
+        parts = [agent] + parts[2:]
     model_parts = parts[1:]
     prompt = ""
     model = sep.join(model_parts)

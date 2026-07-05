@@ -57,6 +57,7 @@ Install the agents you wish to evaluate. Each has its own setup requirements:
 | **Crush** | `crush` | [charmbracelet/crush](https://github.com/charmbracelet/crush) |
 | **OpenCode** | `opencode` | [opencode-ai/opencode](https://github.com/opencode-ai/opencode) |
 | **Pi Coding Agent** | `pi` | [badlogic/pi-mono](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) |
+| **Pi Wiggum Repair Loop** | `pi-wiggum` | Uses `pi` with evaluator-owned static/runtime repair attempts |
 
 ---
 
@@ -73,7 +74,7 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 
 ### Parameters
 -   `--model`: The LM Studio model identifier (or cloud model name when using `--non-local`).
--   `--agent`: One of `vibe`, `gemini`, `claude`, `codex`, `opencode`, `crush`, or `pi`.
+-   `--agent`: One of `vibe`, `gemini`, `claude`, `codex`, `opencode`, `crush`, `pi`, or `pi-wiggum`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
 -   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.
 -   `--headless`: (Optional) Run in headless mode (defaults to True).
@@ -88,6 +89,15 @@ Codex currently runs through your ChatGPT account service, so use it with `--non
 ```
 
 Codex runs are saved with `CHAT_SESSION.TXT`, raw `CODEX_EVENTS.JSONL`, `CODEX_LAST_MESSAGE.TXT`, and aggregated token metrics in `CODEX_RESULT.JSON`.
+
+### Pi Wiggum Repair Loop
+`pi-wiggum` invokes Pi non-interactively, then lets the evaluator run the static and runtime checkers. Failed checker output is fed back to Pi for another repair attempt until the checks pass or the 4-hour wall-clock cap is reached:
+
+```bash
+./evaluate_agent.py --model <model-key> --agent pi-wiggum --prompt-file elevator_prompt_wiggum.txt
+```
+
+Runs are saved under `evals/pi-wiggum_<model>_<prompt>/` with combined `CHAT_SESSION.TXT`, raw per-attempt `PI_WIGGUM_ATTEMPT_###.JSONL`, and aggregate metrics/status in `PI_WIGGUM_RESULT.JSON`.
 
 ---
 

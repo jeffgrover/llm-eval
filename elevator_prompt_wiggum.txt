@@ -1,0 +1,336 @@
+Create a browser-only Three.js elevator simulation. The implementation plan is
+already approved. Do not ask the human for decisions, do not request plan
+approval, and do not use an interactive Wiggum TPM flow.
+
+Success is defined by the evaluator-owned loop passing all checks:
+
+- `node ../../static_check.js .` has zero static errors
+- `node ../../runtime_check.js .` has zero startup, console, and page errors
+- the page loads in a browser with a visible nonblank canvas
+- animation frames are observed
+- scene objects are observed
+- visible motion / dynamic changes are observed
+- the elevator simulation completes trips and keeps running
+
+If checker feedback is provided in a later attempt, edit the existing files to
+fix that feedback and continue. Do not stop because a check failed; iterate from
+the feedback. Do not ask the human for decisions.
+
+===============================================================================
+OUTPUT CONTRACT
+===============================================================================
+
+Create exactly these three local files:
+
+- `index.html`
+- `person.js`
+- `elevator.js`
+
+Use classic browser scripts only:
+
+- No `import`
+- No `export`
+- No `type="module"`
+- No local script names except `person.js` and `elevator.js`
+- No iframe/object/embed/self-preview
+- No `file://`, absolute local paths, or `summary.html`
+
+`index.html` must load scripts in this exact order:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="person.js"></script>
+<script src="elevator.js"></script>
+```
+
+===============================================================================
+GLOBAL CONTRACT
+===============================================================================
+
+At the top of `elevator.js`, declare these exact constants as bare top-level
+`const` values, not inside a config object:
+
+```js
+const FLOOR_HEIGHT = 3;
+const FLOOR_COUNT = 6;
+const BUILDING_WIDTH = 20;
+const BUILDING_DEPTH = 15;
+const SHAFT_WIDTH = 5;
+const SHAFT_DEPTH = 5;
+const ELEVATOR_SPEED = 2;
+const PERSON_MOVE_SPEED = 1;
+```
+
+Use these exact top-level names in `elevator.js`:
+
+```js
+let scene;
+let camera;
+let renderer;
+let controls;
+let elevatorCar;
+let people = [];
+```
+
+`elevatorCar` must be a `THREE.Group`. Store its door meshes directly on it:
+
+```js
+elevatorCar.leftDoor = leftDoor;
+elevatorCar.rightDoor = rightDoor;
+```
+
+`person.js` must define one global factory:
+
+```js
+function createPerson(color) {
+    // return a THREE.Group
+}
+```
+
+Every returned person must have:
+
+```js
+person.userData = {
+    leftLeg: leftLeg,
+    rightLeg: rightLeg,
+    isWalking: false
+};
+```
+
+Do not declare `scene`, `camera`, `renderer`, `controls`, `elevatorCar`, or
+`people` in `person.js`.
+
+When moving an existing person between the scene and elevator, preserve world
+position with `.attach()`:
+
+```js
+elevatorCar.attach(person);
+scene.attach(person);
+```
+
+Do not use `elevatorCar.add(person)` to board or `scene.add(person)` to exit.
+It is OK to use `scene.add(person)` only when first creating the person.
+
+===============================================================================
+APPROVED IMPLEMENTATION PLAN
+===============================================================================
+
+Implement the task in these small passes. Each pass should leave the page
+loadable. Do not skip ahead if the basic page is not rendering.
+
+-------------------------------------------------------------------------------
+PASS 1 - FILE SKELETON
+-------------------------------------------------------------------------------
+
+Create `index.html`, `person.js`, and `elevator.js`.
+
+`index.html` requirements:
+
+- minimal valid HTML document
+- dark background and no margins
+- optional speed slider labeled `Speed`
+- the four script tags from the Output Contract in the exact order
+
+`person.js` requirements:
+
+- define `createPerson(color)`
+- use only Three.js primitives
+- return a visible humanoid `THREE.Group`
+- feet should sit on local `y = 0`
+- legs below torso, head above torso, arms hanging down from shoulders
+- populate `person.userData.leftLeg`, `rightLeg`, and `isWalking`
+
+`elevator.js` requirements:
+
+- declare the required constants and globals
+- define `startSimulation()`
+- create scene, camera, renderer, lights, and OrbitControls
+- append `renderer.domElement` to `document.body`
+- call `animate()` with `requestAnimationFrame`
+- auto-start at the bottom:
+
+```js
+if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", startSimulation);
+} else {
+    startSimulation();
+}
+```
+
+Acceptance check for Pass 1:
+
+- browser displays a nonblank Three.js canvas
+- no missing script files
+- no console errors
+
+-------------------------------------------------------------------------------
+PASS 2 - STATIC BUILDING AND ELEVATOR
+-------------------------------------------------------------------------------
+
+Add these functions to `elevator.js`:
+
+- `createBuilding()`
+- `createElevatorCar()`
+- `floorY(floorNumber)`
+
+Building requirements:
+
+- 6 usable floors
+- floor surfaces are gray `#cccccc`, transparent, opacity `0.3`
+- semi-transparent blue walls `#9999ff`, opacity `0.2`
+- solid ground floor and roof
+- a clear central elevator shaft opening
+- positive Z is the front of the elevator
+
+Elevator requirements:
+
+- `elevatorCar = createElevatorCar();`
+- add `elevatorCar` to the scene
+- semi-transparent yellow frame `#ffff00`, opacity `0.5`
+- dark yellow doors `#cccc00`, opacity `0.7`
+- solid back wall, transparent side walls
+- two front sliding door meshes stored as `elevatorCar.leftDoor` and
+  `elevatorCar.rightDoor`
+
+Acceptance check for Pass 2:
+
+- building and elevator are visible
+- doors are visible at the front
+- `elevatorCar` is a `THREE.Group`
+
+-------------------------------------------------------------------------------
+PASS 3 - PEOPLE AND FLOOR STATE
+-------------------------------------------------------------------------------
+
+Add five people and leave exactly one floor empty.
+
+Requirements:
+
+- create one person on each of five different floors
+- track each person's floor with `person.userData.currentFloor`
+- track whether a person is inside the elevator with
+  `person.userData.inElevator = false`
+- keep `let emptyFloor` in `elevator.js`
+- place waiting people in front of the elevator doors on positive Z
+- rotate people so they face the elevator doors
+- use `scene.add(person)` only when first creating each person
+
+Acceptance check for Pass 3:
+
+- five people are visible on six floors
+- no person is placed to the side of the elevator
+- people face the doors
+
+-------------------------------------------------------------------------------
+PASS 4 - SIMPLE ANIMATION HELPERS
+-------------------------------------------------------------------------------
+
+Add small callback- or Promise-based helpers. Keep them independent and easy to
+test visually:
+
+- `animateElevatorToFloor(targetFloor, done)`
+- `animateDoors(open, done)`
+- `walkPersonToZ(person, targetZ, done)`
+- `delay(ms, done)`
+- `animateWalkingLegs(time)`
+
+Door behavior:
+
+- doors open by sliding away from the center on X
+- doors close by meeting in the center
+- do not start a second door animation while one is running
+
+Walking behavior:
+
+- set `person.userData.isWalking = true` while walking
+- move along the Z axis only
+- use a sine wave to rotate `leftLeg` and `rightLeg` on X in opposite phases
+- reset leg rotations to `0` when walking stops
+
+Elevator behavior:
+
+- move only on Y
+- stop when distance to target is less than `0.01`
+- passengers attached to `elevatorCar` should travel with it
+
+Acceptance check for Pass 4:
+
+- door helper visibly opens and closes doors when called
+- elevator helper visibly moves the car between floors
+- walking helper moves a person forward/back on Z with leg motion
+
+-------------------------------------------------------------------------------
+PASS 5 - ONE COMPLETE PASSENGER TRIP
+-------------------------------------------------------------------------------
+
+Implement one visible passenger trip sequence:
+
+1. Pick any person not already in the elevator.
+2. Use the current empty floor as that person's destination.
+3. Move elevator to the passenger's current floor.
+4. Open doors.
+5. Walk person forward into the elevator.
+6. Call `elevatorCar.attach(person)`.
+7. Set `person.userData.inElevator = true`.
+8. Close doors.
+9. Move elevator to the destination floor.
+10. Open doors.
+11. Call `scene.attach(person)`.
+12. Set `person.userData.inElevator = false`.
+13. Walk person forward out to the waiting spot on positive Z.
+14. Close doors.
+15. Update `emptyFloor` to the passenger's previous floor.
+16. Update `person.userData.currentFloor` to the destination floor.
+
+Add short 300ms delays after doors open and after passengers finish walking.
+
+Acceptance check for Pass 5:
+
+- a person boards, rides to another floor, exits, and stays on that floor
+- the passenger does not snap down to the ground floor after exiting
+- the passenger remains visible inside the transparent elevator while riding
+
+-------------------------------------------------------------------------------
+PASS 6 - LOOP AND SPEED CONTROL
+-------------------------------------------------------------------------------
+
+Turn the one-trip sequence into a continuous loop.
+
+Requirements:
+
+- always keep exactly one floor empty
+- each cycle, randomly select one person whose current floor is not empty
+- send that person to the empty floor
+- update the empty floor after the trip
+- add a speed slider that varies animation speed from `1x` to `20x`
+- default speed is `1x`
+- the animation loop must continue rendering even while no trip is active
+
+Acceptance check for Pass 6:
+
+- the simulation keeps moving people between floors
+- the speed slider changes movement speed
+- there are no overlapping trips or conflicting door animations
+
+===============================================================================
+FINAL VERIFICATION CHECKLIST
+===============================================================================
+
+Before reporting done, verify all items:
+
+- `index.html`, `person.js`, and `elevator.js` exist and are non-empty
+- `index.html` contains only the approved local JavaScript script tags
+- no `import`, `export`, or `type="module"` appears in the generated files
+- no `file://`, `summary.html`, `<iframe`, `<object`, or `<embed` appears
+- `elevator.js` auto-starts by calling `startSimulation`
+- required constants are top-level bare `const` declarations
+- required globals use the exact names from the Global Contract
+- `elevatorCar` is assigned before door properties are written
+- `person.js` defines global `createPerson()` and populates `userData`
+- reparenting uses `.attach()` for boarding and exiting
+- `node ../../static_check.js .` reports no errors
+- `node ../../runtime_check.js .` reports no startup, canvas, animation, or
+  browser page errors
+
+Only report completion when the generated simulation satisfies these criteria.
