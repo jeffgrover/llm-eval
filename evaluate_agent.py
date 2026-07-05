@@ -19,6 +19,11 @@ from typing import Dict, List, Optional
 # --- Configuration & Constants ---
 LM_STUDIO_API_URL = "http://localhost:1234/v1"
 LM_STUDIO_REST_BASE = "http://localhost:1234"
+LLAMA_SERVER_API_URL = "http://localhost:8080/v1"
+LOCAL_API_URL = LM_STUDIO_API_URL
+LOCAL_PROVIDER_ID = "lmstudio"
+LOCAL_PROVIDER_NAME = "LM Studio (local)"
+LOCAL_API_KEY = "lm-studio"
 EVALS_DIR = Path("evals")
 PROJECT_ROOT = Path(__file__).resolve().parent
 SERVER_LOG_FILENAME = "SERVER.LOG"
@@ -34,6 +39,21 @@ PI_RESULT_FILENAME = "PI_RESULT.JSON"
 
 # Tracks whether the lms CLI is responsive (set during model loading)
 _lms_cli_available = True
+
+
+def is_llama_server_provider(provider: Optional[str]) -> bool:
+    return (provider or "").lower().strip() == "llama-server"
+
+
+def use_llama_server_provider() -> None:
+    global LOCAL_API_URL, LOCAL_PROVIDER_ID, LOCAL_PROVIDER_NAME, LOCAL_API_KEY
+    global _lms_cli_available
+
+    LOCAL_API_URL = LLAMA_SERVER_API_URL
+    LOCAL_PROVIDER_ID = "llama-server"
+    LOCAL_PROVIDER_NAME = "llama-server (local)"
+    LOCAL_API_KEY = "llama-server"
+    _lms_cli_available = False
 
 
 def read_prompt_file(prompt_file: Path) -> str:
@@ -1370,9 +1390,9 @@ class AgentRunner:
         env["PYTHONIOENCODING"] = "utf-8"
         if not self.non_local:
             # Standard OpenAI-compatible env vars
-            env["OPENAI_API_BASE"] = LM_STUDIO_API_URL
-            env["OPENAI_BASE_URL"] = LM_STUDIO_API_URL
-            env["OPENAI_API_KEY"] = "lm-studio"  # Usually ignored but required
+            env["OPENAI_API_BASE"] = LOCAL_API_URL
+            env["OPENAI_BASE_URL"] = LOCAL_API_URL
+            env["OPENAI_API_KEY"] = LOCAL_API_KEY  # Usually ignored but required
         return env
 
     def start_server_logger(self):
@@ -1417,6 +1437,8 @@ class AgentRunner:
         token parsing and prompt processing time work normally.
         """
         if self.non_local:
+            return
+        if LOCAL_PROVIDER_ID != "lmstudio":
             return
 
         log_path = self.work_dir / SERVER_LOG_FILENAME
@@ -2419,17 +2441,25 @@ class OpenCodeRunner(AgentRunner):
         if model_ref:
             config["model"] = model_ref
 
-        if (
+        should_define_local_provider = (
             not self.non_local
-            and not self.custom_provider
-            and self._resolve_global_provider_for_model(self.model_name) is None
-        ):
-            # Default case: define lmstudio provider pointing to localhost.
-            base_url = LM_STUDIO_API_URL
+            and (
+                is_llama_server_provider(self.custom_provider)
+                or (
+                    not self.custom_provider
+                    and self._resolve_global_provider_for_model(self.model_name) is None
+                )
+            )
+        )
+
+        if should_define_local_provider:
+            # Default case: define an OpenAI-compatible local provider.
+            base_url = LOCAL_API_URL
+            provider_id = LOCAL_PROVIDER_ID
             config["provider"] = {
-                "lmstudio": {
+                provider_id: {
                     "npm": "@ai-sdk/openai-compatible",
-                    "name": "LM Studio (local)",
+                    "name": LOCAL_PROVIDER_NAME,
                     "options": {"baseURL": base_url},
                     "models": {self.model_name: {"name": self.model_name}},
                 }
@@ -3081,10 +3111,10 @@ class PiRunner(AgentRunner):
 
         config = {
             "providers": {
-                "lmstudio": {
-                    "baseUrl": LM_STUDIO_API_URL,
+                LOCAL_PROVIDER_ID: {
+                    "baseUrl": LOCAL_API_URL,
                     "api": "openai-completions",
-                    "apiKey": "lm-studio",
+                    "apiKey": LOCAL_API_KEY,
                     "compat": {
                         "supportsDeveloperRole": False,
                         "supportsReasoningEffort": False,
@@ -3097,7 +3127,7 @@ class PiRunner(AgentRunner):
         self.models_json_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.models_json_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
-        print(f"[+] Wrote Pi models.json for LM Studio: {self.models_json_path}")
+        print(f"[+] Wrote Pi models.json for {LOCAL_PROVIDER_NAME}: {self.models_json_path}")
 
     def _restore_pi_models_json(self):
         """Restore original models.json after the run."""
@@ -3130,7 +3160,7 @@ class PiRunner(AgentRunner):
             return {}
 
     def execute_agent(self):
-        # Pi: `pi --mode json --print --no-session --provider <provider> --model <model> "content"`
+        # Pi reads the prompt from stdin here to avoid Windows command-line length limits.
         # Uses --mode json to get JSONL output with token usage in message_end events
         try:
             self._execute_pi()
@@ -3153,16 +3183,14 @@ class PiRunner(AgentRunner):
             else:
                 cmd += ["--model", self.model_name]
         else:
-            # Local mode: use lmstudio provider configured in models.json
-            cmd += ["--provider", "lmstudio", "--model", self.model_name]
-
-        cmd.append(prompt_content)
+            # Local mode: use the provider configured in models.json
+            cmd += ["--provider", LOCAL_PROVIDER_ID, "--model", self.model_name]
 
         env = self.get_env_vars()
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / PI_RESULT_FILENAME
 
-        print(f"[*] Executing: pi --mode json --print --no-session ...")
+        print(f"[*] Executing: pi --mode json --print --no-session ... < prompt")
         print(f"[*] Output logging to: {chat_log_path}")
 
         # Accumulate token usage from assistant message_end events
@@ -3180,6 +3208,7 @@ class PiRunner(AgentRunner):
                 cmd,
                 cwd=self.work_dir,
                 env=env,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -3188,6 +3217,7 @@ class PiRunner(AgentRunner):
                 bufsize=1,
                 shell=(sys.platform == "win32"),  # pi is a .cmd on Windows
             )
+            send_stdin(process, prompt_content)
 
             for line in process.stdout:
                 stripped = line.strip()
@@ -3347,6 +3377,9 @@ def main():
     # Warn if --provider is used with --non-local
     if args.provider and args.non_local:
         print("[!] Warning: --provider flag is ignored when using --non-local mode")
+    elif is_llama_server_provider(args.provider):
+        use_llama_server_provider()
+        print(f"[*] Using llama-server provider at {LOCAL_API_URL}")
 
     if not args.prompt_file.exists():
         print(f"[-] Prompt file not found: {args.prompt_file}")
