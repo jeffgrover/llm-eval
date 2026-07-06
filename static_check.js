@@ -411,6 +411,154 @@ function jsFilesForEval(evalDir) {
     .map((name) => path.join(evalDir, name));
 }
 
+function readIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return "";
+  return fs.readFileSync(filePath, "utf8");
+}
+
+function stripForContract(source) {
+  return stripStringsAndComments(source);
+}
+
+function checkElevatorContract(evalDir) {
+  const errors = [];
+  if (!path.basename(evalDir).includes("elevator_prompt_wiggum")) return errors;
+
+  const indexPath = path.join(evalDir, "index.html");
+  const personPath = path.join(evalDir, "person.js");
+  const elevatorPath = path.join(evalDir, "elevator.js");
+  const hasElevatorFiles = [indexPath, personPath, elevatorPath].some((filePath) => fs.existsSync(filePath));
+  if (!hasElevatorFiles) return errors;
+
+  for (const filePath of [indexPath, personPath, elevatorPath]) {
+    if (!fs.existsSync(filePath)) {
+      errors.push(`${path.relative(ROOT, filePath)}: required elevator artifact is missing`);
+    }
+  }
+  if (errors.length) return errors;
+
+  const index = readIfExists(indexPath);
+  const person = readIfExists(personPath);
+  const elevator = readIfExists(elevatorPath);
+  const allCode = `${index}\n${person}\n${elevator}`;
+  const strippedPerson = stripForContract(person);
+  const strippedElevator = stripForContract(elevator);
+
+  const scriptSrcs = [];
+  const scriptRe = /<script\b([^>]*)\bsrc\s*=\s*["']([^"']+)["']([^>]*)>\s*<\/script>/gi;
+  let scriptMatch;
+  while ((scriptMatch = scriptRe.exec(index))) {
+    const attrs = `${scriptMatch[1]} ${scriptMatch[3]}`;
+    scriptSrcs.push({ src: scriptMatch[2], attrs });
+  }
+  const expectedScripts = [
+    "https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js",
+    "person.js",
+    "elevator.js",
+  ];
+  const actualScripts = scriptSrcs.map((item) => item.src);
+  if (JSON.stringify(actualScripts) !== JSON.stringify(expectedScripts)) {
+    errors.push(`${path.relative(ROOT, indexPath)}: script src order must exactly be Three 0.147.0, OrbitControls, person.js, elevator.js`);
+  }
+  for (const item of scriptSrcs) {
+    if (/\btype\s*=\s*["']module["']/i.test(item.attrs)) {
+      errors.push(`${path.relative(ROOT, indexPath)}: classic scripts required; remove type="module"`);
+    }
+  }
+  const extraLocalScripts = actualScripts.filter((src) => !src.includes("://") && !["person.js", "elevator.js"].includes(src));
+  if (extraLocalScripts.length) {
+    errors.push(`${path.relative(ROOT, indexPath)}: unexpected local script(s): ${extraLocalScripts.join(", ")}`);
+  }
+
+  const forbiddenPatterns = [
+    [/\bimport\b/m, "import"],
+    [/\bexport\b/m, "export"],
+    [/\btype\s*=\s*["']module["']/im, "type=\"module\""],
+    [/file:\/\//i, "file://"],
+    [/summary\.html/i, "summary.html"],
+    [/<\s*iframe\b/i, "<iframe"],
+    [/<\s*object\b/i, "<object"],
+    [/<\s*embed\b/i, "<embed"],
+  ];
+  for (const [pattern, label] of forbiddenPatterns) {
+    if (pattern.test(allCode)) errors.push(`elevator contract: forbidden ${label} found`);
+  }
+
+  const requiredConstants = new Map([
+    ["FLOOR_HEIGHT", "3"],
+    ["FLOOR_COUNT", "6"],
+    ["BUILDING_WIDTH", "20"],
+    ["BUILDING_DEPTH", "15"],
+    ["SHAFT_WIDTH", "5"],
+    ["SHAFT_DEPTH", "5"],
+    ["ELEVATOR_SPEED", "2"],
+    ["PERSON_MOVE_SPEED", "1"],
+  ]);
+  for (const [name, value] of requiredConstants.entries()) {
+    const re = new RegExp(`(^|\\n)\\s*const\\s+${name}\\s*=\\s*${value}\\s*;`);
+    if (!re.test(strippedElevator)) {
+      errors.push(`${path.relative(ROOT, elevatorPath)}: missing top-level "const ${name} = ${value};"`);
+    }
+  }
+
+  const requiredGlobals = [
+    ["scene", /(^|\n)\s*let\s+scene\s*;/],
+    ["camera", /(^|\n)\s*let\s+camera\s*;/],
+    ["renderer", /(^|\n)\s*let\s+renderer\s*;/],
+    ["controls", /(^|\n)\s*let\s+controls\s*;/],
+    ["elevatorCar", /(^|\n)\s*let\s+elevatorCar\s*;/],
+    ["people", /(^|\n)\s*let\s+people\s*=\s*\[\s*\]\s*;/],
+  ];
+  for (const [name, pattern] of requiredGlobals) {
+    if (!pattern.test(strippedElevator)) {
+      errors.push(`${path.relative(ROOT, elevatorPath)}: missing required top-level global "let ${name}"`);
+    }
+  }
+
+  for (const forbidden of ["scene", "camera", "renderer", "controls", "elevatorCar", "people"]) {
+    const re = new RegExp(`(^|\\n)\\s*(?:let|const|var)\\s+${forbidden}\\b`);
+    if (re.test(strippedPerson)) {
+      errors.push(`${path.relative(ROOT, personPath)}: must not declare ${forbidden}`);
+    }
+  }
+  if (!/(^|\n)\s*function\s+createPerson\s*\(\s*color\s*\)/.test(strippedPerson)) {
+    errors.push(`${path.relative(ROOT, personPath)}: must define global function createPerson(color)`);
+  }
+  for (const required of ["leftLeg", "rightLeg", "isWalking"]) {
+    if (!new RegExp(`\\b${required}\\b`).test(strippedPerson)) {
+      errors.push(`${path.relative(ROOT, personPath)}: createPerson userData must include ${required}`);
+    }
+  }
+  if (!/new\s+THREE\.Group\s*\(/.test(strippedPerson) || !/return\s+[A-Za-z_$][A-Za-z0-9_$]*\s*;/.test(strippedPerson)) {
+    errors.push(`${path.relative(ROOT, personPath)}: createPerson must create and return a THREE.Group`);
+  }
+
+  if (!/new\s+THREE\.Group\s*\(/.test(strippedElevator) || !/elevatorCar\s*=/.test(strippedElevator)) {
+    errors.push(`${path.relative(ROOT, elevatorPath)}: elevatorCar must be assigned a THREE.Group`);
+  }
+  if (!/elevatorCar\.leftDoor\s*=\s*leftDoor\s*;/.test(strippedElevator)) {
+    errors.push(`${path.relative(ROOT, elevatorPath)}: must store left door as elevatorCar.leftDoor = leftDoor;`);
+  }
+  if (!/elevatorCar\.rightDoor\s*=\s*rightDoor\s*;/.test(strippedElevator)) {
+    errors.push(`${path.relative(ROOT, elevatorPath)}: must store right door as elevatorCar.rightDoor = rightDoor;`);
+  }
+  if (!/elevatorCar\.attach\s*\(/.test(strippedElevator)) {
+    errors.push(`${path.relative(ROOT, elevatorPath)}: boarding must use elevatorCar.attach(...) to preserve world position`);
+  }
+  if (!/scene\.attach\s*\(/.test(strippedElevator)) {
+    errors.push(`${path.relative(ROOT, elevatorPath)}: exiting must use scene.attach(...) to preserve world position`);
+  }
+  if (/elevatorCar\.add\s*\(\s*person/.test(strippedElevator)) {
+    errors.push(`${path.relative(ROOT, elevatorPath)}: do not use elevatorCar.add(person) for boarding`);
+  }
+  if (!/startSimulation\s*\(/.test(strippedElevator) || !/DOMContentLoaded/.test(elevator)) {
+    errors.push(`${path.relative(ROOT, elevatorPath)}: must auto-start startSimulation with the DOMContentLoaded pattern`);
+  }
+
+  return errors;
+}
+
 function staticCheckEval(evalDir) {
   const jsFiles = jsFilesForEval(evalDir);
   const syntaxErrors = [];
@@ -448,7 +596,8 @@ function staticCheckEval(evalDir) {
       .join(", ");
     duplicateErrors.push(`Duplicate top-level lexical declaration '${name}' in classic scripts: ${locations}`);
   }
-  const staticErrors = [...syntaxErrors, ...duplicateErrors, ...referenceErrors];
+  const contractErrors = checkElevatorContract(evalDir);
+  const staticErrors = [...syntaxErrors, ...duplicateErrors, ...referenceErrors, ...contractErrors];
   return {
     checked_at: new Date().toISOString(),
     files_checked: jsFiles.map((filePath) => path.relative(ROOT, filePath)),

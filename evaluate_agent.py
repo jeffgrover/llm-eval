@@ -1259,6 +1259,27 @@ def generate_html_report(
     """
 
     import base64
+    max_embedded_artifact_bytes = 2 * 1024 * 1024
+
+    def artifact_size_label(path: Path) -> str:
+        try:
+            size = path.stat().st_size
+        except OSError:
+            return ""
+        if size >= 1024 * 1024:
+            return f"{size / (1024 * 1024):.1f} MB"
+        if size >= 1024:
+            return f"{size / 1024:.1f} KB"
+        return f"{size} B"
+
+    def add_large_artifact_link(artifact_name: str, artifact_path: Path):
+        nonlocal html_content
+        size_label = artifact_size_label(artifact_path)
+        html_content += f"""
+        <div class="file-list-item" onclick="loadFile('{artifact_name}', 'text')">
+            {artifact_name} <span class="badge">Large {size_label}</span>
+        </div>
+        """
 
     def build_embedded_html_preview(artifact_name: str) -> str:
         """Inline local JS dependencies so summary previews work from file://."""
@@ -1294,8 +1315,16 @@ def generate_html_report(
         )
 
     for art in artifacts:
+        artifact_path = work_dir / art
+        try:
+            artifact_size = artifact_path.stat().st_size
+        except OSError:
+            artifact_size = 0
         is_html = art.lower().endswith((".html", ".htm"))
         is_image = art.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".svg"))
+        if artifact_size > max_embedded_artifact_bytes and not is_image:
+            add_large_artifact_link(art, artifact_path)
+            continue
 
         if is_html:
             # Add Preview item with base64 content for proper HTML rendering
@@ -1398,13 +1427,31 @@ class AgentRunner:
         self.work_dir = (
             EVALS_DIR / f"{self.agent_binary}_{self.safe_model_name}_{prompt_file.stem}"
         )
+        self.workspace_overwrite_confirmed = False
 
         self.log_process: Optional[subprocess.Popen] = None
+
+    def confirm_workspace_overwrite(self):
+        """Prompts before replacing an existing evaluation directory."""
+        if not self.work_dir.exists() or self.workspace_overwrite_confirmed:
+            return
+        try:
+            response = input(
+                f"[!] Evaluation directory already exists: {self.work_dir}\n"
+                "Overwrite it and delete the existing contents? [y/N]: "
+            ).strip().lower()
+        except EOFError:
+            response = ""
+        if response not in ("y", "yes"):
+            print("[*] Evaluation aborted; existing results were left unchanged.")
+            sys.exit(1)
+        self.workspace_overwrite_confirmed = True
 
     def setup_workspace(self):
         """Creates the evaluation directory."""
         if self.work_dir.exists():
-            print(f"[*] Cleaning up existing directory: {self.work_dir}")
+            self.confirm_workspace_overwrite()
+            print(f"[*] Deleting existing directory contents: {self.work_dir}")
             shutil.rmtree(self.work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
         print(f"[+] Created workspace: {self.work_dir}")
@@ -3448,6 +3495,7 @@ class PiWiggumRunner(PiRunner):
             "cost_usd": 0.0,
             "num_turns": 0,
             "attempts": 0,
+            "passed": False,
             "status": "failed",
             "terminal_reason": "failed",
             "elapsed_seconds": 0.0,
@@ -3481,6 +3529,7 @@ class PiWiggumRunner(PiRunner):
             self._write_wiggum_result(aggregate, start)
 
             if checker_summary["passed"]:
+                aggregate["passed"] = True
                 aggregate["status"] = "success"
                 aggregate["terminal_reason"] = "completed"
                 break
@@ -3729,16 +3778,7 @@ def main():
         print(f"[-] Prompt file not found: {args.prompt_file}")
         sys.exit(1)
 
-    # 1. Load Model (Local only)
-    skip_local_model_load = False
-    if args.agent == "opencode" and not args.non_local and not args.provider:
-        provider_name = OpenCodeRunner._resolve_global_provider_for_model(args.model)
-        skip_local_model_load = provider_name not in (None, "lmstudio", "lm-studio")
-
-    if not args.non_local and not args.provider and not skip_local_model_load:
-        load_lms_model(args.model)
-
-    # 2. Get Runner
+    # 1. Get Runner
     runner_cls = get_runner(args.agent)
     if not runner_cls:
         print(f"[-] Unknown agent: {args.agent}")
@@ -3764,6 +3804,17 @@ def main():
             args.non_local,
             args.restore_agent_config,
         )
+
+    runner.confirm_workspace_overwrite()
+
+    # 2. Load Model (Local only)
+    skip_local_model_load = False
+    if args.agent == "opencode" and not args.non_local and not args.provider:
+        provider_name = OpenCodeRunner._resolve_global_provider_for_model(args.model)
+        skip_local_model_load = provider_name not in (None, "lmstudio", "lm-studio")
+
+    if not args.non_local and not args.provider and not skip_local_model_load:
+        load_lms_model(args.model)
 
     # 3. Run
     runner.run()

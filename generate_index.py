@@ -318,7 +318,7 @@ def score_elevator(work_dir: Path, files: Dict[str, str], evidence: List[str]) -
     for name in required_files_for_prompt("elevator_prompt"):
         categories["files"] += points(bool(files.get(name)), 4, f"{name} present", evidence)
     categories["files"] += points(
-        contains_any(index, (r"three@0\.128\.0/build/three\.min\.js",)) and contains_any(index, (r"OrbitControls\.js",)),
+        contains_any(index, (r"three@0\.(?:128|147)\.0/build/three\.min\.js",)) and contains_any(index, (r"OrbitControls\.js",)),
         3,
         "required Three.js scripts present",
         evidence,
@@ -328,7 +328,7 @@ def score_elevator(work_dir: Path, files: Dict[str, str], evidence: List[str]) -
     categories["implementation"] += points(contains_any(elevator, (r"depthWrite\s*:\s*false",)) and "DoubleSide" in elevator, 3, "transparent material settings", evidence)
     categories["implementation"] += points("sortObjects" in elevator and contains_any(elevator, (r"alpha\s*:\s*true",)), 3, "renderer transparency setup", evidence)
     categories["implementation"] += points(contains_any(elevator, (r"door",)) and contains_any(elevator, (r"open",)) and contains_any(elevator, (r"close",)), 4, "door open/close signals", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"add\s*\(\s*person", r"elevator(Car)?\.add", r"scene\.add\s*\(\s*person")), 4, "person reparenting signal", evidence)
+    categories["implementation"] += points(contains_any(elevator, (r"elevatorCar\.attach\s*\(", r"scene\.attach\s*\(")), 4, "person attach/reparenting signal", evidence)
     categories["implementation"] += points(contains_any(elevator + person, (r"Math\.sin", r"isWalking", r"walkPhase")), 3, "walking animation signal", evidence)
     categories["implementation"] += points(contains_any(elevator, (r"positive\s*Z", r"\+Z", r"Math\.PI", r"rotation\.y")), 3, "orientation/front-of-elevator signal", evidence)
     categories["implementation"] += points(contains_any(elevator + index, (r"speed", r"slider", r"range", r"20x")), 2, "speed control signal", evidence)
@@ -465,6 +465,7 @@ def deterministic_score(ev: Dict) -> Dict:
         flags.append("Result flagged error")
     if not ev["HasReport"]:
         flags.append("No summary report")
+    flags = list(dict.fromkeys(flags))
 
     return {
         "total": total,
