@@ -3471,6 +3471,30 @@ class PiRunner(AgentRunner):
 
 
 class PiWiggumRunner(PiRunner):
+    def _wiggum_prompt_kind(self) -> str:
+        prompt_stem = self.prompt_file.stem
+        if prompt_stem.startswith("office_prompt"):
+            return "office"
+        if prompt_stem.startswith("elevator_prompt"):
+            return "elevator"
+        return "generic"
+
+    def _wiggum_required_files(self) -> List[str]:
+        kind = self._wiggum_prompt_kind()
+        if kind == "office":
+            return [
+                "index.html",
+                "person.js",
+                "world.js",
+                "elevator_logic.js",
+                "elevator.js",
+                "sim.js",
+                "elevator_logic_test.js",
+            ]
+        if kind == "elevator":
+            return ["index.html", "person.js", "elevator.js"]
+        return ["index.html"]
+
     def _build_pi_command(self) -> List[str]:
         cmd = super()._build_pi_command()
         if "--approve" not in cmd:
@@ -3565,9 +3589,17 @@ class PiWiggumRunner(PiRunner):
     def _run_wiggum_checkers(self) -> Dict:
         static = self._run_checker(["node", "../../static_check.js", "."], "static")
         runtime = self._run_checker(["node", "../../runtime_check.js", "."], "runtime")
+        logic_test = None
+        if self._wiggum_prompt_kind() == "office":
+            logic_test = self._run_checker(["node", "elevator_logic_test.js"], "elevator logic test")
+
         static_json = self._read_json_file(self.work_dir / "static_check.json")
         runtime_json = self._read_json_file(self.work_dir / "runtime_check.json")
 
+        missing_files = [
+            name for name in self._wiggum_required_files()
+            if not (self.work_dir / name).is_file()
+        ]
         static_errors = static_json.get("static_errors", []) if isinstance(static_json, dict) else []
         console_errors = runtime_json.get("console_errors", []) if isinstance(runtime_json, dict) else []
         page_errors = runtime_json.get("page_errors", []) if isinstance(runtime_json, dict) else []
@@ -3580,6 +3612,7 @@ class PiWiggumRunner(PiRunner):
         passed = (
             static["returncode"] == 0
             and runtime["returncode"] == 0
+            and not missing_files
             and not static_errors
             and not console_errors
             and not page_errors
@@ -3589,11 +3622,15 @@ class PiWiggumRunner(PiRunner):
             and objects > 0
             and changes > 0
         )
+        if logic_test is not None:
+            passed = passed and logic_test["returncode"] == 0
 
         summary = {
             "passed": passed,
             "static": static,
             "runtime": runtime,
+            "logic_test": logic_test,
+            "missing_files": missing_files,
             "static_errors": static_errors[:10],
             "console_errors": console_errors[:10],
             "page_errors": page_errors[:10],
@@ -3658,6 +3695,11 @@ class PiWiggumRunner(PiRunner):
             f"scene_object_count: {summary['scene_object_count']}",
             f"dynamic_changes: {summary['dynamic_changes']}",
         ]
+        if summary.get("logic_test") is not None:
+            lines.append(f"elevator logic test return code: {summary['logic_test']['returncode']}")
+        if summary.get("missing_files"):
+            lines.append("missing_files:")
+            lines.extend(f"- {value}" for value in summary["missing_files"])
         for label, values in (
             ("static_errors", summary["static_errors"]),
             ("page_errors", summary["page_errors"]),
@@ -3666,7 +3708,9 @@ class PiWiggumRunner(PiRunner):
             if values:
                 lines.append(f"{label}:")
                 lines.extend(f"- {value}" for value in values[:10])
-        for label in ("static", "runtime"):
+        for label in ("static", "runtime", "logic_test"):
+            if summary.get(label) is None:
+                continue
             output = summary[label].get("output", "").strip()
             if output:
                 lines.append(f"{label} checker output:")
@@ -3675,28 +3719,61 @@ class PiWiggumRunner(PiRunner):
 
     def _build_repair_prompt(self, summary: Dict, attempt: int) -> str:
         checker_text = self._checker_text(summary)
-        return f"""The approved elevator simulation implementation did not pass evaluator-owned checks after attempt {attempt}.
+        kind = self._wiggum_prompt_kind()
+        files = ", ".join(self._wiggum_required_files())
+        if kind == "office":
+            scenario = "office-building simulation"
+            extra_criteria = [
+                "- all required office files exist",
+                "- `node elevator_logic_test.js` passes",
+                "- the simulation still reads as an office day with workers, visitors, world geometry, elevator logic, and UI",
+            ]
+            check_commands = [
+                "node elevator_logic_test.js",
+                "node ../../static_check.js .",
+                "node ../../runtime_check.js .",
+            ]
+        elif kind == "elevator":
+            scenario = "elevator simulation"
+            extra_criteria = ["- the elevator simulation continues running in the browser"]
+            check_commands = [
+                "node ../../static_check.js .",
+                "node ../../runtime_check.js .",
+            ]
+        else:
+            scenario = "browser simulation"
+            extra_criteria = ["- the simulation continues running in the browser"]
+            check_commands = [
+                "node ../../static_check.js .",
+                "node ../../runtime_check.js .",
+            ]
 
-Edit the existing files only: index.html, person.js, and elevator.js. Do not create new local files, do not ask the human for decisions, and do not stop until the checks pass.
+        criteria = "\n".join([
+            "- zero static checker errors",
+            "- zero startup, console, and page runtime errors",
+            "- loaded page with a visible nonblank Three.js canvas",
+            "- animation frames observed",
+            "- scene objects observed",
+            "- visible motion / dynamic changes observed",
+            *extra_criteria,
+        ])
+        commands = "\n".join(check_commands)
+
+        return f"""The approved {scenario} implementation did not pass evaluator-owned checks after attempt {attempt}.
+
+Edit the existing files and create any missing required files from the original prompt: {files}. Do not replace this task with a different prompt's artifact, do not ask the human for decisions, and do not stop until the checks pass.
 
 Required success criteria:
-- zero static checker errors
-- zero startup, console, and page runtime errors
-- loaded page with a visible nonblank Three.js canvas
-- animation frames observed
-- scene objects observed
-- visible motion / dynamic changes observed
-- the elevator simulation continues running in the browser
+{criteria}
 
 Checker feedback to fix:
 
 {checker_text}
 
 After editing, run:
-node ../../static_check.js .
-node ../../runtime_check.js .
+{commands}
 
-If either checker still reports failure, fix the files and rerun the checks before reporting completion.
+If any checker still reports failure, fix the files and rerun the checks before reporting completion.
 """
 
     def _write_wiggum_result(self, aggregate: Dict, start: float):

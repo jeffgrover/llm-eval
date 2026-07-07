@@ -1,0 +1,246 @@
+{
+  "input_tokens": 4257307,
+  "output_tokens": 82258,
+  "total_tokens": 4339565,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 142,
+  "attempts": 7,
+  "passed": true,
+  "status": "success",
+  "terminal_reason": "completed",
+  "elapsed_seconds": 6351.508,
+  "checker_summaries": [
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - world.js:174:13 'buildConferenceRoom' is not defined\n  - world.js:177:13 'buildLoungeArea' is not defined\n  - world.js:180:13 'buildPrivateOffices' is not defined\n  - world.js:339:9 'sitTargets' is not defined\n  - world.js:340:9 'sitTargets' is not defined\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n  - static: world.js:174:13 'buildConferenceRoom' is not defined\n  - static: world.js:177:13 'buildLoungeArea' is not defined\n  - static: world.js:180:13 'buildPrivateOffices' is not defined\n  - static: world.js:339:9 'sitTargets' is not defined\n  - static: world.js:340:9 'sitTargets' is not defined\n"
+      },
+      "logic_test": {
+        "returncode": 1,
+        "output": "node:internal/modules/cjs/loader:1520\n  throw err;\n  ^\n\nError: Cannot find module '/Users/md/Code/llm-eval/evals/pi-wiggum_agents-a1_office_prompt_wiggum/elevator_logic_test.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)\n    at Module._load (node:internal/modules/cjs/loader:1294:5)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.18.0\n"
+      },
+      "missing_files": [
+        "sim.js",
+        "elevator_logic_test.js"
+      ],
+      "static_errors": [
+        "world.js:174:13 'buildConferenceRoom' is not defined",
+        "world.js:177:13 'buildLoungeArea' is not defined",
+        "world.js:180:13 'buildPrivateOffices' is not defined",
+        "world.js:339:9 'sitTargets' is not defined",
+        "world.js:340:9 'sitTargets' is not defined",
+        "world.js:341:9 'sitTargets' is not defined",
+        "world.js:298:13 'sitTargets' is not defined",
+        "world.js:323:13 'sitTargets' is not defined",
+        "world.js:432:36 'halfShaft' is not defined",
+        "world.js:446:39 'halfShaft' is not defined"
+      ],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "page_errors": [
+        "bfsPath is not defined"
+      ],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - world.js:48:65 'halfD' is not defined\n  - world.js:73:66 'halfD' is not defined\n  - world.js:99:71 'backWallZ' is not defined\n  - world.js:271:13 'buildConferenceRoom' is not defined\n  - world.js:274:13 'buildLoungeArea' is not defined\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n  - static: world.js:48:65 'halfD' is not defined\n  - static: world.js:73:66 'halfD' is not defined\n  - static: world.js:99:71 'backWallZ' is not defined\n  - static: world.js:271:13 'buildConferenceRoom' is not defined\n  - static: world.js:274:13 'buildLoungeArea' is not defined\n"
+      },
+      "logic_test": {
+        "returncode": 1,
+        "output": "node:internal/modules/cjs/loader:1520\n  throw err;\n  ^\n\nError: Cannot find module '/Users/md/Code/llm-eval/evals/pi-wiggum_agents-a1_office_prompt_wiggum/elevator_logic_test.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)\n    at Module._load (node:internal/modules/cjs/loader:1294:5)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.18.0\n"
+      },
+      "missing_files": [
+        "sim.js",
+        "elevator_logic_test.js"
+      ],
+      "static_errors": [
+        "world.js:48:65 'halfD' is not defined",
+        "world.js:73:66 'halfD' is not defined",
+        "world.js:99:71 'backWallZ' is not defined",
+        "world.js:271:13 'buildConferenceRoom' is not defined",
+        "world.js:274:13 'buildLoungeArea' is not defined",
+        "world.js:277:13 'buildPrivateOffices' is not defined",
+        "world.js:436:9 'sitTargets' is not defined",
+        "world.js:437:9 'sitTargets' is not defined",
+        "world.js:438:9 'sitTargets' is not defined",
+        "world.js:395:13 'sitTargets' is not defined"
+      ],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "page_errors": [
+        "bfsPath is not defined"
+      ],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - world.js:504:36 'halfShaft' is not defined\n  - world.js:518:39 'halfShaft' is not defined\n  - world.js:532:41 'halfShaft' is not defined\n  - world.js:551:41 'halfShaft' is not defined\n  - world.js:596:58 'halfShaft' is not defined\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n  - static: world.js:504:36 'halfShaft' is not defined\n  - static: world.js:518:39 'halfShaft' is not defined\n  - static: world.js:532:41 'halfShaft' is not defined\n  - static: world.js:551:41 'halfShaft' is not defined\n  - static: world.js:596:58 'halfShaft' is not defined\n"
+      },
+      "logic_test": {
+        "returncode": 1,
+        "output": "node:internal/modules/cjs/loader:1520\n  throw err;\n  ^\n\nError: Cannot find module '/Users/md/Code/llm-eval/evals/pi-wiggum_agents-a1_office_prompt_wiggum/elevator_logic_test.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)\n    at Module._load (node:internal/modules/cjs/loader:1294:5)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.18.0\n"
+      },
+      "missing_files": [
+        "sim.js",
+        "elevator_logic_test.js"
+      ],
+      "static_errors": [
+        "world.js:504:36 'halfShaft' is not defined",
+        "world.js:518:39 'halfShaft' is not defined",
+        "world.js:532:41 'halfShaft' is not defined",
+        "world.js:551:41 'halfShaft' is not defined",
+        "world.js:596:58 'halfShaft' is not defined",
+        "world.js:615:63 'halfShaft' is not defined"
+      ],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot read properties of undefined (reading 'addNode')\n"
+      },
+      "logic_test": {
+        "returncode": 0,
+        "output": "\u2713 ElevatorLogic constructor initializes correctly\n\u2713 callUp and callDown add calls correctly\n\u2713 Invalid floor calls are ignored\n\u2713 pressDestination works correctly\n\u2713 State machine transitions from IDLE to MOVING\n\u2713 State machine transitions from MOVING to DOOR_OPENING\n\u2713 State machine transitions from DOOR_OPENING to DOOR_OPEN\n\u2713 State machine transitions from DOOR_OPEN to DOOR_CLOSING\n\u2713 State machine transitions from DOOR_CLOSING\n\u2713 reserveBoardingSpot reserves a spot\n\u2713 reserveBoardingSpot returns null when full\n\u2713 completeBoard works correctly\n\u2713 registerDisembark works correctly\n\u2713 completeDisembark works correctly\n\u2713 isAcceptingAt works correctly\n\u2713 hasStopsInDirection works\n\u2713 reset works correctly\n\u2713 getState returns proper state\n\n18 passed, 0 failed\n"
+      },
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'addNode')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot read properties of undefined (reading 'addNode')\n  - console: THREE.Object3D.add: object not an instance of THREE.Object3D. null\n"
+      },
+      "logic_test": {
+        "returncode": 0,
+        "output": "\u2713 ElevatorLogic constructor initializes correctly\n\u2713 callUp and callDown add calls correctly\n\u2713 Invalid floor calls are ignored\n\u2713 pressDestination works correctly\n\u2713 State machine transitions from IDLE to MOVING\n\u2713 State machine transitions from MOVING to DOOR_OPENING\n\u2713 State machine transitions from DOOR_OPENING to DOOR_OPEN\n\u2713 State machine transitions from DOOR_OPEN to DOOR_CLOSING\n\u2713 State machine transitions from DOOR_CLOSING\n\u2713 reserveBoardingSpot reserves a spot\n\u2713 reserveBoardingSpot returns null when full\n\u2713 completeBoard works correctly\n\u2713 registerDisembark works correctly\n\u2713 completeDisembark works correctly\n\u2713 isAcceptingAt works correctly\n\u2713 hasStopsInDirection works\n\u2713 reset works correctly\n\u2713 getState returns proper state\n\n18 passed, 0 failed\n"
+      },
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [
+        "THREE.Object3D.add: object not an instance of THREE.Object3D. null"
+      ],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'addNode')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - world.js:230:17 'buildingGroup' is not defined\n  - world.js:317:24 'floorMesh' is not defined\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - static: world.js:230:17 'buildingGroup' is not defined\n  - static: world.js:317:24 'floorMesh' is not defined\n  - page: floorMesh is not defined\n"
+      },
+      "logic_test": {
+        "returncode": 0,
+        "output": "\u2713 ElevatorLogic constructor initializes correctly\n\u2713 callUp and callDown add calls correctly\n\u2713 Invalid floor calls are ignored\n\u2713 pressDestination works correctly\n\u2713 State machine transitions from IDLE to MOVING\n\u2713 State machine transitions from MOVING to DOOR_OPENING\n\u2713 State machine transitions from DOOR_OPENING to DOOR_OPEN\n\u2713 State machine transitions from DOOR_OPEN to DOOR_CLOSING\n\u2713 State machine transitions from DOOR_CLOSING\n\u2713 reserveBoardingSpot reserves a spot\n\u2713 reserveBoardingSpot returns null when full\n\u2713 completeBoard works correctly\n\u2713 registerDisembark works correctly\n\u2713 completeDisembark works correctly\n\u2713 isAcceptingAt works correctly\n\u2713 hasStopsInDirection works\n\u2713 reset works correctly\n\u2713 getState returns proper state\n\n18 passed, 0 failed\n"
+      },
+      "missing_files": [],
+      "static_errors": [
+        "world.js:230:17 'buildingGroup' is not defined",
+        "world.js:317:24 'floorMesh' is not defined"
+      ],
+      "console_errors": [],
+      "page_errors": [
+        "floorMesh is not defined"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": true,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": ok, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=223 objects=394 changes=3342\n"
+      },
+      "logic_test": {
+        "returncode": 0,
+        "output": "\u2713 ElevatorLogic constructor initializes correctly\n\u2713 callUp and callDown add calls correctly\n\u2713 Invalid floor calls are ignored\n\u2713 pressDestination works correctly\n\u2713 State machine transitions from IDLE to MOVING\n\u2713 State machine transitions from MOVING to DOOR_OPENING\n\u2713 State machine transitions from DOOR_OPENING to DOOR_OPEN\n\u2713 State machine transitions from DOOR_OPEN to DOOR_CLOSING\n\u2713 State machine transitions from DOOR_CLOSING\n\u2713 reserveBoardingSpot reserves a spot\n\u2713 reserveBoardingSpot returns null when full\n\u2713 completeBoard works correctly\n\u2713 registerDisembark works correctly\n\u2713 completeDisembark works correctly\n\u2713 isAcceptingAt works correctly\n\u2713 hasStopsInDirection works\n\u2713 reset works correctly\n\u2713 getState returns proper state\n\n18 passed, 0 failed\n"
+      },
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 223,
+      "scene_object_count": 394,
+      "dynamic_changes": 3342
+    }
+  ],
+  "provider_id": "lmstudio",
+  "model_id": "agents-a1",
+  "duration_ms": 6351508
+}
