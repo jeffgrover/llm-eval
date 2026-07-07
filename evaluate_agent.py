@@ -39,6 +39,8 @@ VIBE_RESULT_FILENAME = "VIBE_RESULT.JSON"
 PI_RESULT_FILENAME = "PI_RESULT.JSON"
 PI_WIGGUM_RESULT_FILENAME = "PI_WIGGUM_RESULT.JSON"
 PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
+DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
+DEFAULT_LOCAL_OUTPUT_LIMIT = 4096
 
 # Tracks whether the lms CLI is responsive (set during model loading)
 _lms_cli_available = True
@@ -57,6 +59,21 @@ def use_llama_server_provider() -> None:
     LOCAL_PROVIDER_NAME = "llama-server (local)"
     LOCAL_API_KEY = "llama-server"
     _lms_cli_available = False
+
+
+def get_env_int(name: str, default: int, minimum: int = 1) -> int:
+    """Read a positive integer environment override with a safe fallback."""
+    value = os.environ.get(name)
+    if not value:
+        return default
+    try:
+        parsed = int(value)
+        if parsed >= minimum:
+            return parsed
+    except ValueError:
+        pass
+    print(f"[-] Ignoring invalid {name}={value!r}; using {default}.")
+    return default
 
 
 def read_prompt_file(prompt_file: Path) -> str:
@@ -2534,6 +2551,12 @@ class OpenCodeRunner(AgentRunner):
 
         if should_define_local_provider:
             # Default case: define an OpenAI-compatible local provider.
+            context_limit = get_env_int(
+                "LLM_EVAL_LOCAL_CONTEXT_LIMIT", DEFAULT_LOCAL_CONTEXT_LIMIT
+            )
+            output_limit = get_env_int(
+                "LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT
+            )
             base_url = LOCAL_API_URL
             provider_id = LOCAL_PROVIDER_ID
             config["provider"] = {
@@ -2541,9 +2564,23 @@ class OpenCodeRunner(AgentRunner):
                     "npm": "@ai-sdk/openai-compatible",
                     "name": LOCAL_PROVIDER_NAME,
                     "options": {"baseURL": base_url},
-                    "models": {self.model_name: {"name": self.model_name}},
+                    "models": {
+                        self.model_name: {
+                            "name": self.model_name,
+                            "limit": {
+                                "context": context_limit,
+                                "output": output_limit,
+                            },
+                        }
+                    },
                 }
             }
+            print(
+                "[*] OpenCode local limits: "
+                f"context={context_limit}, output={output_limit} tokens "
+                "(override with LLM_EVAL_LOCAL_CONTEXT_LIMIT / "
+                "LLM_EVAL_LOCAL_OUTPUT_LIMIT)."
+            )
 
         with open(self.work_dir / "opencode.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
