@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-07-06T06:42:11.323Z",
+  "files_checked": [
+    "evals/opencode_google_gemma-4-26b-a4b_elevator_prompt/person.js",
+    "evals/opencode_google_gemma-4-26b-a4b_elevator_prompt/elevator.js"
+  ],
+  "static_errors": [],
+  "static_warnings": []
+}

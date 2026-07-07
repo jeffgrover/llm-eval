@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:24:31.375Z",
-  "url": "http://127.0.0.1:49420/evals/opencode_qwenqwen35-9b_elevator_prompt/index.html",
+  "checked_at": "2026-07-07T02:46:43.527Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_qwenqwen35-9b_elevator_prompt/index.html",
   "static_errors": [
     "evals/opencode_qwenqwen35-9b_elevator_prompt/elevator.js:421:44 'door' is not defined"
   ],
@@ -20,6 +20,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5826,
+  "duration_ms": 5861,
   "warnings": []
 }

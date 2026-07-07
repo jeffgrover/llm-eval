@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-07-06T06:42:09.297Z",
+  "files_checked": [
+    "evals/codex_gpt-5_5_office_prompt_v2/person.js",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js",
+    "evals/codex_gpt-5_5_office_prompt_v2/elevator_logic.js",
+    "evals/codex_gpt-5_5_office_prompt_v2/elevator.js",
+    "evals/codex_gpt-5_5_office_prompt_v2/sim.js"
+  ],
+  "static_errors": [
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:159:27 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:159:44 'desks' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:212:9 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:213:9 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:214:9 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:179:13 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:180:13 'desks' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:189:13 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:190:13 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:207:13 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:224:79 'desks' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:224:86 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:229:27 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:229:44 'desks' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:266:9 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:267:9 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:251:13 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:258:165 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:274:13 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:284:135 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:292:75 'desks' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/world.js:292:82 'sitTargets' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/sim.js:38:9 'tick' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/sim.js:38:14 'realDt' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/sim.js:48:9 'format' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/sim.js:40:31 'realDt' is not defined",
+    "evals/codex_gpt-5_5_office_prompt_v2/sim.js:469:26 'e' is not defined"
+  ],
+  "static_warnings": []
+}

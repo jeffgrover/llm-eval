@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-07-06T06:42:10.566Z",
+  "files_checked": [
+    "evals/opencode_North_Mini_Code_Free_elevator_prompt_v2/person.js",
+    "evals/opencode_North_Mini_Code_Free_elevator_prompt_v2/elevator.js"
+  ],
+  "static_errors": [],
+  "static_warnings": []
+}

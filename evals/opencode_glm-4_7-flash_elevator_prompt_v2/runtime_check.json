@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:22:12.903Z",
-  "url": "http://127.0.0.1:49420/evals/opencode_glm-4_7-flash_elevator_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:44:07.281Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_glm-4_7-flash_elevator_prompt_v2/index.html",
   "static_errors": [
     "evals/opencode_glm-4_7-flash_elevator_prompt_v2/elevator.js:19:21 'elevatorCar' is not defined",
     "evals/opencode_glm-4_7-flash_elevator_prompt_v2/elevator.js:21:21 'elevatorCar' is not defined",
@@ -32,6 +32,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5815,
+  "duration_ms": 5853,
   "warnings": []
 }

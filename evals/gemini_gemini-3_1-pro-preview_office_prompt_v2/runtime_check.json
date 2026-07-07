@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:19:45.807Z",
-  "url": "http://127.0.0.1:49420/evals/gemini_gemini-3_1-pro-preview_office_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:41:39.981Z",
+  "url": "http://127.0.0.1:36613/evals/gemini_gemini-3_1-pro-preview_office_prompt_v2/index.html",
   "static_errors": [
     "evals/gemini_gemini-3_1-pro-preview_office_prompt_v2/sim.js:732:29 'e' is not defined"
   ],
@@ -28,10 +28,10 @@
   ],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 465,
+  "animation_frames": 347,
   "scene_object_count": 108,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 6235,
+  "duration_ms": 6095,
   "warnings": []
 }

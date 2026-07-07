@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-07-06T06:42:08.600Z",
+  "files_checked": [
+    "evals/claude_Opus_4_7_elevator_prompt/person.js",
+    "evals/claude_Opus_4_7_elevator_prompt/elevator.js"
+  ],
+  "static_errors": [
+    "evals/claude_Opus_4_7_elevator_prompt/person.js:15:5 'get' is not defined",
+    "evals/claude_Opus_4_7_elevator_prompt/person.js:15:9 'TOTAL_HEIGHT' is not defined"
+  ],
+  "static_warnings": []
+}

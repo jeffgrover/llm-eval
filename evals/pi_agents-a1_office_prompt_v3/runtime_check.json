@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-07-07T02:47:25.729Z",
+  "url": "http://127.0.0.1:36613/evals/pi_agents-a1_office_prompt_v3/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/pi_agents-a1_office_prompt_v3/person.js"
+  ],
+  "loaded": true,
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "page_errors": [],
+  "canvas_count": 0,
+  "nonblank_canvas": false,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5863,
+  "warnings": []
+}

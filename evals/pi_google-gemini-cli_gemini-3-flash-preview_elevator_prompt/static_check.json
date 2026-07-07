@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-07-06T06:42:12.197Z",
+  "files_checked": [
+    "evals/pi_google-gemini-cli_gemini-3-flash-preview_elevator_prompt/person.js",
+    "evals/pi_google-gemini-cli_gemini-3-flash-preview_elevator_prompt/elevator.js"
+  ],
+  "static_errors": [],
+  "static_warnings": []
+}

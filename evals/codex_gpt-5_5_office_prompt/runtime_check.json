@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:19:20.861Z",
-  "url": "http://127.0.0.1:49420/evals/codex_gpt-5_5_office_prompt/index.html",
+  "checked_at": "2026-07-07T02:41:15.358Z",
+  "url": "http://127.0.0.1:36613/evals/codex_gpt-5_5_office_prompt/index.html",
   "static_errors": [
     "evals/codex_gpt-5_5_office_prompt/world.js:146:27 'sitTargets' is not defined",
     "evals/codex_gpt-5_5_office_prompt/world.js:146:44 'desks' is not defined",
@@ -45,10 +45,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 249,
-  "scene_object_count": 1389,
-  "dynamic_changes": 988,
+  "animation_frames": 94,
+  "scene_object_count": 1257,
+  "dynamic_changes": 389,
   "canvas_changed": false,
-  "duration_ms": 6429,
+  "duration_ms": 6480,
   "warnings": []
 }

@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:18:25.528Z",
-  "url": "http://127.0.0.1:49420/evals/claude_Opus46_elevator_prompt/index.html",
+  "checked_at": "2026-07-07T02:40:19.262Z",
+  "url": "http://127.0.0.1:36613/evals/claude_Opus46_elevator_prompt/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
@@ -12,10 +12,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 843,
+  "animation_frames": 626,
   "scene_object_count": 112,
-  "dynamic_changes": 438,
+  "dynamic_changes": 341,
   "canvas_changed": false,
-  "duration_ms": 6065,
+  "duration_ms": 5943,
   "warnings": []
 }

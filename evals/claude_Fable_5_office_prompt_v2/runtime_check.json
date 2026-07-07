@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:18:19.383Z",
-  "url": "http://127.0.0.1:49420/evals/claude_Fable_5_office_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:40:13.240Z",
+  "url": "http://127.0.0.1:36613/evals/claude_Fable_5_office_prompt_v2/index.html",
   "static_errors": [
     "evals/claude_Fable_5_office_prompt_v2/elevator_logic.js:339:71 'e' is not defined",
     "evals/claude_Fable_5_office_prompt_v2/elevator_logic.js:350:71 'e' is not defined",
@@ -20,10 +20,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 273,
+  "animation_frames": 233,
   "scene_object_count": 1806,
-  "dynamic_changes": 1323,
+  "dynamic_changes": 1395,
   "canvas_changed": false,
-  "duration_ms": 6325,
+  "duration_ms": 6283,
   "warnings": []
 }

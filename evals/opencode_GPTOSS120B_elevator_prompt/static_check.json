@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-07-06T06:42:09.918Z",
+  "files_checked": [
+    "evals/opencode_GPTOSS120B_elevator_prompt/person.js",
+    "evals/opencode_GPTOSS120B_elevator_prompt/elevator.js"
+  ],
+  "static_errors": [],
+  "static_warnings": []
+}

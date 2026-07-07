@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:18:43.944Z",
-  "url": "http://127.0.0.1:49420/evals/claude_Opus_4_7_office_prompt/index.html",
+  "checked_at": "2026-07-07T02:40:37.721Z",
+  "url": "http://127.0.0.1:36613/evals/claude_Opus_4_7_office_prompt/index.html",
   "static_errors": [
     "evals/claude_Opus_4_7_office_prompt/sim.js:41:9 'tick' is not defined",
     "evals/claude_Opus_4_7_office_prompt/sim.js:41:14 'realDt' is not defined",
@@ -23,10 +23,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 235,
-  "scene_object_count": 1003,
-  "dynamic_changes": 0,
+  "animation_frames": 191,
+  "scene_object_count": 1035,
+  "dynamic_changes": 9,
   "canvas_changed": false,
-  "duration_ms": 5968,
+  "duration_ms": 6011,
   "warnings": []
 }

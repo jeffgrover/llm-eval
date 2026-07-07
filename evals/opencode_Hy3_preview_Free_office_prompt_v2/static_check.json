@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-07-06T06:42:10.034Z",
+  "files_checked": [
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/person.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/world.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator.js",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/sim.js"
+  ],
+  "static_errors": [
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js:90:21 'pid' is not defined",
+    "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js:90:51 'idx' is not defined"
+  ],
+  "static_warnings": []
+}

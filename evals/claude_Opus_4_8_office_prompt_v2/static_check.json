@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-07-06T06:42:08.973Z",
+  "files_checked": [
+    "evals/claude_Opus_4_8_office_prompt_v2/person.js",
+    "evals/claude_Opus_4_8_office_prompt_v2/world.js",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator.js",
+    "evals/claude_Opus_4_8_office_prompt_v2/sim.js"
+  ],
+  "static_errors": [
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:119:43 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:119:61 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:127:43 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:127:61 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:135:43 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:135:61 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:210:46 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/elevator_logic.js:212:46 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/sim.js:455:18 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/sim.js:458:25 'e' is not defined",
+    "evals/claude_Opus_4_8_office_prompt_v2/sim.js:695:26 'e' is not defined"
+  ],
+  "static_warnings": []
+}

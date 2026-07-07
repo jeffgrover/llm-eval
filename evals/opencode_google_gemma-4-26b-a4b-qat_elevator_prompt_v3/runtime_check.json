@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-07-07T02:44:43.223Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_google_gemma-4-26b-a4b-qat_elevator_prompt_v3/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/opencode_google_gemma-4-26b-a4b-qat_elevator_prompt_v3/person.js",
+    "evals/opencode_google_gemma-4-26b-a4b-qat_elevator_prompt_v3/elevator.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 123,
+  "scene_object_count": 90,
+  "dynamic_changes": 57,
+  "canvas_changed": false,
+  "duration_ms": 6070,
+  "warnings": []
+}

@@ -1,0 +1,16 @@
+{
+  "checked_at": "2026-07-06T06:42:10.166Z",
+  "files_checked": [
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/person.js",
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/world.js",
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/elevator_logic.js",
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/elevator.js",
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/sim.js"
+  ],
+  "static_errors": [
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/elevator_logic.js:213:73 'e' is not defined",
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/sim.js:925:38 'e' is not defined",
+    "evals/opencode_Kimi_K2_7_Code_office_prompt_v2/sim.js:932:34 'e' is not defined"
+  ],
+  "static_warnings": []
+}

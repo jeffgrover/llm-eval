@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:19:51.855Z",
-  "url": "http://127.0.0.1:49420/evals/opencode_DeepSeek_V4_Pro_office_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:41:46.038Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_DeepSeek_V4_Pro_office_prompt_v2/index.html",
   "static_errors": [
     "evals/opencode_DeepSeek_V4_Pro_office_prompt_v2/sim.js:1138:34 'e' is not defined",
     "evals/opencode_DeepSeek_V4_Pro_office_prompt_v2/sim.js:1146:29 'e' is not defined"
@@ -24,6 +24,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5889,
+  "duration_ms": 5925,
   "warnings": []
 }

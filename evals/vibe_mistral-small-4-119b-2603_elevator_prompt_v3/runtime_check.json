@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:26:31.017Z",
-  "url": "http://127.0.0.1:49420/evals/vibe_mistral-small-4-119b-2603_elevator_prompt_v3/index.html",
+  "checked_at": "2026-07-07T02:49:36.968Z",
+  "url": "http://127.0.0.1:36613/evals/vibe_mistral-small-4-119b-2603_elevator_prompt_v3/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
@@ -16,6 +16,6 @@
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5824,
+  "duration_ms": 5860,
   "warnings": []
 }

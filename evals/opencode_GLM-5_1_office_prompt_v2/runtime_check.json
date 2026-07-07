@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:20:04.726Z",
-  "url": "http://127.0.0.1:49420/evals/opencode_GLM-5_1_office_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:41:58.748Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_GLM-5_1_office_prompt_v2/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
@@ -15,10 +15,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 179,
+  "animation_frames": 147,
   "scene_object_count": 2089,
-  "dynamic_changes": 3460,
+  "dynamic_changes": 3202,
   "canvas_changed": false,
-  "duration_ms": 6317,
+  "duration_ms": 6341,
   "warnings": []
 }

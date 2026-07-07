@@ -2,11 +2,17 @@
 import html
 import json
 import re
+from collections import deque
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 EVALS_DIR = Path("evals")
 INDEX_FILE = Path("index.html")
+MAX_ARTIFACT_BYTES = 50 * 1000 * 1000
+TARGET_ARTIFACT_BYTES = 45 * 1000 * 1000
+TRUNCATE_HEAD_LINES = 100
+TRUNCATE_TAIL_LINES = 100
+TRUNCATION_MARKER_PREFIX = "LLM-EVAL-TRUNCATED"
 
 RESULT_FILES = (
     "CLAUDE_RESULT.JSON",
@@ -55,6 +61,99 @@ def read_text(path: Path, limit: Optional[int] = None) -> str:
     return text[:limit] if limit and len(text) > limit else text
 
 
+def truncation_marker(path: Path, removed_lines: int, removed_bytes: int, note: str = "") -> bytes:
+    message = (
+        f"{TRUNCATION_MARKER_PREFIX}: removed {removed_lines:,} lines "
+        f"({removed_bytes:,} bytes) from the middle of this oversized generated file."
+    )
+    if note:
+        message = f"{message} {note}"
+    suffix = path.suffix.lower()
+    if suffix in {".jsonl", ".ndjson"}:
+        return (json.dumps({"truncated": True, "message": message}) + "\n").encode("utf-8")
+    if suffix in {".html", ".htm", ".xml", ".svg"}:
+        return f"\n<!-- {message} -->\n".encode("utf-8")
+    if suffix in {".js", ".css", ".c", ".cpp", ".h", ".java", ".ts"}:
+        return f"\n/* {message} */\n".encode("utf-8")
+    if suffix in {".py", ".sh", ".rb", ".pl", ".yaml", ".yml", ".toml"}:
+        return f"\n# {message}\n".encode("utf-8")
+    return f"\n{message}\n".encode("utf-8")
+
+
+def fit_truncated_content(path: Path, content: bytes, removed_lines: int, original_size: int) -> bytes:
+    if len(content) <= TARGET_ARTIFACT_BYTES:
+        return content
+
+    marker_token = TRUNCATION_MARKER_PREFIX.encode("utf-8")
+    content = b"".join(line for line in content.splitlines(keepends=True) if marker_token not in line)
+    placeholder = truncation_marker(path, removed_lines, 0, "Retained edge content was byte-capped because one or more lines were extremely large.")
+    side_budget = max((TARGET_ARTIFACT_BYTES - len(placeholder)) // 2, 0)
+    content = content[:side_budget] + placeholder + content[-side_budget:]
+    removed_bytes = original_size - len(content)
+    marker = truncation_marker(path, removed_lines, removed_bytes, "Retained edge content was byte-capped because one or more lines were extremely large.")
+    side_budget = max((TARGET_ARTIFACT_BYTES - len(marker)) // 2, 0)
+    return content[:side_budget] + marker + content[-side_budget:]
+
+
+def shorten_oversized_file(path: Path) -> Optional[Tuple[int, int, int]]:
+    original_size = path.stat().st_size
+    if original_size <= MAX_ARTIFACT_BYTES:
+        return None
+
+    head: List[bytes] = []
+    tail = deque(maxlen=TRUNCATE_TAIL_LINES)
+    total_lines = 0
+
+    with path.open("rb") as f:
+        for line in f:
+            total_lines += 1
+            if len(head) < TRUNCATE_HEAD_LINES:
+                head.append(line)
+            tail.append(line)
+
+    if total_lines <= TRUNCATE_HEAD_LINES + TRUNCATE_TAIL_LINES:
+        content = path.read_bytes()
+        capped = fit_truncated_content(path, content, 0, original_size)
+        if len(capped) >= len(content):
+            return None
+        tmp_path = path.with_name(f"{path.name}.tmp-truncated")
+        tmp_path.write_bytes(capped)
+        tmp_path.replace(path)
+        return original_size, path.stat().st_size, 0
+
+    if TRUNCATION_MARKER_PREFIX.encode("utf-8") in b"".join(head):
+        return None
+
+    tail_lines = list(tail)
+    removed_lines = total_lines - len(head) - len(tail_lines)
+    marker = truncation_marker(path, removed_lines, 0)
+    new_content = b"".join(head) + marker + b"".join(tail_lines)
+    removed_bytes = original_size - len(new_content)
+    marker = truncation_marker(path, removed_lines, removed_bytes)
+    new_content = b"".join(head) + marker + b"".join(tail_lines)
+    new_content = fit_truncated_content(path, new_content, removed_lines, original_size)
+
+    tmp_path = path.with_name(f"{path.name}.tmp-truncated")
+    tmp_path.write_bytes(new_content)
+    tmp_path.replace(path)
+    return original_size, path.stat().st_size, removed_lines
+
+
+def shorten_oversized_artifacts() -> List[Tuple[Path, int, int, int]]:
+    if not EVALS_DIR.exists():
+        return []
+
+    shortened = []
+    for path in EVALS_DIR.rglob("*"):
+        if not path.is_file():
+            continue
+        result = shorten_oversized_file(path)
+        if result:
+            old_size, new_size, removed_lines = result
+            shortened.append((path, old_size, new_size, removed_lines))
+    return shortened
+
+
 def get_known_prompts() -> set:
     prompts = set()
     excluded = {"README", "CLAUDE", "AGENTS"}
@@ -84,7 +183,8 @@ def detect_provider(summary_path: Path) -> str:
         return "Local (LM Studio)"
     m = re.search(r'Provider:</span>\s*<span[^>]*>([^<]+)', content)
     if m:
-        return m.group(1).strip()
+        provider = m.group(1).strip()
+        return "Local (LM Studio)" if provider.lower() == "lmstudio" else provider
     return "unknown"
 
 
@@ -1039,6 +1139,7 @@ def render_script() -> str:
 
 def generate_index_html() -> None:
     evaluations = scan_evaluations()
+    shortened = shorten_oversized_artifacts()
     elevator_evals = [ev for ev in evaluations if is_elevator_prompt(ev.get("Prompt", ""))]
     office_evals = [ev for ev in evaluations if is_office_prompt(ev.get("Prompt", ""))]
 
@@ -1072,6 +1173,11 @@ def generate_index_html() -> None:
 """
 
     INDEX_FILE.write_text(html_content, encoding="utf-8")
+    for path, old_size, new_size, removed_lines in shortened:
+        print(
+            f"[+] Shortened oversized artifact: {path} "
+            f"({old_size:,} -> {new_size:,} bytes; removed {removed_lines:,} middle lines)"
+        )
     print(f"[+] Index generated at: {INDEX_FILE.absolute()}")
     print(f"    Elevator prompt runs: {len(elevator_evals)}")
     print(f"    Office prompt runs: {len(office_evals)}")

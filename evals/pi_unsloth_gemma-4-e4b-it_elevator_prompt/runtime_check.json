@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:25:55.269Z",
-  "url": "http://127.0.0.1:49420/evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/index.html",
+  "checked_at": "2026-07-07T02:49:01.459Z",
+  "url": "http://127.0.0.1:36613/evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/index.html",
   "static_errors": [
     "evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/elevator.js:307:9 'personFactory' is not defined",
     "evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/elevator.js:545:14 'person' is not defined",
@@ -17,10 +17,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 430,
+  "animation_frames": 176,
   "scene_object_count": 98,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5853,
+  "duration_ms": 5978,
   "warnings": []
 }

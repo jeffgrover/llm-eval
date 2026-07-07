@@ -1,0 +1,51 @@
+{
+  "checked_at": "2026-07-07T02:47:01.353Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/index.html",
+  "static_errors": [
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/person.js:16 |     const skinColor = skinColor || 0xffdbac; |           ^^^^^^^^^ | SyntaxError: Identifier 'skinColor' has already been declared",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/person.js:87:9 'isSitting' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/person.js:93:16 'isWalking' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/person.js:85:13 'isSitting' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/person.js:85:24 'isWalking' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/person.js:85:35 'walkPhase' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:95:13 'state' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:109:20 'state' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:124:20 'state' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:130:20 'state' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:144:20 'state' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:144:40 'waiting' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:155:13 'targetFloor' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:158:20 'state' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:93:17 'currentFloor' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:93:31 'targetFloor' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:93:44 'state' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:93:51 'doorsOpen' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:93:62 'waiting' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:93:71 'passengers' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:102:48 'targetFloor' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:103:39 'targetFloor' is not defined",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js:104:50 'targetFloor' is not defined"
+  ],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/person.js",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator_logic.js",
+    "evals/opencode_zai-org_glm-4_7-flash_office_prompt_v3/elevator.js"
+  ],
+  "loaded": true,
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "page_errors": [
+    "Identifier 'legColor' has already been declared"
+  ],
+  "canvas_count": 0,
+  "nonblank_canvas": false,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5761,
+  "warnings": []
+}

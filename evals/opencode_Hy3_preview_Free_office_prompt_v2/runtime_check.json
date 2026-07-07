@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:20:28.927Z",
-  "url": "http://127.0.0.1:49420/evals/opencode_Hy3_preview_Free_office_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:42:22.875Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_Hy3_preview_Free_office_prompt_v2/index.html",
   "static_errors": [
     "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js:90:21 'pid' is not defined",
     "evals/opencode_Hy3_preview_Free_office_prompt_v2/elevator_logic.js:90:51 'idx' is not defined"
@@ -18,10 +18,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 155,
+  "animation_frames": 196,
   "scene_object_count": 1277,
-  "dynamic_changes": 2,
+  "dynamic_changes": 6,
   "canvas_changed": false,
-  "duration_ms": 5935,
+  "duration_ms": 5869,
   "warnings": []
 }

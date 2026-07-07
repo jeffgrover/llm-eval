@@ -1,0 +1,54 @@
+Streaming logs from LM Studio
+
+[2026-07-05 22:55:23][INFO][ornith-1.0-9b] Running chat completion on conversation with 2 messages.
+[2026-07-05 22:55:23][INFO][ornith-1.0-9b] Streaming response...
+[2026-07-05 22:55:24][INFO][ornith-1.0-9b] Prompt processing progress: 0.0%
+[2026-07-05 22:55:32][INFO][ornith-1.0-9b] Prompt processing progress: 18.5%
+[2026-07-05 22:55:43][INFO][ornith-1.0-9b] Prompt processing progress: 37.0%
+[2026-07-05 22:55:56][INFO][ornith-1.0-9b] Prompt processing progress: 55.5%
+[2026-07-05 22:56:09][INFO][ornith-1.0-9b] Prompt processing progress: 73.9%
+[2026-07-05 22:56:12][INFO][ornith-1.0-9b] Prompt processing progress: 77.6%
+[2026-07-05 22:56:25][INFO][ornith-1.0-9b] Prompt processing progress: 95.3%
+[2026-07-05 22:56:28][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%
+[2026-07-05 22:56:32][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%
+[2026-07-05 22:56:46][INFO][ornith-1.0-9b] Finished streaming response
+[2026-07-05 22:56:46][INFO][ornith-1.0-9b] Running chat completion on conversation with 4 messages.
+[2026-07-05 22:56:46][INFO][ornith-1.0-9b] Streaming response...
+[2026-07-05 22:56:46][INFO][ornith-1.0-9b] Prompt processing progress: 0.0%
+[2026-07-05 22:56:46][INFO][ornith-1.0-9b] Prompt processing progress: 3.5%
+[2026-07-05 22:56:46][INFO][ornith-1.0-9b] Prompt processing progress: 93.0%
+[2026-07-05 22:56:47][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%
+[2026-07-05 22:56:55][INFO][ornith-1.0-9b] Finished streaming response
+[2026-07-05 22:56:55][INFO][ornith-1.0-9b] Running chat completion on conversation with 7 messages.
+[2026-07-05 22:56:55][INFO][ornith-1.0-9b] Streaming response...
+[2026-07-05 22:56:55][INFO][ornith-1.0-9b] Prompt processing progress: 0.0%
+[2026-07-05 22:56:55][INFO][ornith-1.0-9b] Prompt processing progress: 0.0%
+[2026-07-05 22:57:06][INFO][ornith-1.0-9b] Prompt processing progress: 20.5%
+[2026-07-05 22:57:20][INFO][ornith-1.0-9b] Prompt processing progress: 41.0%
+[2026-07-05 22:57:35][INFO][ornith-1.0-9b] Prompt processing progress: 61.5%
+[2026-07-05 22:57:51][INFO][ornith-1.0-9b] Prompt processing progress: 81.9%
+[2026-07-05 22:58:03][INFO][ornith-1.0-9b] Prompt processing progress: 94.8%
+[2026-07-05 22:58:05][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%
+[2026-07-05 22:58:09][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%
+[2026-07-05 22:59:07][INFO][ornith-1.0-9b] Finished streaming response
+[2026-07-05 22:59:07][INFO][ornith-1.0-9b] Running chat completion on conversation with 9 messages.
+[2026-07-05 22:59:07][INFO][ornith-1.0-9b] Streaming response...
+[2026-07-05 22:59:07][INFO][ornith-1.0-9b] Prompt processing progress: 0.0%
+[2026-07-05 22:59:07][INFO][ornith-1.0-9b] Prompt processing progress: 26.1%
+[2026-07-05 22:59:09][INFO][ornith-1.0-9b] Prompt processing progress: 92.0%
+[2026-07-05 22:59:13][INFO][ornith-1.0-9b] Prompt processing progress: 99.4%
+[2026-07-05 22:59:14][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%
+[2026-07-05 23:00:22][INFO][ornith-1.0-9b] Finished streaming response
+[2026-07-05 23:00:22][INFO][ornith-1.0-9b] Running chat completion on conversation with 11 messages.
+[2026-07-05 23:00:22][INFO][ornith-1.0-9b] Streaming response...
+[2026-07-05 23:00:22][INFO][ornith-1.0-9b] Prompt processing progress: 0.0%
+[2026-07-05 23:00:22][INFO][ornith-1.0-9b] Prompt processing progress: 3.4%
+[2026-07-05 23:00:22][INFO][ornith-1.0-9b] Prompt processing progress: 93.2%
+[2026-07-05 23:00:23][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%
+[2026-07-05 23:08:42][INFO][LM STUDIO SERVER] Client disconnected. Stopping generation... (If the model is busy processing the prompt, it will finish first.)
+[2026-07-05 23:08:42][INFO][ornith-1.0-9b] Finished streaming response
+[2026-07-05 23:08:44][INFO][ornith-1.0-9b] Running chat completion on conversation with 11 messages.
+[2026-07-05 23:08:44][INFO][ornith-1.0-9b] Streaming response...
+[2026-07-05 23:08:44][INFO][ornith-1.0-9b] Prompt processing progress: 0.0%
+[2026-07-05 23:08:44][INFO][ornith-1.0-9b] Prompt processing progress: 93.0%
+[2026-07-05 23:08:45][INFO][ornith-1.0-9b] Prompt processing progress: 100.0%

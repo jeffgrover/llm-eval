@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:18:50.064Z",
-  "url": "http://127.0.0.1:49420/evals/claude_Opus_4_7_office_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:40:44.148Z",
+  "url": "http://127.0.0.1:36613/evals/claude_Opus_4_7_office_prompt_v2/index.html",
   "static_errors": [
     "evals/claude_Opus_4_7_office_prompt_v2/person.js:120:17 'leftLeg' is not defined",
     "evals/claude_Opus_4_7_office_prompt_v2/person.js:120:26 'rightLeg' is not defined",
@@ -46,10 +46,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 149,
-  "scene_object_count": 1935,
-  "dynamic_changes": 797,
+  "animation_frames": 56,
+  "scene_object_count": 951,
+  "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5963,
+  "duration_ms": 6288,
   "warnings": []
 }

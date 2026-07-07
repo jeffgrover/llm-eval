@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:23:07.542Z",
-  "url": "http://127.0.0.1:49420/evals/opencode_mistralai_devstral-small-2-2512_elevator_prompt/index.html",
+  "checked_at": "2026-07-07T02:45:07.994Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_mistralai_devstral-small-2-2512_elevator_prompt/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
@@ -12,10 +12,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 154,
+  "animation_frames": 45,
   "scene_object_count": 55,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 5941,
+  "duration_ms": 6268,
   "warnings": []
 }

@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:19:14.306Z",
-  "url": "http://127.0.0.1:49420/evals/claude_Sonnet_office_prompt_v3/index.html",
+  "checked_at": "2026-07-07T02:41:08.761Z",
+  "url": "http://127.0.0.1:36613/evals/claude_Sonnet_office_prompt_v3/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
@@ -15,10 +15,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 121,
+  "animation_frames": 77,
   "scene_object_count": 2679,
-  "dynamic_changes": 4092,
+  "dynamic_changes": 2733,
   "canvas_changed": false,
-  "duration_ms": 6034,
+  "duration_ms": 6237,
   "warnings": []
 }

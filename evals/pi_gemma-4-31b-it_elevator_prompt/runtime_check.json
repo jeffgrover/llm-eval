@@ -1,18 +1,20 @@
 {
-  "checked_at": "2026-06-30T22:24:43.428Z",
-  "url": "http://127.0.0.1:49420/evals/pi_gemma-4-31b-it_elevator_prompt/elevator_sim.html",
+  "checked_at": "2026-07-07T02:47:43.767Z",
+  "url": "http://127.0.0.1:36613/evals/pi_gemma-4-31b-it_elevator_prompt/elevator_sim.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [],
   "loaded": true,
   "console_errors": [],
-  "page_errors": [],
+  "page_errors": [
+    "Assignment to constant variable."
+  ],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 484,
+  "animation_frames": 0,
   "scene_object_count": 0,
   "dynamic_changes": 0,
   "canvas_changed": false,
-  "duration_ms": 6062,
+  "duration_ms": 6006,
   "warnings": []
 }

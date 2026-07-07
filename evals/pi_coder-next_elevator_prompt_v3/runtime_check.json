@@ -1,21 +1,21 @@
 {
-  "checked_at": "2026-07-05T01:31:28.531Z",
-  "url": "http://127.0.0.1:63833/evals/pi_coder-next_elevator_prompt_v3/index.html",
+  "checked_at": "2026-07-07T02:47:31.778Z",
+  "url": "http://127.0.0.1:36613/evals/pi_coder-next_elevator_prompt_v3/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
-    "evals\\pi_coder-next_elevator_prompt_v3\\person.js",
-    "evals\\pi_coder-next_elevator_prompt_v3\\elevator.js"
+    "evals/pi_coder-next_elevator_prompt_v3/person.js",
+    "evals/pi_coder-next_elevator_prompt_v3/elevator.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 444,
+  "animation_frames": 250,
   "scene_object_count": 77,
-  "dynamic_changes": 224,
+  "dynamic_changes": 130,
   "canvas_changed": false,
-  "duration_ms": 8895,
+  "duration_ms": 5979,
   "warnings": []
 }

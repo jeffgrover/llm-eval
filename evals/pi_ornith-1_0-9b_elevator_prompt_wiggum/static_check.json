@@ -1,0 +1,10 @@
+{
+  "checked_at": "2026-07-06T06:42:12.449Z",
+  "files_checked": [
+    "evals/pi_ornith-1_0-9b_elevator_prompt_wiggum/person.js"
+  ],
+  "static_errors": [
+    "evals/pi_ornith-1_0-9b_elevator_prompt_wiggum/elevator.js: required elevator artifact is missing"
+  ],
+  "static_warnings": []
+}

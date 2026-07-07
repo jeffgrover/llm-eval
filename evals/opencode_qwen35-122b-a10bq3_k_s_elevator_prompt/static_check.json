@@ -1,0 +1,13 @@
+{
+  "checked_at": "2026-07-06T06:42:11.646Z",
+  "files_checked": [
+    "evals/opencode_qwen35-122b-a10bq3_k_s_elevator_prompt/person.js",
+    "evals/opencode_qwen35-122b-a10bq3_k_s_elevator_prompt/elevator.js"
+  ],
+  "static_errors": [
+    "evals/opencode_qwen35-122b-a10bq3_k_s_elevator_prompt/person.js:117:31 'scene' is not defined",
+    "evals/opencode_qwen35-122b-a10bq3_k_s_elevator_prompt/person.js:137:35 'scene' is not defined",
+    "evals/opencode_qwen35-122b-a10bq3_k_s_elevator_prompt/person.js:138:17 'parentWorldMatrix' is not defined"
+  ],
+  "static_warnings": []
+}

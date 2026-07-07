@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-07-06T06:42:12.560Z",
+  "files_checked": [
+    "evals/vibe_devstral-2_elevator_prompt/person.js",
+    "evals/vibe_devstral-2_elevator_prompt/elevator.js"
+  ],
+  "static_errors": [],
+  "static_warnings": []
+}

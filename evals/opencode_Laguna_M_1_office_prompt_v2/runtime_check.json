@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-06-30T22:20:47.931Z",
-  "url": "http://127.0.0.1:49420/evals/opencode_Laguna_M_1_office_prompt_v2/index.html",
+  "checked_at": "2026-07-07T02:42:41.685Z",
+  "url": "http://127.0.0.1:36613/evals/opencode_Laguna_M_1_office_prompt_v2/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
@@ -15,10 +15,10 @@
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 378,
-  "scene_object_count": 1086,
-  "dynamic_changes": 498,
+  "animation_frames": 156,
+  "scene_object_count": 1098,
+  "dynamic_changes": 206,
   "canvas_changed": false,
-  "duration_ms": 6294,
+  "duration_ms": 6190,
   "warnings": []
 }

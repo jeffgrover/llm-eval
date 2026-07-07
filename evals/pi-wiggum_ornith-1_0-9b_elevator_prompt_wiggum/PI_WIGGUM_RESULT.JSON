@@ -1,0 +1,311 @@
+{
+  "input_tokens": 2189807,
+  "output_tokens": 61108,
+  "total_tokens": 2250915,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 114,
+  "attempts": 14,
+  "passed": false,
+  "status": "failed",
+  "terminal_reason": "failed",
+  "elapsed_seconds": 12637.584,
+  "checker_summaries": [
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: required elevator artifact is missing\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "Playwright is not available. Install it, or run with NODE_PATH pointing at a Playwright node_modules directory.\nLoad error: Cannot find module 'playwright'\nRequire stack:\n- /home/jeff/Code/llm-eval/runtime_check.js\nExample: npm install --save-dev playwright && node runtime_check.js --all\n"
+      },
+      "static_errors": [
+        "elevator.js: required elevator artifact is missing"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: required elevator artifact is missing\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "Playwright is not available. Install it, or run with NODE_PATH pointing at a Playwright node_modules directory.\nLoad error: Cannot find module 'playwright'\nRequire stack:\n- /home/jeff/Code/llm-eval/runtime_check.js\nExample: npm install --save-dev playwright && node runtime_check.js --all\n"
+      },
+      "static_errors": [
+        "elevator.js: required elevator artifact is missing"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: required elevator artifact is missing\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "browserType.launch: Executable doesn't exist at /home/jeff/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                                                            \u2551\n\u2551 <3 Playwright Team                                         \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n    at main (/home/jeff/Code/llm-eval/runtime_check.js:276:34)\n"
+      },
+      "static_errors": [
+        "elevator.js: required elevator artifact is missing"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: required elevator artifact is missing\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "browserType.launch: Executable doesn't exist at /home/jeff/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                                                            \u2551\n\u2551 <3 Playwright Team                                         \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n    at main (/home/jeff/Code/llm-eval/runtime_check.js:276:34)\n"
+      },
+      "static_errors": [
+        "elevator.js: required elevator artifact is missing"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: required elevator artifact is missing\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "browserType.launch: Executable doesn't exist at /home/jeff/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                                                            \u2551\n\u2551 <3 Playwright Team                                         \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n    at main (/home/jeff/Code/llm-eval/runtime_check.js:276:34)\n"
+      },
+      "static_errors": [
+        "elevator.js: required elevator artifact is missing"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "browserType.launch: Executable doesn't exist at /home/jeff/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                                                            \u2551\n\u2551 <3 Playwright Team                                         \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n    at main (/home/jeff/Code/llm-eval/runtime_check.js:276:34)\n"
+      },
+      "static_errors": [
+        "elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+        "elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;",
+        "elevator.js: boarding must use elevatorCar.attach(...) to preserve world position"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "browserType.launch: Executable doesn't exist at /home/jeff/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                                                            \u2551\n\u2551 <3 Playwright Team                                         \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n    at main (/home/jeff/Code/llm-eval/runtime_check.js:276:34)\n"
+      },
+      "static_errors": [
+        "elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+        "elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;",
+        "elevator.js: boarding must use elevatorCar.attach(...) to preserve world position"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "browserType.launch: Executable doesn't exist at /home/jeff/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                                                            \u2551\n\u2551 <3 Playwright Team                                         \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n    at main (/home/jeff/Code/llm-eval/runtime_check.js:276:34)\n"
+      },
+      "static_errors": [
+        "elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+        "elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;",
+        "elevator.js: boarding must use elevatorCar.attach(...) to preserve world position"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: elevatorCar must be assigned a THREE.Group\n  - elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n"
+      },
+      "runtime": {
+        "returncode": 1,
+        "output": "browserType.launch: Executable doesn't exist at /home/jeff/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                                                            \u2551\n\u2551 <3 Playwright Team                                         \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n    at main (/home/jeff/Code/llm-eval/runtime_check.js:276:34)\n"
+      },
+      "static_errors": [
+        "elevator.js: elevatorCar must be assigned a THREE.Group",
+        "elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+        "elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": false,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": no-canvas, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": no-canvas, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": no-canvas, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": no-canvas, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": no-canvas, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    }
+  ],
+  "provider_id": "lmstudio",
+  "model_id": "ornith-1.0-9b",
+  "duration_ms": 12637584
+}

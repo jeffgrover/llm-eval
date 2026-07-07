@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-07-06T06:42:12.009Z",
+  "files_checked": [
+    "evals/opencode_qwopus3_6-35b-a3b-v1_elevator_prompt_v2/person.js",
+    "evals/opencode_qwopus3_6-35b-a3b-v1_elevator_prompt_v2/elevator.js"
+  ],
+  "static_errors": [],
+  "static_warnings": []
+}

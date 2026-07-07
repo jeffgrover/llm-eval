@@ -1,24 +1,24 @@
 {
-  "checked_at": "2026-07-06T22:12:47.561Z",
-  "url": "http://127.0.0.1:51410/index.html",
+  "checked_at": "2026-07-07T02:47:13.970Z",
+  "url": "http://127.0.0.1:36613/evals/pi-wiggum_agents-a1_office_prompt_wiggum/index.html",
   "static_errors": [],
   "static_warnings": [],
   "static_files_checked": [
-    "person.js",
-    "world.js",
-    "elevator_logic.js",
-    "elevator.js",
-    "sim.js"
+    "evals/pi-wiggum_agents-a1_office_prompt_wiggum/person.js",
+    "evals/pi-wiggum_agents-a1_office_prompt_wiggum/world.js",
+    "evals/pi-wiggum_agents-a1_office_prompt_wiggum/elevator_logic.js",
+    "evals/pi-wiggum_agents-a1_office_prompt_wiggum/elevator.js",
+    "evals/pi-wiggum_agents-a1_office_prompt_wiggum/sim.js"
   ],
   "loaded": true,
   "console_errors": [],
   "page_errors": [],
   "canvas_count": 1,
   "nonblank_canvas": true,
-  "animation_frames": 223,
+  "animation_frames": 125,
   "scene_object_count": 394,
-  "dynamic_changes": 3342,
+  "dynamic_changes": 1872,
   "canvas_changed": false,
-  "duration_ms": 7071,
+  "duration_ms": 6406,
   "warnings": []
 }
