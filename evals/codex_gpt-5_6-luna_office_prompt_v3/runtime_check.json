@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-07-10T02:28:31.374Z",
+  "url": "http://127.0.0.1:50265/evals/codex_gpt-5_6-luna_office_prompt_v3/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/codex_gpt-5_6-luna_office_prompt_v3/person.js",
+    "evals/codex_gpt-5_6-luna_office_prompt_v3/world.js",
+    "evals/codex_gpt-5_6-luna_office_prompt_v3/elevator_logic.js",
+    "evals/codex_gpt-5_6-luna_office_prompt_v3/elevator.js",
+    "evals/codex_gpt-5_6-luna_office_prompt_v3/sim.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 131,
+  "scene_object_count": 1920,
+  "dynamic_changes": 5288,
+  "canvas_changed": false,
+  "duration_ms": 5953,
+  "warnings": []
+}

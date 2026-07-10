@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-07-10T02:29:46.790Z",
+  "url": "http://127.0.0.1:50289/evals/opencode_gemma-4-12B-it-qat-OptiQ-4bit_elevator_prompt_v3/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/opencode_gemma-4-12B-it-qat-OptiQ-4bit_elevator_prompt_v3/person.js",
+    "evals/opencode_gemma-4-12B-it-qat-OptiQ-4bit_elevator_prompt_v3/elevator.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [
+    "Cannot set properties of undefined (setting 'background')"
+  ],
+  "canvas_count": 0,
+  "nonblank_canvas": false,
+  "animation_frames": 0,
+  "scene_object_count": 0,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5784,
+  "warnings": []
+}

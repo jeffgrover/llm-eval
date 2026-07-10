@@ -1,0 +1,12 @@
+{
+  "input_tokens": 1412981,
+  "output_tokens": 74426,
+  "total_tokens": 1487407,
+  "reasoning_tokens": 32679,
+  "cache_read_tokens": 1306112,
+  "num_turns": 1,
+  "provider_id": "OpenAI",
+  "model_id": "gpt-5.6-luna",
+  "session_id": "019f49c1-46fb-7f01-acec-c2aa9cf98a63",
+  "codex_version": "codex-cli 0.144.1"
+}

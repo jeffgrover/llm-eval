@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Office Building Simulation</title>
+<style>
+html,body{margin:0;padding:0;overflow:hidden;background:#222233;font-family:Arial,sans-serif}canvas{display:block}
+#hud{position:fixed;left:14px;top:14px;z-index:5;min-width:254px;padding:12px 14px;border:1px solid rgba(150,190,255,.45);border-radius:10px;background:rgba(8,14,25,.78);color:#eaf4ff;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:12px;line-height:1.35;user-select:none}
+#sim-time{font-size:24px;font-weight:700;letter-spacing:.5px;color:#ffca58;margin-bottom:8px}.control{display:grid;grid-template-columns:78px 1fr;gap:7px;align-items:center;margin:6px 0}.control output{grid-column:1 / -1;color:#bcd7f2;font-size:11px}.control input{width:155px}.tiny{color:#b9c8d8;margin-top:8px;max-width:270px;white-space:normal}.state-row{color:#92e1c1}
+</style></head><body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="person.js"></script>
+<script src="world.js"></script>
+<script src="elevator_logic.js"></script>
+<script src="elevator.js"></script>
+<script src="sim.js"></script>
+</body></html>

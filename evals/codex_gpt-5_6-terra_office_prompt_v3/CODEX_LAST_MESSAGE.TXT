@@ -1,0 +1,11 @@
+Implemented the browser-only office simulation across the requested files:
+
+[index.html](/Users/jeffgrover/Code/llm-eval/evals/codex_gpt-5_6-terra_office_prompt_v3/index.html), [person.js](/Users/jeffgrover/Code/llm-eval/evals/codex_gpt-5_6-terra_office_prompt_v3/person.js), [world.js](/Users/jeffgrover/Code/llm-eval/evals/codex_gpt-5_6-terra_office_prompt_v3/world.js), [elevator_logic.js](/Users/jeffgrover/Code/llm-eval/evals/codex_gpt-5_6-terra_office_prompt_v3/elevator_logic.js), [elevator.js](/Users/jeffgrover/Code/llm-eval/evals/codex_gpt-5_6-terra_office_prompt_v3/elevator.js), [sim.js](/Users/jeffgrover/Code/llm-eval/evals/codex_gpt-5_6-terra_office_prompt_v3/sim.js), and [elevator_logic_test.js](/Users/jeffgrover/Code/llm-eval/evals/codex_gpt-5_6-terra_office_prompt_v3/elevator_logic_test.js).
+
+Validated:
+
+- `node elevator_logic_test.js` — 7/7 passing
+- `node ../../static_check.js .` — clean
+- Runtime browser check — canvas, animation, scene objects, motion, and zero page/console errors
+
+It includes the six-floor transparent office, navigation graph, scheduled workers/visitors, collision handling, seating orientation, elevator SCAN logic/capacity, HUD controls, and high-speed boarding handoff.
