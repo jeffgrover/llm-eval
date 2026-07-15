@@ -242,10 +242,10 @@
         
         <section id="elevator-tab" class="tab-panel active">
             <div class="stats-grid">
-                <div class="stat-card"><span>Total Runs</span><strong>68</strong></div>
-                <div class="stat-card"><span>Average Score</span><strong>64.8</strong></div>
+                <div class="stat-card"><span>Total Runs</span><strong>69</strong></div>
+                <div class="stat-card"><span>Average Score</span><strong>64.3</strong></div>
                 <div class="stat-card"><span>Local Runs</span><strong>47</strong></div>
-                <div class="stat-card"><span>Cloud Runs</span><strong>16</strong></div>
+                <div class="stat-card"><span>Cloud Runs</span><strong>17</strong></div>
             </div>
             <section class="leaderboard">
                 <div class="section-heading">
@@ -2464,6 +2464,41 @@
                     <div class="runtime-errors"><strong>Runtime errors</strong><span>Failed to load resource: the server responded with a status of 404 (Not Found)</span></div>
                 </td>
                 <td><div class="actions"><a class="link-btn" href="evals/opencode_google_gemma-4-12b_elevator_prompt_v2/summary.html">Report</a><a class="link-btn subtle" href="evals/opencode_google_gemma-4-12b_elevator_prompt_v2/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+            </tr>
+            
+
+            <tr>
+                <td>
+                    <div class="score-cell">
+                        <strong>31</strong>
+                        <div class="score-bar" aria-label="Score 31 of 100"><span style="width: 31%"></span></div>
+                        <span>Incomplete</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="identity">
+                        <span class="agent-dot" style="background:#be123c"></span>
+                        <strong>Pi Wiggum</strong>
+                        <span>bonsai-8b</span>
+                    </div>
+                </td>
+                <td><span class="provider-badge provider-cloud">Llama-Cpp</span></td>
+                <td class="metric">166,154</td>
+                <td class="metric">-</td>
+                <td class="metric">4.0h</td>
+                <td class="breakdown-cell">
+                    <div class="category-pills">
+                        <span>C 8</span>
+                        <span>F 12</span>
+                        <span>I 5</span>
+                        <span>R 4</span>
+                        <span>E 2</span>
+                    </div>
+                    <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
+                    <div><span class="flag">Static JS reference check failed</span><span class="flag">Runtime startup failed</span></div>
+                    <div class="runtime-errors"><strong>Runtime errors</strong><span>Duplicate top-level lexical declaration &#x27;camera&#x27; in classic scripts: person.js:7:7, elevator.js:3:7, static_check.js:3:7, runtime_check.j...</span><span>Duplicate top-level lexical declaration &#x27;renderer&#x27; in classic scripts: person.js:11:7, elevator.js:7:7, static_check.js:7:7, runtime_chec...</span><span>Duplicate top-level lexical declaration &#x27;elevatorCar&#x27; in classic scripts: person.js:15:7, elevator.js:11:7, static_check.js:11:7, runtime...</span><span>Duplicate top-level lexical declaration &#x27;elevatorCarMaterial&#x27; in classic scripts: person.js:16:7, elevator.js:12:7, static_check.js:12:7,...</span><span>Duplicate top-level lexical declaration &#x27;controls&#x27; in classic scripts: person.js:22:7, elevator.js:18:7, static_check.js:18:7, runtime_ch...</span></div>
+                </td>
+                <td><div class="actions"><a class="link-btn" href="evals/pi-wiggum_bonsai-8b_elevator_prompt_wiggum/summary.html">Report</a><a class="link-btn subtle" href="evals/pi-wiggum_bonsai-8b_elevator_prompt_wiggum/index.html" target="_blank" rel="noopener">Preview</a></div></td>
             </tr>
             
 
@@ -5823,7 +5858,7 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #be123c;">Pi Wiggum</span>
-                    <span class="agent-section-count">3 evaluations</span>
+                    <span class="agent-section-count">4 evaluations</span>
                 </div>
                 <div class="eval-grid">
                 <div class="eval-card">
@@ -5853,6 +5888,21 @@
                     </div>
                     <div class="card-footer">
                         <a href="evals/pi-wiggum_agents-a1_office_prompt_wiggum/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+                
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-cloud">Llama-Cpp</span>
+                        <span class="score-badge">31</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">bonsai-8b</div>
+                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt Wiggum</span></div>
+                        <div class="score-bar" aria-label="Score 31 of 100"><span style="width: 31%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/pi-wiggum_bonsai-8b_elevator_prompt_wiggum/summary.html" class="view-btn">View Report</a>
                     </div>
                 </div>
                 

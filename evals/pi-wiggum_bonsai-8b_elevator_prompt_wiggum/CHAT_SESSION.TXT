@@ -1,0 +1,42 @@
+
+
+===== PI WIGGUM CHECKER SUMMARY =====
+passed: False
+static return code: 2
+runtime return code: 0
+loaded: True
+nonblank_canvas: False
+animation_frames: 0
+scene_object_count: 0
+dynamic_changes: 0
+static_errors:
+- Duplicate top-level lexical declaration 'camera' in classic scripts: person.js:7:7, elevator.js:3:7, static_check.js:3:7, runtime_check.js:3:7
+- Duplicate top-level lexical declaration 'renderer' in classic scripts: person.js:11:7, elevator.js:7:7, static_check.js:7:7, runtime_check.js:7:7
+- Duplicate top-level lexical declaration 'elevatorCar' in classic scripts: person.js:15:7, elevator.js:11:7, static_check.js:11:7, runtime_check.js:11:7
+- Duplicate top-level lexical declaration 'elevatorCarMaterial' in classic scripts: person.js:16:7, elevator.js:12:7, static_check.js:12:7, runtime_check.js:12:7
+- Duplicate top-level lexical declaration 'controls' in classic scripts: person.js:22:7, elevator.js:18:7, static_check.js:18:7, runtime_check.js:18:7
+- Duplicate top-level lexical declaration 'scene' in classic scripts: elevator.js:1:7, static_check.js:1:7, runtime_check.js:1:7
+- index.html: script src order must exactly be Three 0.147.0, OrbitControls, person.js, elevator.js
+- index.html: unexpected local script(s): static_check.js, runtime_check.js
+- elevator.js: missing top-level "const FLOOR_HEIGHT = 3;"
+- elevator.js: missing top-level "const FLOOR_COUNT = 6;"
+page_errors:
+- THREE is not defined
+- Identifier 'camera' has already been declared
+- Identifier 'camera' has already been declared
+- Identifier 'camera' has already been declared
+static checker output:
+: errors, static check written
+  - Duplicate top-level lexical declaration 'camera' in classic scripts: person.js:7:7, elevator.js:3:7, static_check.js:3:7, runtime_check.js:3:7
+  - Duplicate top-level lexical declaration 'renderer' in classic scripts: person.js:11:7, elevator.js:7:7, static_check.js:7:7, runtime_check.js:7:7
+  - Duplicate top-level lexical declaration 'elevatorCar' in classic scripts: person.js:15:7, elevator.js:11:7, static_check.js:11:7, runtime_check.js:11:7
+  - Duplicate top-level lexical declaration 'elevatorCarMaterial' in classic scripts: person.js:16:7, elevator.js:12:7, static_check.js:12:7, runtime_check.js:12:7
+  - Duplicate top-level lexical declaration 'controls' in classic scripts: person.js:22:7, elevator.js:18:7, static_check.js:18:7, runtime_check.js:18:7
+runtime checker output:
+: errors, R probe written
+  metrics: loaded=true canvas=1 nonblank=false frames=0 objects=0 changes=0
+  - static: Duplicate top-level lexical declaration 'camera' in classic scripts: person.js:7:7, elevator.js:3:7, static_check.js:3:7, runtime_check.js:3:7
+  - static: Duplicate top-level lexical declaration 'renderer' in classic scripts: person.js:11:7, elevator.js:7:7, static_check.js:7:7, runtime_check.js:7:7
+  - static: Duplicate top-level lexical declaration 'elevatorCar' in classic scripts: person.js:15:7, elevator.js:11:7, static_check.js:11:7, runtime_check.js:11:7
+  - static: Duplicate top-level lexical declaration 'elevatorCarMaterial' in classic scripts: person.js:16:7, elevator.js:12:7, static_check.js:12:7, runtime_check.js:12:7
+  - static: Duplicate top-level lexical declaration 'controls' in classic scripts: person.js:22:7, elevator.js:18:7, static_check.js:18:7, runtime_check.js:18:7
