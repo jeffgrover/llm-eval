@@ -1,0 +1,10 @@
+{
+  "input_tokens": 177244,
+  "output_tokens": 48073,
+  "total_tokens": 225317,
+  "reasoning_tokens": 45060,
+  "cache_read_tokens": 8336411,
+  "cache_write_tokens": 0,
+  "cost_usd": 4.4296503000000005,
+  "num_turns": 65
+}
