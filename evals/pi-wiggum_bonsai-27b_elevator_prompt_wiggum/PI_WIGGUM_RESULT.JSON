@@ -1,0 +1,441 @@
+{
+  "input_tokens": 4212106,
+  "output_tokens": 64252,
+  "total_tokens": 4276358,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 193,
+  "attempts": 18,
+  "passed": false,
+  "status": "failed",
+  "terminal_reason": "time_cap_reached",
+  "elapsed_seconds": 14405.772,
+  "checker_summaries": [
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - person.js:59:5 'person' is not defined\n  - elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n  - static: person.js:59:5 'person' is not defined\n  - static: elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - static: elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - static: elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [
+        "person.js:59:5 'person' is not defined",
+        "elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+        "elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;",
+        "elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n  - static: elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - static: elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - static: elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [
+        "elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+        "elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;",
+        "elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot set properties of undefined (setting 'leftDoor')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot set properties of undefined (setting 'leftDoor')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot set properties of undefined (setting 'leftDoor')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot set properties of undefined (setting 'leftDoor')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot set properties of undefined (setting 'leftDoor')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot set properties of undefined (setting 'leftDoor')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot set properties of undefined (setting 'leftDoor')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot set properties of undefined (setting 'leftDoor')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - static: elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;\n  - static: elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;\n  - page: Cannot read properties of undefined (reading 'leftDoor')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [
+        "elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+        "elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;"
+      ],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'leftDoor')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot set properties of undefined (setting 'leftDoor')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot set properties of undefined (setting 'leftDoor')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=0 objects=0 changes=0\n  - page: Cannot set properties of undefined (setting 'leftDoor')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot set properties of undefined (setting 'leftDoor')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10505 objects=90 changes=308\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10505,
+      "scene_object_count": 90,
+      "dynamic_changes": 308
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=11026 objects=90 changes=316\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 11026,
+      "scene_object_count": 90,
+      "dynamic_changes": 316
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10955 objects=90 changes=316\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10955,
+      "scene_object_count": 90,
+      "dynamic_changes": 316
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10708 objects=90 changes=311\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10708,
+      "scene_object_count": 90,
+      "dynamic_changes": 311
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10541 objects=90 changes=308\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10541,
+      "scene_object_count": 90,
+      "dynamic_changes": 308
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10572 objects=90 changes=310\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10572,
+      "scene_object_count": 90,
+      "dynamic_changes": 310
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10597 objects=90 changes=310\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10597,
+      "scene_object_count": 90,
+      "dynamic_changes": 310
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10546 objects=90 changes=308\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10546,
+      "scene_object_count": 90,
+      "dynamic_changes": 308
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=10599 objects=90 changes=308\n  - page: Cannot read properties of undefined (reading 'position')\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [
+        "Cannot read properties of undefined (reading 'position')"
+      ],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 10599,
+      "scene_object_count": 90,
+      "dynamic_changes": 308
+    }
+  ],
+  "provider_id": "lmstudio",
+  "model_id": "bonsai-27b",
+  "duration_ms": 14405772
+}

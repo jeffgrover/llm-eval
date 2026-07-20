@@ -19,7 +19,22 @@ The best results produced so far for each prompt. Click a preview to launch the 
 
 The generated dashboard keeps these prompt families separate so local elevator runs and frontier office runs can be compared without one burying the other.
 
-## 1. LM Studio Setup
+## 1. Local Provider Setup
+
+By default, local evaluations use LM Studio on `http://localhost:1234/v1`.
+For an oMLX server, start oMLX with its default OpenAI-compatible endpoint
+(`http://localhost:8000/v1`) and pass `--provider omlx`:
+
+```bash
+./evaluate_agent.py --agent pi-wiggum --model <omlx-model-id> \
+  --prompt-file elevator_prompt_wiggum.txt --provider omlx
+```
+
+The model ID must match one returned by `http://localhost:8000/v1/models`.
+The evaluator reads the API key from oMLX's `~/.omlx/settings.json`; set
+`OMLX_BASE_URL` or `OMLX_API_KEY` to override the detected settings.
+
+### LM Studio Setup
 
 First, you'll need a platform to host your local models.
 

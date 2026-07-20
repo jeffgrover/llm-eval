@@ -21,6 +21,7 @@ from typing import Dict, List, Optional
 LM_STUDIO_API_URL = "http://localhost:1234/v1"
 LM_STUDIO_REST_BASE = "http://localhost:1234"
 LLAMA_SERVER_API_URL = "http://localhost:8080/v1"
+OMLX_API_URL = os.environ.get("OMLX_BASE_URL", "http://localhost:8000/v1")
 LOCAL_API_URL = LM_STUDIO_API_URL
 LOCAL_PROVIDER_ID = "lmstudio"
 LOCAL_PROVIDER_NAME = "LM Studio (local)"
@@ -42,12 +43,36 @@ PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
 DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
 DEFAULT_LOCAL_OUTPUT_LIMIT = 4096
 
+
+def get_omlx_api_key() -> str:
+    """Use an explicit override, then the key from oMLX's local settings."""
+    configured_key = os.environ.get("OMLX_API_KEY")
+    if configured_key:
+        return configured_key
+    try:
+        settings_path = Path.home() / ".omlx" / "settings.json"
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        api_key = settings.get("auth", {}).get("api_key")
+        if isinstance(api_key, str) and api_key:
+            return api_key
+    except (OSError, json.JSONDecodeError, AttributeError):
+        pass
+    # oMLX accepts any placeholder when API-key verification is disabled.
+    return "omlx"
+
+
+OMLX_API_KEY = get_omlx_api_key()
+
 # Tracks whether the lms CLI is responsive (set during model loading)
 _lms_cli_available = True
 
 
 def is_llama_server_provider(provider: Optional[str]) -> bool:
     return (provider or "").lower().strip() == "llama-server"
+
+
+def is_omlx_provider(provider: Optional[str]) -> bool:
+    return (provider or "").lower().strip() == "omlx"
 
 
 def use_llama_server_provider() -> None:
@@ -58,6 +83,18 @@ def use_llama_server_provider() -> None:
     LOCAL_PROVIDER_ID = "llama-server"
     LOCAL_PROVIDER_NAME = "llama-server (local)"
     LOCAL_API_KEY = "llama-server"
+    _lms_cli_available = False
+
+
+def use_omlx_provider() -> None:
+    """Configure the local-provider globals for an oMLX OpenAI API server."""
+    global LOCAL_API_URL, LOCAL_PROVIDER_ID, LOCAL_PROVIDER_NAME, LOCAL_API_KEY
+    global _lms_cli_available
+
+    LOCAL_API_URL = OMLX_API_URL
+    LOCAL_PROVIDER_ID = "omlx"
+    LOCAL_PROVIDER_NAME = "oMLX (local)"
+    LOCAL_API_KEY = OMLX_API_KEY
     _lms_cli_available = False
 
 
@@ -3212,8 +3249,28 @@ class CrushRunner(AgentRunner):
 
 
 class PiRunner(AgentRunner):
+    def __init__(
+        self,
+        agent_name: str,
+        model_name: str,
+        prompt_file: Path,
+        headless: bool,
+        non_local: bool = False,
+        restore_agent_config: bool = False,
+        custom_provider: Optional[str] = None,
+    ):
+        super().__init__(
+            agent_name,
+            model_name,
+            prompt_file,
+            headless,
+            non_local,
+            restore_agent_config,
+        )
+        self.custom_provider = custom_provider
+
     def configure_agent(self):
-        """Write ~/.pi/agent/models.json so Pi talks to LM Studio in local mode."""
+        """Write ~/.pi/agent/models.json for the selected local OpenAI server."""
         if self.non_local:
             return
 
@@ -3228,7 +3285,7 @@ class PiRunner(AgentRunner):
 
         config = {
             "providers": {
-                LOCAL_PROVIDER_ID: {
+                self.custom_provider or LOCAL_PROVIDER_ID: {
                     "baseUrl": LOCAL_API_URL,
                     "api": "openai-completions",
                     "apiKey": LOCAL_API_KEY,
@@ -3311,7 +3368,12 @@ class PiRunner(AgentRunner):
                 cmd += ["--model", self.model_name]
         else:
             # Local mode: use the provider configured in models.json
-            cmd += ["--provider", LOCAL_PROVIDER_ID, "--model", self.model_name]
+            cmd += [
+                "--provider",
+                self.custom_provider or LOCAL_PROVIDER_ID,
+                "--model",
+                self.model_name,
+            ]
         return cmd
 
     def _run_pi_attempt(
@@ -3871,7 +3933,7 @@ def main():
     )
     parser.add_argument(
         "--provider",
-        help="Custom provider name for OpenCode agent (e.g., lmstudio-linux, lmstudio-mac)",
+        help="Local provider (e.g., omlx or llama-server) or custom OpenCode/Vibe provider",
     )
     parser.add_argument(
         "--restore-agent-config",
@@ -3887,6 +3949,9 @@ def main():
     elif is_llama_server_provider(args.provider):
         use_llama_server_provider()
         print(f"[*] Using llama-server provider at {LOCAL_API_URL}")
+    elif is_omlx_provider(args.provider):
+        use_omlx_provider()
+        print(f"[*] Using oMLX provider at {LOCAL_API_URL}")
 
     if not args.prompt_file.exists():
         print(f"[-] Prompt file not found: {args.prompt_file}")
@@ -3898,8 +3963,9 @@ def main():
         print(f"[-] Unknown agent: {args.agent}")
         sys.exit(1)
 
-    # For OpenCodeRunner and VibeRunner, pass the custom provider if specified
-    if (runner_cls == OpenCodeRunner or runner_cls == VibeRunner) and args.provider:
+    # Provider names are used directly by Pi; OpenCode and Vibe also accept
+    # custom provider names through their existing configuration paths.
+    if runner_cls in (OpenCodeRunner, VibeRunner, PiRunner, PiWiggumRunner) and args.provider:
         runner = runner_cls(
             args.agent,
             args.model,
