@@ -13,7 +13,7 @@ import re
 import platform
 import urllib.request
 import urllib.error
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -684,10 +684,24 @@ class MetadataCollector:
                         if cached:
                             usage["cache_read_tokens"] = cached
 
-                        num_turns = stats.get(
+                        num_turns = result_data.get("num_turns") or stats.get(
                             "tool_calls", None
-                        )  # approximate depending on use case or could just drop
+                        )
+                        if num_turns:
+                            usage["num_turns"] = num_turns
 
+                        if usage["total_tokens"] > 0:
+                            return usage
+                    else:
+                        usage["prompt_tokens"] = result_data.get("input_tokens", 0)
+                        usage["completion_tokens"] = result_data.get("output_tokens", 0)
+                        usage["total_tokens"] = result_data.get("total_tokens", 0)
+                        if result_data.get("cache_read_tokens"):
+                            usage["cache_read_tokens"] = result_data["cache_read_tokens"]
+                        if result_data.get("num_turns"):
+                            usage["num_turns"] = result_data["num_turns"]
+                        if result_data.get("cost_usd"):
+                            usage["cost_usd"] = result_data["cost_usd"]
                         if usage["total_tokens"] > 0:
                             return usage
                 except Exception as e:
@@ -978,7 +992,7 @@ class MetadataCollector:
                 elif model_key.startswith("claude-"):
                     info["Model ID"] = model_key
                 return info
-            elif agent_name == "gemini":
+            elif agent_name in ("gemini", "agy", "antigravity"):
                 info["Provider"] = "Google"
                 info["Type"] = "Cloud API"
                 info["Model ID"] = model_key
@@ -1169,7 +1183,9 @@ def generate_html_report(
     # Agent Name Mapping
     agent_display_names = {
         "mistral": "Mistral Vibe",
-        "gemini": "Gemini CLI",
+        "gemini": "Antigravity CLI",
+        "agy": "Antigravity CLI",
+        "antigravity": "Antigravity CLI",
         "claude": "Claude Code",
         "codex": "Codex CLI",
         "crush": "Charmbracelet Crush",
@@ -1470,6 +1486,9 @@ class AgentRunner:
         # Binary to name mapping
         self.binary_map = {
             "mistral": "vibe",
+            "gemini": "agy",
+            "antigravity": "agy",
+            "agy": "agy",
         }
         self.agent_binary = self.binary_map.get(agent_name, agent_name)
 
@@ -1840,46 +1859,165 @@ class AgentRunner:
 
 
 class GeminiRunner(AgentRunner):
+    def __init__(
+        self,
+        agent_name: str,
+        model_name: str,
+        prompt_file: Path,
+        headless: bool,
+        non_local: bool = False,
+        restore_agent_config: bool = False,
+        custom_provider: Optional[str] = None,
+    ):
+        super().__init__(
+            agent_name,
+            model_name,
+            prompt_file,
+            headless,
+            non_local,
+            restore_agent_config,
+        )
+        self.custom_provider = custom_provider
+
+    def get_model_extra_info(self) -> Dict[str, str]:
+        """Read provider/model info from Gemini result JSON."""
+        result_path = self.work_dir / GEMINI_RESULT_FILENAME
+        if not result_path.exists():
+            return {}
+        try:
+            with open(result_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            extra = {}
+            if data.get("agy_version"):
+                extra["Antigravity Version"] = data["agy_version"]
+            if data.get("provider"):
+                extra["Provider"] = data["provider"]
+            if data.get("model_id"):
+                extra["Model ID"] = data["model_id"]
+            return extra
+        except Exception:
+            return {}
+
+    def _get_agy_transcript_stats(self, work_dir: Path, start_time: datetime) -> Dict[str, int]:
+        import math
+        stats = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "cached": 0,
+            "tool_calls": 0,
+            "num_turns": 0,
+        }
+
+        conv_id = None
+        last_conv_file = Path.home() / ".gemini" / "antigravity-cli" / "cache" / "last_conversations.json"
+        if last_conv_file.exists():
+            try:
+                mapping = json.loads(last_conv_file.read_text(encoding="utf-8"))
+                conv_id = mapping.get(str(work_dir.resolve())) or mapping.get(str(work_dir))
+            except Exception:
+                pass
+
+        transcript_path = None
+        if conv_id:
+            candidate = Path.home() / ".gemini" / "antigravity-cli" / "brain" / conv_id / ".system_generated" / "logs" / "transcript_full.jsonl"
+            if candidate.exists():
+                transcript_path = candidate
+            else:
+                candidate_short = Path.home() / ".gemini" / "antigravity-cli" / "brain" / conv_id / ".system_generated" / "logs" / "transcript.jsonl"
+                if candidate_short.exists():
+                    transcript_path = candidate_short
+
+        if not transcript_path:
+            brain_dir = Path.home() / ".gemini" / "antigravity-cli" / "brain"
+            if brain_dir.exists():
+                best_time = 0
+                for path in brain_dir.glob("*/.system_generated/logs/transcript_full.jsonl"):
+                    mtime = path.stat().st_mtime
+                    if mtime > best_time:
+                        best_time = mtime
+                        transcript_path = path
+
+        if not transcript_path or not transcript_path.exists():
+            return stats
+
+        turns = 0
+        tool_calls = 0
+        input_chars = 0
+        output_chars = 0
+
+        try:
+            with open(transcript_path, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    data = json.loads(line)
+                    stype = data.get("type", "")
+                    if stype == "USER_INPUT":
+                        input_chars += len(data.get("content", ""))
+                    elif stype == "PLANNER_RESPONSE":
+                        turns += 1
+                        content = data.get("content", "")
+                        thinking = data.get("thinking", "")
+                        output_chars += len(content) + len(thinking)
+                        tc = data.get("tool_calls", [])
+                        if isinstance(tc, list):
+                            tool_calls += len(tc)
+                            for t in tc:
+                                if isinstance(t, dict):
+                                    output_chars += len(json.dumps(t.get("args", {})))
+        except Exception as e:
+            print(f"[-] Error parsing transcript file {transcript_path}: {e}")
+
+        input_tokens = math.ceil(input_chars / 4.0) if input_chars else 0
+        output_tokens = math.ceil(output_chars / 4.0) if output_chars else 0
+
+        stats["input_tokens"] = input_tokens
+        stats["output_tokens"] = output_tokens
+        stats["total_tokens"] = input_tokens + output_tokens
+        stats["tool_calls"] = tool_calls
+        stats["num_turns"] = max(turns, 1)
+
+        return stats
+
     def execute_agent(self):
-        # Gemini CLI appends stdin to --prompt; keep the full prompt out of argv.
         prompt_content = read_prompt_file(self.prompt_file)
 
-        # Use absolute path to avoid FileNotFoundError
-        gemini_bin = shutil.which("gemini") or "gemini"
+        agy_bin = shutil.which("agy") or shutil.which("gemini") or "agy"
 
         cmd = [
-            gemini_bin,
-            "--yolo",
-            "--prompt",
-            "",
-            "--output-format",
-            "stream-json",
+            agy_bin,
+            "--dangerously-skip-permissions",
+            "--print",
+            prompt_content,
         ]
 
         if self.model_name:
             cmd.extend(["--model", self.model_name])
 
         env = self.get_env_vars()
-        # Remove Gemini-specific env vars to avoid nested session detection/relaunch issues
         env.pop("GEMINI_CLI", None)
         env.pop("GEMINI_CLI_NO_RELAUNCH", None)
+        env.pop("ANTIGRAVITY_CLI", None)
 
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / GEMINI_RESULT_FILENAME
 
-        print(
-            f"[*] Executing: gemini --yolo --prompt <prompt> --output-format stream-json"
-        )
+        display_cmd = f"agy --dangerously-skip-permissions --print <prompt>"
+        if self.model_name:
+            display_cmd += f" --model {self.model_name}"
+        print(f"[*] Executing: {display_cmd}")
         print(f"[*] Output logging to: {chat_log_path}")
 
-        result_data = None
+        start_time = datetime.now()
+        tool_call_count = 0
 
         with open(chat_log_path, "w", encoding="utf-8") as log_file:
             process = subprocess.Popen(
                 cmd,
                 cwd=self.work_dir,
                 env=env,
-                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -1887,43 +2025,13 @@ class GeminiRunner(AgentRunner):
                 errors="replace",
                 bufsize=1,
             )
-            send_stdin(process, prompt_content)
 
             for line in process.stdout:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                try:
-                    event = json.loads(stripped)
-                    event_type = event.get("type", "")
-
-                    if event_type == "message":
-                        # Gemini's message event provides continuous strings without "blocks"
-                        content = event.get("content", "")
-                        if content and event.get("role") == "assistant":
-                            # It streams delta updates usually.
-                            safe_stdout_write(content)
-                            log_file.write(content)
-                            log_file.flush()
-
-                    elif event_type == "tool_call":
-                        tool_name = event.get("function", "")
-                        info_line = f"\n[Tool: {tool_name}]\n"
-                        safe_stdout_write(info_line)
-                        log_file.write(info_line)
-                        log_file.flush()
-
-                    elif event_type == "result":
-                        result_data = event
-                        safe_stdout_write("\n")
-                        log_file.write("\n")
-                        log_file.flush()
-
-                except json.JSONDecodeError:
-                    # Non-JSON line, pass through as-is
-                    safe_stdout_write(line)
-                    log_file.write(line)
-                    log_file.flush()
+                safe_stdout_write(line)
+                log_file.write(line)
+                log_file.flush()
+                if "[Tool:" in line or "tool_call" in line:
+                    tool_call_count += 1
 
             try:
                 process.wait(timeout=900)
@@ -1942,10 +2050,42 @@ class GeminiRunner(AgentRunner):
                     f"\n[ERROR] Process exited with code {process.returncode}\n"
                 )
 
-        if result_data:
-            with open(result_json_path, "w", encoding="utf-8") as f:
-                json.dump(result_data, f, indent=2)
-            print(f"[+] Gemini usage data saved to: {result_json_path}")
+        end_time = datetime.now()
+        duration_ms = int((end_time - start_time).total_seconds() * 1000)
+
+        # Get agy version
+        try:
+            agy_version = subprocess.check_output(
+                [agy_bin, "--version"], text=True, timeout=10
+            ).strip()
+        except Exception:
+            agy_version = None
+
+        transcript_stats = self._get_agy_transcript_stats(self.work_dir, start_time)
+
+        provider_name = self.custom_provider.title() if self.custom_provider else "Google"
+
+        result_data = {
+            "type": "result",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": "success" if process.returncode == 0 else "error",
+            "stats": {
+                "input_tokens": transcript_stats["input_tokens"],
+                "output_tokens": transcript_stats["output_tokens"],
+                "total_tokens": transcript_stats["total_tokens"],
+                "cached": transcript_stats.get("cached", 0),
+                "duration_ms": duration_ms,
+                "tool_calls": max(transcript_stats.get("tool_calls", 0), tool_call_count),
+            },
+            "num_turns": max(transcript_stats.get("num_turns", 1), 1),
+            "agy_version": agy_version,
+            "provider": provider_name,
+            "model_id": self.model_name,
+        }
+
+        with open(result_json_path, "w", encoding="utf-8") as f:
+            json.dump(result_data, f, indent=2)
+        print(f"[+] Antigravity/Gemini usage data saved to: {result_json_path}")
 
 
 class ClaudeRunner(AgentRunner):
@@ -3890,6 +4030,8 @@ If any checker still reports failure, fix the files and rerun the checks before 
 def get_runner(agent: str) -> type[AgentRunner]:
     mapping = {
         "gemini": GeminiRunner,
+        "agy": GeminiRunner,
+        "antigravity": GeminiRunner,
         "claude": ClaudeRunner,
         "codex": CodexRunner,
         "vibe": VibeRunner,
@@ -3911,8 +4053,8 @@ def main():
     parser.add_argument(
         "--agent",
         required=True,
-        choices=["gemini", "claude", "codex", "vibe", "opencode", "crush", "pi", "pi-wiggum"],
-        help="Agent to evaluate (vibe = Mistral Vibe)",
+        choices=["gemini", "agy", "antigravity", "claude", "codex", "vibe", "opencode", "crush", "pi", "pi-wiggum"],
+        help="Agent to evaluate (vibe = Mistral Vibe, gemini/agy = Antigravity CLI)",
     )
     parser.add_argument(
         "--prompt-file",
@@ -3933,7 +4075,7 @@ def main():
     )
     parser.add_argument(
         "--provider",
-        help="Local provider (e.g., omlx or llama-server) or custom OpenCode/Vibe provider",
+        help="Local provider (e.g., omlx or llama-server) or custom OpenCode/Vibe/Gemini provider",
     )
     parser.add_argument(
         "--restore-agent-config",
@@ -3943,8 +4085,14 @@ def main():
 
     args = parser.parse_args()
 
-    # Warn if --provider is used with --non-local
-    if args.provider and args.non_local:
+    # 1. Get Runner
+    runner_cls = get_runner(args.agent)
+    if not runner_cls:
+        print(f"[-] Unknown agent: {args.agent}")
+        sys.exit(1)
+
+    # Warn if --provider is used with --non-local for runners that do not use custom_provider
+    if args.provider and args.non_local and runner_cls not in (GeminiRunner, OpenCodeRunner, VibeRunner, PiRunner, PiWiggumRunner):
         print("[!] Warning: --provider flag is ignored when using --non-local mode")
     elif is_llama_server_provider(args.provider):
         use_llama_server_provider()
@@ -3957,15 +4105,8 @@ def main():
         print(f"[-] Prompt file not found: {args.prompt_file}")
         sys.exit(1)
 
-    # 1. Get Runner
-    runner_cls = get_runner(args.agent)
-    if not runner_cls:
-        print(f"[-] Unknown agent: {args.agent}")
-        sys.exit(1)
-
-    # Provider names are used directly by Pi; OpenCode and Vibe also accept
-    # custom provider names through their existing configuration paths.
-    if runner_cls in (OpenCodeRunner, VibeRunner, PiRunner, PiWiggumRunner) and args.provider:
+    # Provider names are used directly by Pi, Gemini, OpenCode and Vibe.
+    if runner_cls in (GeminiRunner, OpenCodeRunner, VibeRunner, PiRunner, PiWiggumRunner) and args.provider:
         runner = runner_cls(
             args.agent,
             args.model,

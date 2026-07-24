@@ -1,0 +1,37 @@
+The **3D Office Building Simulation** has been implemented, tested, and verified.
+
+### Project Location
+The codebase was created in:
+- [/home/jeff/.gemini/antigravity-cli/scratch/office_simulation](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation)
+
+*(It is recommended to set `/home/jeff/.gemini/antigravity-cli/scratch/office_simulation` as your active workspace).*
+
+---
+
+### Created Files
+1. [index.html](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation/index.html) - HTML shell loading Three.js v0.147.0, OrbitControls, and simulation scripts in script dependency order.
+2. [person.js](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation/person.js) - Person primitive factory (`createPerson`), limb pivots (hips & shoulders), and walk/sit limb animator (`animatePersonWalking`).
+3. [world.js](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation/world.js) - Semi-transparent building floors/walls, floor-0 front entrance gap, per-floor layouts (offices, conference rooms, lounges, cafe), call panels with canvas floor displays, and BFS navigation graph.
+4. [elevator_logic.js](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation/elevator_logic.js) - Pure state-machine elevator scheduler (SCAN direction handling, capacity reservation, anti-starvation, passenger destination priority over hall calls). Dual-environment IIFE module.
+5. [elevator.js](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation/elevator.js) - Three.js semi-transparent elevator car, sliding doors, glowing destination buttons, inside indicator, and adapter wrapping `ElevatorLogic`.
+6. [sim.js](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation/sim.js) - Simulated clock (default 120x, log slider 1-600x), day/night lighting, worker & visitor agents, daily schedules, action state machine, crowd anti-bunching collision resolver, and top-left HUD UI.
+7. [elevator_logic_test.js](file:///home/jeff/.gemini/antigravity-cli/scratch/office_simulation/elevator_logic_test.js) - Deterministic Node unit tests covering 7 elevator logic scenarios.
+
+---
+
+### Key Features & Verification Results
+
+1. **Behavioral & Seating Fidelity**:
+   - Seated agents have their hips lowered by `0.35` units to align with chairs/couches and their legs face towards the desk/table (and away from backrests).
+   - Seats record explicit facing directions (`sitTargets`) to prevent backwards or inverted sitting positions.
+
+2. **Crowd Navigation & Anti-Bunching**:
+   - Arriving agents walk through the physical 3-unit front door threshold on Floor 0 (`outside -> front_door_threshold -> entrance -> lobby_center`).
+   - Boarders and threshold traversers are granted temporary crowd repulsion exemptions and stall-recovery fallbacks to eliminate crowd jamming.
+
+3. **Verification**:
+   - `node elevator_logic_test.js`: All 7 deterministic elevator tests **PASSED**.
+   - `node static_check.js .`: **PASSED** with zero static errors or syntax warnings.
+   - `node runtime_check.js .`: **PASSED** (1474 3D scene objects, 99 rendered frames, 4655 dynamic changes, no page errors).
+
+[SUCCESS] Process exited cleanly.

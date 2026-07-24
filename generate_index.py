@@ -28,7 +28,9 @@ RUNTIME_CHECK_FILE = "runtime_check.json"
 
 AGENT_DISPLAY_NAMES = {
     "mistral": "Mistral Vibe",
-    "gemini": "Gemini CLI",
+    "gemini": "Antigravity CLI",
+    "agy": "Antigravity CLI",
+    "antigravity": "Antigravity CLI",
     "claude": "Claude Code",
     "codex": "Codex CLI",
     "crush": "Charmbracelet Crush",
@@ -41,6 +43,7 @@ AGENT_DISPLAY_NAMES = {
 AGENT_COLORS = {
     "Claude Code": "#b45309",
     "Codex CLI": "#111827",
+    "Antigravity CLI": "#2563eb",
     "Gemini CLI": "#2563eb",
     "OpenCode CLI": "#047857",
     "Mistral Vibe": "#dc2626",
