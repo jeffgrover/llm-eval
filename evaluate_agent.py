@@ -1859,6 +1859,13 @@ class AgentRunner:
 
 
 class GeminiRunner(AgentRunner):
+    _RUNNER_OUTPUT_FILES = {
+        CHAT_SESSION_FILENAME,
+        GEMINI_RESULT_FILENAME,
+        SERVER_LOG_FILENAME,
+        "summary.html",
+    }
+
     def __init__(
         self,
         agent_name: str,
@@ -1981,20 +1988,34 @@ class GeminiRunner(AgentRunner):
 
         return stats
 
-    def execute_agent(self):
-        prompt_content = read_prompt_file(self.prompt_file)
-
-        agy_bin = shutil.which("agy") or shutil.which("gemini") or "agy"
-
+    def _build_agy_command(self, agy_bin: str, prompt_content: str) -> List[str]:
+        """Build an isolated AGY command whose project is the evaluation workspace."""
         cmd = [
             agy_bin,
+            "--new-project",
+            "--add-dir",
+            str(self.work_dir.resolve()),
             "--dangerously-skip-permissions",
             "--print",
             prompt_content,
         ]
-
         if self.model_name:
             cmd.extend(["--model", self.model_name])
+        return cmd
+
+    def _generated_artifacts(self) -> List[str]:
+        """Return root-level files produced by the evaluated agent."""
+        return sorted(
+            path.name
+            for path in self.work_dir.iterdir()
+            if path.is_file() and path.name not in self._RUNNER_OUTPUT_FILES
+        )
+
+    def execute_agent(self):
+        prompt_content = read_prompt_file(self.prompt_file)
+
+        agy_bin = shutil.which("agy") or shutil.which("gemini") or "agy"
+        cmd = self._build_agy_command(agy_bin, prompt_content)
 
         env = self.get_env_vars()
         env.pop("GEMINI_CLI", None)
@@ -2004,7 +2025,10 @@ class GeminiRunner(AgentRunner):
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / GEMINI_RESULT_FILENAME
 
-        display_cmd = f"agy --dangerously-skip-permissions --print <prompt>"
+        display_cmd = (
+            f"agy --new-project --add-dir {self.work_dir.resolve()} "
+            "--dangerously-skip-permissions --print <prompt>"
+        )
         if self.model_name:
             display_cmd += f" --model {self.model_name}"
         print(f"[*] Executing: {display_cmd}")
@@ -2041,9 +2065,17 @@ class GeminiRunner(AgentRunner):
                 process.kill()
                 process.wait()
 
-            if process.returncode == 0:
+            generated_artifacts = self._generated_artifacts()
+            if process.returncode == 0 and generated_artifacts:
                 print(f"[+] Agent finished successfully.")
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+            elif process.returncode == 0:
+                artifact_error = (
+                    "AGY exited cleanly but produced no root-level artifacts in "
+                    f"{self.work_dir.resolve()}."
+                )
+                print(f"[-] {artifact_error}")
+                log_file.write(f"\n[ERROR] {artifact_error}\n")
             else:
                 print(f"[-] Agent finished with error code {process.returncode}")
                 log_file.write(
@@ -2064,11 +2096,12 @@ class GeminiRunner(AgentRunner):
         transcript_stats = self._get_agy_transcript_stats(self.work_dir, start_time)
 
         provider_name = self.custom_provider.title() if self.custom_provider else "Google"
+        run_succeeded = process.returncode == 0 and bool(generated_artifacts)
 
         result_data = {
             "type": "result",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "status": "success" if process.returncode == 0 else "error",
+            "status": "success" if run_succeeded else "error",
             "stats": {
                 "input_tokens": transcript_stats["input_tokens"],
                 "output_tokens": transcript_stats["output_tokens"],
@@ -2081,7 +2114,13 @@ class GeminiRunner(AgentRunner):
             "agy_version": agy_version,
             "provider": provider_name,
             "model_id": self.model_name,
+            "artifacts": generated_artifacts,
         }
+        if process.returncode == 0 and not generated_artifacts:
+            result_data["error"] = (
+                "AGY exited successfully but did not create any root-level "
+                f"artifacts in {self.work_dir.resolve()}."
+            )
 
         with open(result_json_path, "w", encoding="utf-8") as f:
             json.dump(result_data, f, indent=2)

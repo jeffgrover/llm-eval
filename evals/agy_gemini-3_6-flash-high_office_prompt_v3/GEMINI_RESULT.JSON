@@ -13,5 +13,16 @@
   "num_turns": 29,
   "agy_version": "1.1.5",
   "provider": "Google",
-  "model_id": "gemini-3.6-flash-high"
+  "model_id": "gemini-3.6-flash-high",
+  "artifacts": [
+    "elevator.js",
+    "elevator_logic.js",
+    "elevator_logic_test.js",
+    "index.html",
+    "person.js",
+    "runtime_check.json",
+    "sim.js",
+    "static_check.json",
+    "world.js"
+  ]
 }
