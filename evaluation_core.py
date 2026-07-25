@@ -11,6 +11,7 @@ import re
 import platform
 import urllib.request
 import urllib.error
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -1020,14 +1021,13 @@ class AgentRunner:
         start_time = datetime.now()
 
         self.setup_workspace()
-        self.configure_agent()
-        self.start_server_logger()
-
-        try:
-            print(f"[*] Running {self.agent_name}...")
-            self.execute_agent()
-        finally:
-            self.stop_server_logger()
+        with self.agent_configuration():
+            self.start_server_logger()
+            try:
+                print(f"[*] Running {self.agent_name}...")
+                self.execute_agent()
+            finally:
+                self.stop_server_logger()
 
         duration_seconds = (datetime.now() - start_time).total_seconds()
         self._execute_generated_python_artifacts()
@@ -1124,6 +1124,12 @@ class AgentRunner:
     def configure_agent(self):
         """Hook for agent-specific configuration file generation."""
         pass
+
+    @contextmanager
+    def agent_configuration(self):
+        """Apply runner configuration for the duration of agent execution."""
+        self.configure_agent()
+        yield
 
     def execute_agent(self):
         """Runs the actual agent command."""

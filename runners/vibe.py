@@ -3,6 +3,7 @@
 import json
 import re
 import subprocess
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
@@ -138,6 +139,16 @@ class VibeRunner(AgentRunner):
             print(f"[+] Restored vibe active_model to '{self._original_active_model}'")
         except Exception as e:
             print(f"[-] Failed to restore vibe config: {e}")
+
+    @contextmanager
+    def agent_configuration(self):
+        """Temporarily select the requested Vibe model."""
+        try:
+            self.configure_agent()
+            yield
+        finally:
+            if self.restore_agent_config:
+                self._restore_vibe_config()
 
     def _get_vibe_session_token_usage(self, start_time: datetime, work_dir: Path = None) -> Dict[str, int]:
         """Extract token usage from Vibe's session log files.
@@ -377,6 +388,3 @@ class VibeRunner(AgentRunner):
         with open(result_json_path, "w", encoding="utf-8") as f:
             json.dump(result_data, f, indent=2)
         print(f"[+] Vibe metadata saved to: {result_json_path}")
-
-        if self.restore_agent_config:
-            self._restore_vibe_config()

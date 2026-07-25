@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -71,6 +72,15 @@ class PiRunner(AgentRunner):
             self.models_json_path.unlink()
             print(f"[*] Removed temporary Pi models.json")
 
+    @contextmanager
+    def agent_configuration(self):
+        """Install Pi's temporary provider config for one agent execution."""
+        try:
+            self.configure_agent()
+            yield
+        finally:
+            self._restore_pi_models_json()
+
     def get_model_extra_info(self) -> Dict[str, str]:
         """Read provider/model info captured during the run."""
         result_path = self.work_dir / PI_RESULT_FILENAME
@@ -93,10 +103,7 @@ class PiRunner(AgentRunner):
     def execute_agent(self):
         # Pi reads the prompt from stdin here to avoid Windows command-line length limits.
         # Uses --mode json to get JSONL output with token usage in message_end events
-        try:
-            self._execute_pi()
-        finally:
-            self._restore_pi_models_json()
+        self._execute_pi()
 
     def _execute_pi(self):
         prompt_content = read_prompt_file(self.prompt_file)

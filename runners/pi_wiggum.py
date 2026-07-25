@@ -47,10 +47,7 @@ class PiWiggumRunner(PiRunner):
         return cmd
 
     def execute_agent(self):
-        try:
-            self._execute_wiggum_loop()
-        finally:
-            self._restore_pi_models_json()
+        self._execute_wiggum_loop()
 
     def _execute_wiggum_loop(self):
         start = time.monotonic()
