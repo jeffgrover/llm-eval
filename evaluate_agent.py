@@ -89,11 +89,24 @@ def build_argument_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Path to the initial prompt file",
     )
-    parser.add_argument(
+    report_group = parser.add_mutually_exclusive_group()
+    report_group.add_argument(
         "--headless",
+        dest="headless",
         action="store_true",
         default=True,
-        help="Run in headless mode (default: True)",
+        help="Do not open the generated report (default)",
+    )
+    report_group.add_argument(
+        "--open-report",
+        dest="headless",
+        action="store_false",
+        help="Open the generated report in the default browser",
+    )
+    parser.add_argument(
+        "--execute-generated-python",
+        action="store_true",
+        help="Execute root-level Python artifacts after the agent finishes",
     )
     parser.add_argument(
         "--non-local",
@@ -142,6 +155,7 @@ def main(argv: Optional[List[str]] = None):
         args.restore_agent_config,
         custom_provider=args.provider if runner_cls.supports_custom_provider else None,
         local_provider=local_provider,
+        execute_generated_python=args.execute_generated_python,
     )
 
     runner.confirm_workspace_overwrite()

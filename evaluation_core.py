@@ -812,6 +812,7 @@ class AgentRunner:
         restore_agent_config: bool = False,
         custom_provider: Optional[str] = None,
         local_provider: Optional[LocalProviderConfig] = None,
+        execute_generated_python: bool = False,
     ):
         self.agent_name = agent_name
         self.model_name = model_name
@@ -822,6 +823,7 @@ class AgentRunner:
         self.custom_provider = custom_provider
         self.local_provider = local_provider or LM_STUDIO_PROVIDER
         self.lms_cli_available = self.local_provider.supports_lms_cli
+        self.execute_generated_python = execute_generated_python
 
         # Binary to name mapping
         self.binary_map = {
@@ -1030,9 +1032,11 @@ class AgentRunner:
                 self.stop_server_logger()
 
         duration_seconds = (datetime.now() - start_time).total_seconds()
-        self._execute_generated_python_artifacts()
+        if self.execute_generated_python:
+            self._execute_generated_python_artifacts()
         report_path = self._generate_report(duration_seconds)
-        self._open_report(report_path)
+        if not self.headless:
+            self._open_report(report_path)
 
     def _execute_generated_python_artifacts(self) -> None:
         """Execute root-level Python artifacts and capture their output."""

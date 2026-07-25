@@ -8,13 +8,20 @@ from evaluate_agent import AGENT_RUNNERS, AgentRunner
 
 
 class RecordingRunner(AgentRunner):
-    def __init__(self, work_dir: Path, fail_execution: bool = False):
+    def __init__(
+        self,
+        work_dir: Path,
+        fail_execution: bool = False,
+        headless: bool = True,
+        execute_generated_python: bool = False,
+    ):
         super().__init__(
             "test-agent",
             "test-model",
             Path("test_prompt.txt"),
-            headless=True,
+            headless=headless,
             non_local=True,
+            execute_generated_python=execute_generated_python,
         )
         self.work_dir = work_dir
         self.fail_execution = fail_execution
@@ -80,10 +87,24 @@ class AgentRunnerLifecycleTests(unittest.TestCase):
                     "start_logger",
                     "execute",
                     "stop_logger",
-                    "execute_artifacts",
                     "generate_report",
-                    "open_report",
                 ],
+            )
+
+    def test_optional_post_processing_requires_explicit_flags(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runner = RecordingRunner(
+                Path(temp_dir),
+                headless=False,
+                execute_generated_python=True,
+            )
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                runner.run()
+
+            self.assertEqual(
+                runner.events[-3:],
+                ["execute_artifacts", "generate_report", "open_report"],
             )
 
     def test_run_stops_logger_when_execution_fails(self):
