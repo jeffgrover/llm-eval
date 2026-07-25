@@ -8,8 +8,10 @@ from evaluation_metrics import (
     CLAUDE_RESULT_FILENAME,
     OPENCODE_RESULT_FILENAME,
     PI_WIGGUM_RESULT_FILENAME,
+    QODER_RESULT_FILENAME,
     TokenUsageCollector,
 )
+from generate_index import parse_metrics
 
 
 class TokenUsageCollectorTests(unittest.TestCase):
@@ -119,6 +121,88 @@ class TokenUsageCollectorTests(unittest.TestCase):
                     "prompt_tokens": 42,
                     "completion_tokens": 8,
                     "total_tokens": 50,
+                },
+            )
+
+    def test_qoder_estimates_and_unavailable_cost_are_preserved(self):
+        result = {
+            "modelUsage": {
+                "qmodel": {
+                    "inputTokens": 0,
+                    "outputTokens": 0,
+                    "cacheReadInputTokens": 0,
+                    "cacheCreationInputTokens": 0,
+                    "costUSD": 0,
+                }
+            },
+            "input_tokens": 120,
+            "output_tokens": 30,
+            "total_tokens": 150,
+            "num_turns": 3,
+            "token_counts_estimated": True,
+            "cost_available": False,
+            "cost_note": (
+                "Qoder uses Credits and the CLI does not report per-run USD cost"
+            ),
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / QODER_RESULT_FILENAME).write_text(
+                json.dumps(result),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                self.collect(work_dir),
+                {
+                    "prompt_tokens": 120,
+                    "completion_tokens": 30,
+                    "total_tokens": 150,
+                    "num_turns": 3,
+                    "token_counts_estimated": True,
+                    "cost_available": False,
+                    "cost_note": (
+                        "Qoder uses Credits and the CLI does not report per-run USD cost"
+                    ),
+                },
+            )
+            dashboard_metrics = parse_metrics(result)
+            self.assertEqual(dashboard_metrics["total_tokens"], 150)
+            self.assertTrue(dashboard_metrics["token_counts_estimated"])
+            self.assertFalse(dashboard_metrics["cost_available"])
+
+    def test_qoder_real_model_usage_includes_model_cost(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / QODER_RESULT_FILENAME).write_text(
+                json.dumps(
+                    {
+                        "modelUsage": {
+                            "qmodel": {
+                                "inputTokens": 10,
+                                "outputTokens": 2,
+                                "cacheReadInputTokens": 3,
+                                "cacheCreationInputTokens": 1,
+                                "costUSD": 0.04,
+                            }
+                        },
+                        "token_counts_estimated": False,
+                        "cost_available": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                self.collect(work_dir),
+                {
+                    "prompt_tokens": 14,
+                    "completion_tokens": 2,
+                    "total_tokens": 16,
+                    "cache_read_tokens": 3,
+                    "cost_usd": 0.04,
+                    "token_counts_estimated": False,
+                    "cost_available": True,
                 },
             )
 

@@ -5,14 +5,17 @@ from pathlib import Path
 from unittest import mock
 
 from runner_events import (
+    QoderUsageEstimator,
     codex_usage_from_obj,
     extract_codex_readable_event,
     extract_codex_session_id,
     find_codex_usage_objects,
+    normalize_qoder_result,
     parse_claude_event,
     parse_gemini_transcript,
     parse_opencode_event,
     parse_pi_event,
+    parse_qoder_event,
     parse_vibe_event,
 )
 from runners import CrushRunner
@@ -54,6 +57,43 @@ class RunnerEventContractTests(unittest.TestCase):
         self.assertEqual(parsed[1].text, "Working\n[Tool: Write] index.html\n")
         self.assertEqual(parsed[2].text, "\nComplete\n")
         self.assertEqual(parsed[2].result["usage"]["input_tokens"], 10)
+
+    def test_qoder_stream_contract_and_estimated_usage(self):
+        events = read_jsonl("qoder_stream.jsonl")
+        estimator = QoderUsageEstimator.from_prompt("Build it")
+        parsed = []
+        for event in events:
+            estimator.observe(event)
+            parsed.append(parse_qoder_event(event))
+
+        result = normalize_qoder_result(
+            parsed[-1].result,
+            estimator.result(),
+            events[0]["qodercli_version"],
+        )
+
+        self.assertEqual(parsed[1].text, "abcd")
+        self.assertEqual(parsed[3].text, "complete")
+        self.assertEqual(result["input_tokens"], 6)
+        self.assertEqual(result["output_tokens"], 3)
+        self.assertEqual(result["total_tokens"], 9)
+        self.assertEqual(result["num_turns"], 2)
+        self.assertTrue(result["token_counts_estimated"])
+        self.assertFalse(result["cost_available"])
+        self.assertEqual(result["qodercli_version"], "1.1.5")
+
+    def test_qoder_prefers_real_usage_when_the_cli_provides_it(self):
+        result = normalize_qoder_result(
+            {
+                "usage": {"input_tokens": 10, "output_tokens": 2},
+                "total_cost_usd": 0.01,
+            },
+            {"input_tokens": 99, "output_tokens": 99, "total_tokens": 198},
+        )
+
+        self.assertNotIn("input_tokens", result)
+        self.assertFalse(result["token_counts_estimated"])
+        self.assertTrue(result["cost_available"])
 
     def test_vibe_stream_contract(self):
         parsed = [

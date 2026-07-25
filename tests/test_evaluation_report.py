@@ -77,6 +77,33 @@ class EvaluationReportTests(unittest.TestCase):
             self.assertIn("window.previewLoaded = true;", preview)
             self.assertNotIn('src="app.js"', preview)
 
+    def test_estimated_tokens_and_unavailable_cost_are_labeled(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata = self.metadata()
+            metadata["Tokens"].update(
+                {
+                    "token_counts_estimated": True,
+                    "cost_available": False,
+                    "cost_note": (
+                        "Qoder uses Credits and the CLI does not report per-run USD cost"
+                    ),
+                }
+            )
+
+            report_path = generate_html_report(
+                Path(temp_dir),
+                metadata,
+                "build it",
+                duration_seconds=10.0,
+                agent_name="qoder",
+            )
+            report = report_path.read_text(encoding="utf-8")
+
+            self.assertIn("Qoder CLI", report)
+            self.assertIn("Input (est.):", report)
+            self.assertIn("tokens/sec (estimated)", report)
+            self.assertIn(">Not reported</span>", report)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -22,6 +22,7 @@ RESULT_FILES = (
     "PI_RESULT.JSON",
     "CODEX_RESULT.JSON",
     "VIBE_RESULT.JSON",
+    "QODER_RESULT.JSON",
 )
 
 RUNTIME_CHECK_FILE = "runtime_check.json"
@@ -37,6 +38,7 @@ AGENT_DISPLAY_NAMES = {
     "opencode": "OpenCode CLI",
     "pi-wiggum": "Pi Wiggum",
     "pi": "Pi Coding Agent",
+    "qoder": "Qoder CLI",
     "vibe": "Mistral Vibe",
 }
 
@@ -50,6 +52,7 @@ AGENT_COLORS = {
     "Charmbracelet Crush": "#7c3aed",
     "Pi Coding Agent": "#0e7490",
     "Pi Wiggum": "#be123c",
+    "Qoder CLI": "#4f46e5",
 }
 
 
@@ -255,6 +258,8 @@ def parse_metrics(result: Dict) -> Dict[str, float]:
         "duration_ms": 0,
         "success": None,
         "error": False,
+        "token_counts_estimated": False,
+        "cost_available": None,
     }
     if not result:
         return metrics
@@ -269,9 +274,22 @@ def parse_metrics(result: Dict) -> Dict[str, float]:
         metrics["num_turns"] = stats.get("tool_calls", 0) or 0
         metrics["success"] = result.get("status") == "success"
         metrics["error"] = result.get("status") not in (None, "success")
+        metrics["token_counts_estimated"] = bool(
+            result.get("token_counts_estimated")
+        )
+        if "cost_available" in result:
+            metrics["cost_available"] = bool(result["cost_available"])
         return metrics
 
-    if "modelUsage" in result:
+    if result.get("token_counts_estimated"):
+        metrics["input_tokens"] = result.get("input_tokens", 0) or 0
+        metrics["output_tokens"] = result.get("output_tokens", 0) or 0
+        metrics["total_tokens"] = (
+            result.get("total_tokens")
+            or metrics["input_tokens"] + metrics["output_tokens"]
+        )
+        metrics["token_counts_estimated"] = True
+    elif "modelUsage" in result:
         for model_data in result.get("modelUsage", {}).values():
             metrics["input_tokens"] += (
                 model_data.get("inputTokens", 0)
@@ -302,6 +320,8 @@ def parse_metrics(result: Dict) -> Dict[str, float]:
         metrics["cache_read_tokens"] = result.get("cache_read_tokens") or usage.get("cache_read_input_tokens", 0) or 0
         metrics["cost_usd"] = result.get("cost_usd") or result.get("total_cost_usd") or 0.0
 
+    if "cost_available" in result:
+        metrics["cost_available"] = bool(result["cost_available"])
     metrics["duration_ms"] = result.get("duration_ms", 0) or result.get("duration_api_ms", 0) or 0
     metrics["num_turns"] = result.get("num_turns", 0) or 0
     metrics["success"] = (
@@ -762,6 +782,14 @@ def render_comparison_rows(evaluations: List[Dict]) -> str:
         flags = ev["Score"]["flags"]
         evidence = ev["Score"]["evidence"]
         runtime_errors = ev["Score"].get("runtime_errors", [])
+        token_display = fmt_int(metrics.get("total_tokens"))
+        if metrics.get("token_counts_estimated") and token_display != "—":
+            token_display = f"≈{token_display}"
+        cost_display = (
+            "N/A"
+            if metrics.get("cost_available") is False
+            else fmt_cost(metrics.get("cost_usd"))
+        )
         report = f'<a class="link-btn" href="{esc(ev["ReportLink"])}">Report</a>' if ev["HasReport"] else '<span class="muted">No report</span>'
         preview = f'<a class="link-btn subtle" href="{esc(ev["PreviewLink"])}" target="_blank" rel="noopener">Preview</a>' if ev["PreviewLink"] else ""
         flag_html = "".join(f'<span class="flag">{esc(flag)}</span>' for flag in flags)
@@ -791,8 +819,8 @@ def render_comparison_rows(evaluations: List[Dict]) -> str:
                     </div>
                 </td>
                 <td><span class="provider-badge {provider_class(ev["Provider"])}">{esc(ev["Provider"])}</span></td>
-                <td class="metric">{fmt_int(metrics.get("total_tokens"))}</td>
-                <td class="metric">{fmt_cost(metrics.get("cost_usd"))}</td>
+                <td class="metric">{token_display}</td>
+                <td class="metric">{cost_display}</td>
                 <td class="metric">{fmt_duration(metrics.get("duration_ms"))}</td>
                 <td class="breakdown-cell">
                     <div class="category-pills">

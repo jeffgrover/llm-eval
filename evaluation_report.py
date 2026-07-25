@@ -20,6 +20,7 @@ AGENT_DISPLAY_NAMES = {
     "opencode": "OpenCode CLI",
     "pi": "Pi Coding Agent",
     "pi-wiggum": "Pi Wiggum",
+    "qoder": "Qoder CLI",
 }
 
 
@@ -220,7 +221,15 @@ def generate_html_report(
         tokens_per_second = 0
 
     extra_token_rows = ""
-    if tokens.get("cost_usd"):
+    if tokens.get("cost_available") is False:
+        cost_note = html.escape(
+            str(tokens.get("cost_note", "Per-run USD cost is not reported"))
+        )
+        extra_token_rows += (
+            '<div class="token-stat"><span class="label">Cost:</span> '
+            f'<span class="value" title="{cost_note}">Not reported</span></div>'
+        )
+    elif "cost_usd" in tokens:
         extra_token_rows += (
             '<div class="token-stat"><span class="label">Cost:</span> '
             f'<span class="value">${tokens["cost_usd"]:.4f}</span></div>'
@@ -240,6 +249,8 @@ def generate_html_report(
             '<div class="token-stat"><span class="label">Wiggum Ticks:</span> '
             f'<span class="value">{tokens["wiggum_attempts"]}</span></div>'
         )
+    token_label_suffix = " (est.)" if tokens.get("token_counts_estimated") else ""
+    rate_label_suffix = " (estimated)" if tokens.get("token_counts_estimated") else ""
 
     display_agent_name = AGENT_DISPLAY_NAMES.get(agent_name.lower(), agent_name)
     model_name = metadata["Model"].get("Full Name")
@@ -361,12 +372,12 @@ def generate_html_report(
                     <h3>Token Metrics</h3>
                     <div class="tokens-content">
                         <div>
-                            <div class="token-stat"><span class="label">Input:</span> <span class="value">{tokens.get("prompt_tokens", 0)}</span></div>
-                            <div class="token-stat"><span class="label">Output:</span> <span class="value">{tokens.get("completion_tokens", 0)}</span></div>
-                            <div class="token-stat total"><span class="label">Total:</span> <span class="value">{tokens.get("total_tokens", 0)}</span></div>
+                            <div class="token-stat"><span class="label">Input{token_label_suffix}:</span> <span class="value">{tokens.get("prompt_tokens", 0)}</span></div>
+                            <div class="token-stat"><span class="label">Output{token_label_suffix}:</span> <span class="value">{tokens.get("completion_tokens", 0)}</span></div>
+                            <div class="token-stat total"><span class="label">Total{token_label_suffix}:</span> <span class="value">{tokens.get("total_tokens", 0)}</span></div>
                             {extra_token_rows}
                         </div>
-                        <div class="token-rate">~{tokens_per_second} tokens/sec</div>
+                        <div class="token-rate">~{tokens_per_second} tokens/sec{rate_label_suffix}</div>
                     </div>
                 </div>
             </div>

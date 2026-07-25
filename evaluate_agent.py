@@ -24,6 +24,7 @@ from evaluation_metrics import (
     OPENCODE_RESULT_FILENAME,
     PI_RESULT_FILENAME,
     PI_WIGGUM_RESULT_FILENAME,
+    QODER_RESULT_FILENAME,
     VIBE_RESULT_FILENAME,
     TokenUsageCollector,
 )
@@ -36,6 +37,7 @@ from runners import (
     OpenCodeRunner,
     PiRunner,
     PiWiggumRunner,
+    QoderRunner,
     VibeRunner,
 )
 
@@ -63,6 +65,7 @@ AGENT_RUNNERS = {
     "crush": CrushRunner,
     "pi": PiRunner,
     "pi-wiggum": PiWiggumRunner,
+    "qoder": QoderRunner,
 }
 CLI_AGENT_CHOICES = tuple(name for name in AGENT_RUNNERS if name != "mistral")
 

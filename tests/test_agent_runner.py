@@ -65,12 +65,28 @@ class AgentRunnerLifecycleTests(unittest.TestCase):
             "opencode": "runners.opencode",
             "pi": "runners.pi",
             "pi-wiggum": "runners.pi_wiggum",
+            "qoder": "runners.qoder",
             "vibe": "runners.vibe",
         }
 
         for agent, module_name in expected_modules.items():
             with self.subTest(agent=agent):
                 self.assertEqual(AGENT_RUNNERS[agent].__module__, module_name)
+
+    def test_qoder_uses_cli_executable_without_changing_workspace_prefix(self):
+        runner = AGENT_RUNNERS["qoder"](
+            "qoder",
+            "test-model",
+            Path("test_prompt.txt"),
+            headless=True,
+            non_local=True,
+        )
+
+        self.assertEqual(runner.agent_binary, "qodercli")
+        self.assertEqual(
+            runner.work_dir.name,
+            "qoder_test-model_test_prompt",
+        )
 
     def test_run_keeps_orchestration_steps_in_order(self):
         with tempfile.TemporaryDirectory() as temp_dir:

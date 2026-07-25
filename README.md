@@ -73,6 +73,7 @@ Install the agents you wish to evaluate. Each has its own setup requirements:
 | **OpenCode** | `opencode` | [opencode-ai/opencode](https://github.com/opencode-ai/opencode) |
 | **Pi Coding Agent** | `pi` | [badlogic/pi-mono](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) |
 | **Pi Wiggum Repair Loop** | `pi-wiggum` | Uses `pi` with evaluator-owned static/runtime repair attempts |
+| **Qoder CLI** | `qodercli` | [Qoder CLI Quick Start](https://docs.qoder.com/en/cli/quick-start); verify with `qodercli --version` |
 
 ---
 
@@ -89,7 +90,7 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 
 ### Parameters
 -   `--model`: The LM Studio model identifier (or cloud model name when using `--non-local`).
--   `--agent`: One of `vibe`, `gemini`, `claude`, `codex`, `opencode`, `crush`, `pi`, or `pi-wiggum`.
+-   `--agent`: One of `vibe`, `gemini`, `claude`, `codex`, `opencode`, `crush`, `pi`, `pi-wiggum`, or `qoder`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
 -   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.
 -   `--provider`: (Optional) Select `omlx`, `llama-server`, or an agent-specific provider.
@@ -118,6 +119,27 @@ Codex currently runs through your ChatGPT account service, so use it with `--non
 ```
 
 Codex runs are saved with `CHAT_SESSION.TXT`, raw `CODEX_EVENTS.JSONL`, `CODEX_LAST_MESSAGE.TXT`, and aggregated token metrics in `CODEX_RESULT.JSON`.
+
+### Qoder CLI
+
+Qoder is a cloud-only runner, so use it with `--non-local` and one of the model
+names shown by `qodercli --list-models`:
+
+```bash
+./evaluate_agent.py --model '<qoder-model>' --agent qoder \
+  --prompt-file office_prompt_v3.md --non-local
+```
+
+Qoder runs save the readable transcript in `CHAT_SESSION.TXT`, the complete
+stream in `QODER_EVENTS.JSONL`, and normalized metrics in `QODER_RESULT.JSON`.
+The currently tested Qoder CLI (1.1.5) reports zero for its token and USD-cost
+fields, including in its diagnostic logs. Until Qoder supplies real counters, the evaluator derives
+clearly labeled token estimates from the model-visible stream (using four
+characters per token and cumulative input across turns). Per-run USD cost is
+shown as unavailable, not as a measured zero; Qoder-hosted usage is billed in
+Credits rather than exposed as a per-run USD amount. If a future Qoder version
+returns real usage, those values automatically take precedence over the
+estimator.
 
 ### Pi Wiggum Repair Loop
 `pi-wiggum` invokes Pi non-interactively, then lets the evaluator run the static and runtime checkers. Failed checker output is fed back to Pi for another repair attempt until the checks pass or the 4-hour wall-clock cap is reached:
@@ -193,7 +215,7 @@ The scoring is intentionally deterministic. It does not claim to be a full quali
 
 Click **View Report** on any card to see the full breakdown, including:
 -   **Prompt Trace**: Exactly what was sent (including newlines).
--   **Token Metrics**: Input/Output tokens and TPS (Tokens Per Second).
+-   **Token Metrics**: Input/Output tokens and TPS (Tokens Per Second), labeled when a runner only exposes estimates.
 -   **Software Env**: Versions of LMS, CLI, and Hardware specs.
 -   **Artifact Viewer**: Side-by-side view of generated code, server logs (`SERVER.LOG`), and execution results (`OUTPUT.TXT`).
 
@@ -213,7 +235,7 @@ The evaluator is split by responsibility:
 -   `evaluation_core.py` owns the shared run lifecycle, workspace handling, metadata collection, LM Studio integration, and immutable local-provider configuration.
 -   `evaluation_metrics.py` normalizes token, cost, cache, and turn metrics from runner result files and fallback logs.
 -   `evaluation_report.py` renders the self-contained `summary.html` report and artifact navigation.
--   `runner_events.py` normalizes vendor-specific JSON/JSONL events into runner-level text, usage, provider, model, and error fields.
+-   `runner_events.py` normalizes vendor-specific JSON/JSONL events into runner-level text, usage, provider, model, and error fields, including Qoder's explicit estimated-usage fallback.
 -   `runners/` contains one CLI adapter per agent. Each adapter owns only its command/configuration and vendor-specific execution flow.
 -   `tests/fixtures/runner_events/` contains representative CLI event streams used by parser contract tests.
 

@@ -13,9 +13,11 @@ CODEX_RESULT_FILENAME = "CODEX_RESULT.JSON"
 VIBE_RESULT_FILENAME = "VIBE_RESULT.JSON"
 PI_RESULT_FILENAME = "PI_RESULT.JSON"
 PI_WIGGUM_RESULT_FILENAME = "PI_WIGGUM_RESULT.JSON"
+QODER_RESULT_FILENAME = "QODER_RESULT.JSON"
+QODER_EVENTS_FILENAME = "QODER_EVENTS.JSONL"
 
 JsonObject = Dict[str, Any]
-MetricValue = Union[int, float]
+MetricValue = Union[int, float, bool, str]
 TokenUsage = Dict[str, MetricValue]
 
 
@@ -67,6 +69,7 @@ class TokenUsageCollector:
             if value:
                 usage[usage_key] = value
 
+        cls._copy_result_metadata(data, usage)
         if extra_metric:
             source_key, usage_key = extra_metric
             value = data.get(source_key, 0)
@@ -74,14 +77,17 @@ class TokenUsageCollector:
                 usage[usage_key] = value
         return usage
 
-    @classmethod
-    def _claude_result_usage(cls, result_dir: Path) -> Optional[TokenUsage]:
-        data = cls._read_result(result_dir / CLAUDE_RESULT_FILENAME, "Claude")
-        if data is None:
-            return None
+    @staticmethod
+    def _copy_result_metadata(data: JsonObject, usage: TokenUsage) -> None:
+        for key in ("token_counts_estimated", "cost_available", "cost_note"):
+            if key in data:
+                usage[key] = data[key]
 
+    @classmethod
+    def _parse_model_usage_result(cls, data: JsonObject) -> TokenUsage:
         usage = cls._empty_usage()
         model_usage = data.get("modelUsage", {})
+        model_cost = 0.0
         if model_usage:
             for model_data in model_usage.values():
                 usage["prompt_tokens"] += (
@@ -95,6 +101,7 @@ class TokenUsageCollector:
                     usage["cache_read_tokens"] = (
                         usage.get("cache_read_tokens", 0) + cache_read
                     )
+                model_cost += model_data.get("costUSD", 0) or 0
         else:
             raw_usage = data.get("usage", {})
             usage["prompt_tokens"] = (
@@ -108,12 +115,29 @@ class TokenUsageCollector:
                 usage["cache_read_tokens"] = cache_read
 
         usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
-        cost = data.get("cost_usd") or data.get("total_cost_usd")
+        cost = data.get("cost_usd") or data.get("total_cost_usd") or model_cost
         if cost:
             usage["cost_usd"] = cost
         if data.get("num_turns"):
             usage["num_turns"] = data["num_turns"]
+        cls._copy_result_metadata(data, usage)
         return usage
+
+    @classmethod
+    def _claude_result_usage(cls, result_dir: Path) -> Optional[TokenUsage]:
+        data = cls._read_result(result_dir / CLAUDE_RESULT_FILENAME, "Claude")
+        if data is None:
+            return None
+        return cls._parse_model_usage_result(data)
+
+    @classmethod
+    def _qoder_result_usage(cls, result_dir: Path) -> Optional[TokenUsage]:
+        data = cls._read_result(result_dir / QODER_RESULT_FILENAME, "Qoder")
+        if data is None:
+            return None
+        if data.get("token_counts_estimated"):
+            return cls._standard_result_usage(data)
+        return cls._parse_model_usage_result(data)
 
     @classmethod
     def _gemini_result_usage(cls, result_dir: Path) -> Optional[TokenUsage]:
@@ -138,9 +162,13 @@ class TokenUsageCollector:
 
     @classmethod
     def _runner_result_usage(cls, result_dir: Path) -> Optional[TokenUsage]:
-        for parser in (cls._claude_result_usage, cls._gemini_result_usage):
+        for parser in (
+            cls._claude_result_usage,
+            cls._qoder_result_usage,
+            cls._gemini_result_usage,
+        ):
             usage = parser(result_dir)
-            if usage and usage["total_tokens"] > 0:
+            if usage and (usage["total_tokens"] > 0 or usage.get("num_turns")):
                 return usage
 
         for label, filename, extra_metric in cls._STANDARD_RESULT_FILES:

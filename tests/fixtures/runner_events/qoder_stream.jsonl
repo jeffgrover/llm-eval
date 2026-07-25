@@ -1,0 +1,5 @@
+{"type":"system","subtype":"init","model":"qmodel_preview","qodercli_version":"1.1.5"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"abcd"}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"done"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"complete"}]}}
+{"type":"result","subtype":"success","num_turns":2,"total_cost_usd":0,"usage":{"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"qmodel_preview":{"inputTokens":0,"outputTokens":0,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0}}}

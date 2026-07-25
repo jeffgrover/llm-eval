@@ -733,6 +733,11 @@ class MetadataCollector:
                 info["Type"] = "Cloud API"
                 info["Model ID"] = model_key
                 return info
+            elif agent_name == "qoder":
+                info["Provider"] = "Qoder"
+                info["Type"] = "Cloud API"
+                info["Model ID"] = model_key
+                return info
 
         # Heuristic Defaults
         if "24b" in model_key.lower():
@@ -801,6 +806,7 @@ class MetadataCollector:
 
 class AgentRunner:
     supports_custom_provider = False
+    executable_name: Optional[str] = None
 
     def __init__(
         self,
@@ -832,7 +838,8 @@ class AgentRunner:
             "antigravity": "agy",
             "agy": "agy",
         }
-        self.agent_binary = self.binary_map.get(agent_name, agent_name)
+        workspace_prefix = self.binary_map.get(agent_name, agent_name)
+        self.agent_binary = self.executable_name or workspace_prefix
 
         # Prepare workspace
         self.safe_model_name = "".join(
@@ -840,7 +847,7 @@ class AgentRunner:
         ).strip()
         # Requested naming convention: {binary_name}_{safe_model_name}_{prompt_stem}
         self.work_dir = (
-            EVALS_DIR / f"{self.agent_binary}_{self.safe_model_name}_{prompt_file.stem}"
+            EVALS_DIR / f"{workspace_prefix}_{self.safe_model_name}_{prompt_file.stem}"
         )
         self.workspace_overwrite_confirmed = False
 

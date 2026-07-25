@@ -7,6 +7,7 @@ from .gemini import GeminiRunner
 from .opencode import OpenCodeRunner
 from .pi import PiRunner
 from .pi_wiggum import PiWiggumRunner
+from .qoder import QoderRunner
 from .vibe import VibeRunner
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "OpenCodeRunner",
     "PiRunner",
     "PiWiggumRunner",
+    "QoderRunner",
     "VibeRunner",
 ]

@@ -1,7 +1,7 @@
 # LLM Agent Evaluation Suite
 
 ## Project Overview
-A benchmarking framework for evaluating agentic CLI tools (Codex, Gemini CLI, Mistral Vibe, OpenCode, Crush, Pi Coding Agent) against both local LLMs (via LM Studio) and cloud API providers. Generates self-contained HTML reports with system info, model details, token metrics, and artifact previews.
+A benchmarking framework for evaluating agentic CLI tools (Codex, Gemini CLI, Mistral Vibe, OpenCode, Crush, Pi Coding Agent, Qoder CLI) against both local LLMs (via LM Studio) and cloud API providers. Generates self-contained HTML reports with system info, model details, token metrics, and artifact previews.
 
 ## Architecture
 - `evaluate_agent.py` - Thin CLI entry point and runner registry
@@ -24,7 +24,8 @@ A benchmarking framework for evaluating agentic CLI tools (Codex, Gemini CLI, Mi
 - `_run_process()` streams agent stdout to both console and `CHAT_SESSION.TXT`
 - Structured runner loops use pure parsers from `runner_events.py`
 - ClaudeRunner uses `--output-format stream-json` to capture token usage, cost, and turn count into `CLAUDE_RESULT.JSON`
-- Codex, Gemini, OpenCode, Pi, and Vibe runs use their respective `*_RESULT.JSON` files when available for dashboard token/cost/turn metrics
+- Codex, Gemini, OpenCode, Pi, Qoder, and Vibe runs use their respective `*_RESULT.JSON` files when available for dashboard token/cost/turn metrics
+- Qoder preserves `QODER_EVENTS.JSONL`; when its CLI reports zero usage, result metrics contain clearly labeled transcript-based token estimates and mark per-run USD cost unavailable
 - `generate_index.py` separates scored views for elevator and office prompts; deterministic scoring favors reproducible file, browser-readiness, implementation-signal, completion, and efficiency checks
 - Non-local mode (`--non-local`) bypasses LM Studio and uses agents' default cloud providers
 
