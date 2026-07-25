@@ -1,0 +1,77 @@
+{
+  "is_error": false,
+  "duration_api_ms": 2787126,
+  "num_turns": 37,
+  "stop_reason": "end_turn",
+  "session_id": "e80f0320-7d31-4664-a333-9ebec59e28ea",
+  "total_cost_usd": 18.196877999999995,
+  "usage": {
+    "input_tokens": 68,
+    "cache_creation_input_tokens": 163415,
+    "cache_read_input_tokens": 3869106,
+    "output_tokens": 220868,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 163415,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1443,
+        "cache_read_input_tokens": 153684,
+        "cache_creation_input_tokens": 1106,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1106
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 15307,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.015392,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-fable-5": {
+      "inputTokens": 68,
+      "outputTokens": 220868,
+      "cacheReadInputTokens": 3869106,
+      "cacheCreationInputTokens": 163415,
+      "webSearchRequests": 0,
+      "costUSD": 18.181485999999996,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-fable-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Day-wrap verified: at midnight all agents reset to `AWAY`/`DISABLED`, the elevator parks empty at floor 0 with seat reservations cleared, and day 2 replays a full morning (18 at desks by 9:30 AM) with zero errors.\n\n**Done.** The simulation is complete and all checks pass.\n\n**Files delivered** (in `evals/claude_Fable_5_office_prompt_v3/`): `index.html`, `person.js`, `world.js`, `elevator_logic.js`, `elevator.js`, `sim.js`, `elevator_logic_test.js` \u2014 classic scripts on `window` globals, no modules, no build step, Three.js 0.147.0 from CDN.\n\n**Verification results:**\n- `node elevator_logic_test.js` \u2014 7/7 pass (lobby rush, destination-vs-hall-call priority, starvation, direction handling, door hold/safety cap, destination handshake, reset).\n- `node ../../static_check.js .` \u2014 clean (after replacing `1e-4`-style literals its tokenizer misread as an identifier `e`).\n- `node ../../runtime_check.js .` \u2014 clean: canvas, nonblank, animation frames, ~1,800 scene objects, no page errors.\n- Custom Playwright probes ran two full simulated days: all 20 workers reach desks, up to 8 concurrent meeting-goers, a lunch surge, 5 PM exodus with stragglers, ~25 concurrent visitors continuously recycled by the top-up scheduler, zero overlapping bodies, nobody stuck at the front door, and every seated desk worker facing the monitor (rotation verified programmatically, plus screenshots).\n\n**Two bugs found and fixed during testing:**\n1. `EXIT_BUILDING` despawns the agent and nulls `currentAction`; the dispatch loop then dereferenced it \u2014 added a guard.\n2. The real one: at high time scale, a full elevator door cycle (~3.4 sim-seconds) fit inside a single render frame, so once-per-frame agents could never catch the doors open \u2014 the exact morning-rush deadlock the prompt warns about, just via frame granularity. Fixed by sub-stepping the whole sim (clock + elevator + agents advance together in \u22640.3 sim-second slices per frame), which keeps behavior identical from 1x to 600x.",
+  "ttft_ms": 880363,
+  "ttft_stream_ms": 2219,
+  "time_to_request_ms": 11,
+  "type": "result",
+  "duration_ms": 3185911,
+  "uuid": "a8115b57-f517-4bdc-a12c-3973177f98c6"
+}

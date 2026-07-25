@@ -1,0 +1,104 @@
+
+[Tool: Bash]
+Creating the seven files now, starting with the small ones.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/index.html
+
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/person.js
+
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/elevator_logic.js
+Now world.js — the largest file.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/world.js
+Now elevator.js, the visual adapter.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/elevator.js
+Now sim.js — the behavioral core.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/sim.js
+Now the Node test file.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/elevator_logic_test.js
+All seven files written. Running the elevator tests and the static checker.
+[Tool: Bash]
+Tests all pass. The static checker flags `'e' is not defined` in sim.js — checking what it's matching.
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Bash]
+The checker's tokenizer misreads scientific notation (`1e-4`) as an identifier `e`. Replacing all scientific-notation literals with plain decimals.
+[Tool: Bash]
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/sim.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/sim.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/sim.js
+
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/sim.js
+
+[Tool: Bash]
+Runtime check passes cleanly. Now a longer behavioral probe — I want evidence that agents actually enter the lobby, ride the elevator, and reach desks before calling this done.
+[Tool: Bash]
+
+[Tool: Write] /tmp/office_probe.js
+
+[Tool: Bash]
+Playwright resolves from the repo root's node_modules — pointing NODE_PATH there.
+[Tool: Bash]
+
+[Tool: Bash]
+Big progress — but workers never reach `AT_DESK`. Everything else (entry, visitors, elevator, no errors) works. Instrumenting worker states to find where they stall.
+[Tool: Bash]
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/sim.js
+
+[Tool: Bash]
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Fable_5_office_prompt_v3/sim.js
+
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Read]
+
+[Tool: Read]
+
+[Tool: Bash]
+
+[Tool: Bash]
+Day-wrap verified: at midnight all agents reset to `AWAY`/`DISABLED`, the elevator parks empty at floor 0 with seat reservations cleared, and day 2 replays a full morning (18 at desks by 9:30 AM) with zero errors.
+
+**Done.** The simulation is complete and all checks pass.
+
+**Files delivered** (in `evals/claude_Fable_5_office_prompt_v3/`): `index.html`, `person.js`, `world.js`, `elevator_logic.js`, `elevator.js`, `sim.js`, `elevator_logic_test.js` — classic scripts on `window` globals, no modules, no build step, Three.js 0.147.0 from CDN.
+
+**Verification results:**
+- `node elevator_logic_test.js` — 7/7 pass (lobby rush, destination-vs-hall-call priority, starvation, direction handling, door hold/safety cap, destination handshake, reset).
+- `node ../../static_check.js .` — clean (after replacing `1e-4`-style literals its tokenizer misread as an identifier `e`).
+- `node ../../runtime_check.js .` — clean: canvas, nonblank, animation frames, ~1,800 scene objects, no page errors.
+- Custom Playwright probes ran two full simulated days: all 20 workers reach desks, up to 8 concurrent meeting-goers, a lunch surge, 5 PM exodus with stragglers, ~25 concurrent visitors continuously recycled by the top-up scheduler, zero overlapping bodies, nobody stuck at the front door, and every seated desk worker facing the monitor (rotation verified programmatically, plus screenshots).
+
+**Two bugs found and fixed during testing:**
+1. `EXIT_BUILDING` despawns the agent and nulls `currentAction`; the dispatch loop then dereferenced it — added a guard.
+2. The real one: at high time scale, a full elevator door cycle (~3.4 sim-seconds) fit inside a single render frame, so once-per-frame agents could never catch the doors open — the exact morning-rush deadlock the prompt warns about, just via frame granularity. Fixed by sub-stepping the whole sim (clock + elevator + agents advance together in ≤0.3 sim-second slices per frame), which keeps behavior identical from 1x to 600x.
+Day-wrap verified: at midnight all agents reset to `AWAY`/`DISABLED`, the elevator parks empty at floor 0 with seat reservations cleared, and day 2 replays a full morning (18 at desks by 9:30 AM) with zero errors.
+
+**Done.** The simulation is complete and all checks pass.
+
+**Files delivered** (in `evals/claude_Fable_5_office_prompt_v3/`): `index.html`, `person.js`, `world.js`, `elevator_logic.js`, `elevator.js`, `sim.js`, `elevator_logic_test.js` — classic scripts on `window` globals, no modules, no build step, Three.js 0.147.0 from CDN.
+
+**Verification results:**
+- `node elevator_logic_test.js` — 7/7 pass (lobby rush, destination-vs-hall-call priority, starvation, direction handling, door hold/safety cap, destination handshake, reset).
+- `node ../../static_check.js .` — clean (after replacing `1e-4`-style literals its tokenizer misread as an identifier `e`).
+- `node ../../runtime_check.js .` — clean: canvas, nonblank, animation frames, ~1,800 scene objects, no page errors.
+- Custom Playwright probes ran two full simulated days: all 20 workers reach desks, up to 8 concurrent meeting-goers, a lunch surge, 5 PM exodus with stragglers, ~25 concurrent visitors continuously recycled by the top-up scheduler, zero overlapping bodies, nobody stuck at the front door, and every seated desk worker facing the monitor (rotation verified programmatically, plus screenshots).
+
+**Two bugs found and fixed during testing:**
+1. `EXIT_BUILDING` despawns the agent and nulls `currentAction`; the dispatch loop then dereferenced it — added a guard.
+2. The real one: at high time scale, a full elevator door cycle (~3.4 sim-seconds) fit inside a single render frame, so once-per-frame agents could never catch the doors open — the exact morning-rush deadlock the prompt warns about, just via frame granularity. Fixed by sub-stepping the whole sim (clock + elevator + agents advance together in ≤0.3 sim-second slices per frame), which keeps behavior identical from 1x to 600x.
+
+[SUCCESS] Process exited cleanly.
