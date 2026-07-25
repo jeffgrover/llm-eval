@@ -11,6 +11,7 @@ import re
 import platform
 import urllib.request
 import urllib.error
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -23,10 +24,6 @@ LM_STUDIO_API_URL = "http://localhost:1234/v1"
 LM_STUDIO_REST_BASE = "http://localhost:1234"
 LLAMA_SERVER_API_URL = "http://localhost:8080/v1"
 OMLX_API_URL = os.environ.get("OMLX_BASE_URL", "http://localhost:8000/v1")
-LOCAL_API_URL = LM_STUDIO_API_URL
-LOCAL_PROVIDER_ID = "lmstudio"
-LOCAL_PROVIDER_NAME = "LM Studio (local)"
-LOCAL_API_KEY = "lm-studio"
 EVALS_DIR = Path("evals")
 PROJECT_ROOT = Path(__file__).resolve().parent
 SERVER_LOG_FILENAME = "SERVER.LOG"
@@ -57,8 +54,37 @@ def get_omlx_api_key() -> str:
 
 OMLX_API_KEY = get_omlx_api_key()
 
-# Tracks whether the lms CLI is responsive (set during model loading)
-_lms_cli_available = True
+
+@dataclass(frozen=True)
+class LocalProviderConfig:
+    """Connection details for one local OpenAI-compatible provider."""
+
+    provider_id: str
+    display_name: str
+    api_url: str
+    api_key: str
+    supports_lms_cli: bool = False
+
+
+LM_STUDIO_PROVIDER = LocalProviderConfig(
+    provider_id="lmstudio",
+    display_name="LM Studio (local)",
+    api_url=LM_STUDIO_API_URL,
+    api_key="lm-studio",
+    supports_lms_cli=True,
+)
+LLAMA_SERVER_PROVIDER = LocalProviderConfig(
+    provider_id="llama-server",
+    display_name="llama-server (local)",
+    api_url=LLAMA_SERVER_API_URL,
+    api_key="llama-server",
+)
+OMLX_PROVIDER = LocalProviderConfig(
+    provider_id="omlx",
+    display_name="oMLX (local)",
+    api_url=OMLX_API_URL,
+    api_key=OMLX_API_KEY,
+)
 
 
 def is_llama_server_provider(provider: Optional[str]) -> bool:
@@ -69,27 +95,23 @@ def is_omlx_provider(provider: Optional[str]) -> bool:
     return (provider or "").lower().strip() == "omlx"
 
 
-def use_llama_server_provider() -> None:
-    global LOCAL_API_URL, LOCAL_PROVIDER_ID, LOCAL_PROVIDER_NAME, LOCAL_API_KEY
-    global _lms_cli_available
-
-    LOCAL_API_URL = LLAMA_SERVER_API_URL
-    LOCAL_PROVIDER_ID = "llama-server"
-    LOCAL_PROVIDER_NAME = "llama-server (local)"
-    LOCAL_API_KEY = "llama-server"
-    _lms_cli_available = False
+def use_llama_server_provider() -> LocalProviderConfig:
+    """Return the llama-server configuration."""
+    return LLAMA_SERVER_PROVIDER
 
 
-def use_omlx_provider() -> None:
-    """Configure the local-provider globals for an oMLX OpenAI API server."""
-    global LOCAL_API_URL, LOCAL_PROVIDER_ID, LOCAL_PROVIDER_NAME, LOCAL_API_KEY
-    global _lms_cli_available
+def use_omlx_provider() -> LocalProviderConfig:
+    """Return the oMLX configuration."""
+    return OMLX_PROVIDER
 
-    LOCAL_API_URL = OMLX_API_URL
-    LOCAL_PROVIDER_ID = "omlx"
-    LOCAL_PROVIDER_NAME = "oMLX (local)"
-    LOCAL_API_KEY = OMLX_API_KEY
-    _lms_cli_available = False
+
+def get_local_provider(provider: Optional[str]) -> LocalProviderConfig:
+    """Resolve a local-provider flag without mutating process-wide state."""
+    if is_llama_server_provider(provider):
+        return LLAMA_SERVER_PROVIDER
+    if is_omlx_provider(provider):
+        return OMLX_PROVIDER
+    return LM_STUDIO_PROVIDER
 
 
 def get_env_int(name: str, default: int, minimum: int = 1) -> int:
@@ -185,10 +207,8 @@ def lms_api_request(
         return None
 
 
-def load_lms_model(model_key: str):
+def load_lms_model(model_key: str) -> bool:
     """Loads a model into LM Studio, preferring the REST API over the CLI."""
-    global _lms_cli_available
-
     # Try REST API first
     models = lms_api_request("/api/v0/models")
     if models is not None:
@@ -224,7 +244,7 @@ def load_lms_model(model_key: str):
             )
 
         if target_loaded:
-            return  # Already loaded, nothing to do
+            return True  # Already loaded, nothing to do
 
         print(f"[*] Loading model '{model_key}' via REST API...")
         result = lms_api_request(
@@ -232,17 +252,18 @@ def load_lms_model(model_key: str):
         )
         if result is not None:
             print(f"[+] Model '{model_key}' loaded successfully via REST API.")
-            return
+            return True
         print("[-] REST API load failed. Falling back to CLI...")
 
     # Fallback: try the lms CLI (may hang on Windows)
     print("[*] REST API not available, falling back to lms CLI...")
     print("[*] Unloading any existing models...")
+    lms_cli_available = True
     try:
         subprocess.run(["lms", "unload", "--all"], check=True, text=True, timeout=30)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
         print("[-] Warning: Failed to unload models via CLI, attempting to proceed...")
-        _lms_cli_available = False
+        lms_cli_available = False
     except FileNotFoundError:
         print(
             "[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped."
@@ -255,9 +276,9 @@ def load_lms_model(model_key: str):
     try:
         subprocess.run(cmd, check=True, text=True, timeout=120)
         print(f"[+] Model '{model_key}' loaded successfully.")
+        return lms_cli_available
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         print(f"[-] Failed to load model via CLI: {e}")
-        _lms_cli_available = False
         sys.exit(1)
     except FileNotFoundError:
         print(
@@ -789,6 +810,7 @@ class AgentRunner:
         non_local: bool = False,
         restore_agent_config: bool = False,
         custom_provider: Optional[str] = None,
+        local_provider: Optional[LocalProviderConfig] = None,
     ):
         self.agent_name = agent_name
         self.model_name = model_name
@@ -797,6 +819,8 @@ class AgentRunner:
         self.non_local = non_local
         self.restore_agent_config = restore_agent_config
         self.custom_provider = custom_provider
+        self.local_provider = local_provider or LM_STUDIO_PROVIDER
+        self.lms_cli_available = self.local_provider.supports_lms_cli
 
         # Binary to name mapping
         self.binary_map = {
@@ -858,9 +882,9 @@ class AgentRunner:
         env["PYTHONIOENCODING"] = "utf-8"
         if not self.non_local:
             # Standard OpenAI-compatible env vars
-            env["OPENAI_API_BASE"] = LOCAL_API_URL
-            env["OPENAI_BASE_URL"] = LOCAL_API_URL
-            env["OPENAI_API_KEY"] = LOCAL_API_KEY  # Usually ignored but required
+            env["OPENAI_API_BASE"] = self.local_provider.api_url
+            env["OPENAI_BASE_URL"] = self.local_provider.api_url
+            env["OPENAI_API_KEY"] = self.local_provider.api_key
         return env
 
     def start_server_logger(self):
@@ -871,7 +895,7 @@ class AgentRunner:
             return
 
         # Skip if lms CLI is known to be unresponsive (e.g. hangs on Windows)
-        if not _lms_cli_available:
+        if not self.lms_cli_available:
             print(
                 "[*] Skipping lms log stream (CLI unavailable). Will read on-disk server logs instead."
             )
@@ -906,7 +930,7 @@ class AgentRunner:
         """
         if self.non_local:
             return
-        if LOCAL_PROVIDER_ID != "lmstudio":
+        if self.local_provider.provider_id != "lmstudio":
             return
 
         log_path = self.work_dir / SERVER_LOG_FILENAME

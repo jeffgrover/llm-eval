@@ -9,7 +9,6 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import evaluation_core as core
 from evaluation_core import (
     AgentRunner,
     CHAT_SESSION_FILENAME,
@@ -38,10 +37,10 @@ class PiRunner(AgentRunner):
 
         config = {
             "providers": {
-                self.custom_provider or core.LOCAL_PROVIDER_ID: {
-                    "baseUrl": core.LOCAL_API_URL,
+                self.custom_provider or self.local_provider.provider_id: {
+                    "baseUrl": self.local_provider.api_url,
                     "api": "openai-completions",
-                    "apiKey": core.LOCAL_API_KEY,
+                    "apiKey": self.local_provider.api_key,
                     "compat": {
                         "supportsDeveloperRole": False,
                         "supportsReasoningEffort": False,
@@ -55,7 +54,7 @@ class PiRunner(AgentRunner):
         with open(self.models_json_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
         print(
-            f"[+] Wrote Pi models.json for {core.LOCAL_PROVIDER_NAME}: "
+            f"[+] Wrote Pi models.json for {self.local_provider.display_name}: "
             f"{self.models_json_path}"
         )
 
@@ -126,7 +125,7 @@ class PiRunner(AgentRunner):
             # Local mode: use the provider configured in models.json
             cmd += [
                 "--provider",
-                self.custom_provider or core.LOCAL_PROVIDER_ID,
+                self.custom_provider or self.local_provider.provider_id,
                 "--model",
                 self.model_name,
             ]

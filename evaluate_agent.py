@@ -12,11 +12,10 @@ from evaluation_core import (
     CHAT_SESSION_FILENAME,
     MetadataCollector,
     SERVER_LOG_FILENAME,
+    get_local_provider,
     is_llama_server_provider,
     is_omlx_provider,
     load_lms_model,
-    use_llama_server_provider,
-    use_omlx_provider,
 )
 from evaluation_metrics import (
     CLAUDE_RESULT_FILENAME,
@@ -115,6 +114,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[List[str]] = None):
     args = build_argument_parser().parse_args(argv)
+    local_provider = get_local_provider(args.provider)
 
     runner_cls = get_runner(args.agent)
     if not runner_cls:
@@ -125,11 +125,9 @@ def main(argv: Optional[List[str]] = None):
     if args.provider and args.non_local and not runner_cls.supports_custom_provider:
         print("[!] Warning: --provider flag is ignored when using --non-local mode")
     elif is_llama_server_provider(args.provider):
-        use_llama_server_provider()
-        print(f"[*] Using llama-server provider at {core.LOCAL_API_URL}")
+        print(f"[*] Using llama-server provider at {local_provider.api_url}")
     elif is_omlx_provider(args.provider):
-        use_omlx_provider()
-        print(f"[*] Using oMLX provider at {core.LOCAL_API_URL}")
+        print(f"[*] Using oMLX provider at {local_provider.api_url}")
 
     if not args.prompt_file.exists():
         print(f"[-] Prompt file not found: {args.prompt_file}")
@@ -143,6 +141,7 @@ def main(argv: Optional[List[str]] = None):
         args.non_local,
         args.restore_agent_config,
         custom_provider=args.provider if runner_cls.supports_custom_provider else None,
+        local_provider=local_provider,
     )
 
     runner.confirm_workspace_overwrite()
@@ -153,7 +152,7 @@ def main(argv: Optional[List[str]] = None):
         skip_local_model_load = provider_name not in (None, "lmstudio", "lm-studio")
 
     if not args.non_local and not args.provider and not skip_local_model_load:
-        load_lms_model(args.model)
+        runner.lms_cli_available = load_lms_model(args.model)
 
     runner.run()
 

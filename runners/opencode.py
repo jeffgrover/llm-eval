@@ -8,7 +8,6 @@ import threading
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import evaluation_core as core
 from evaluation_core import (
     AgentRunner,
     CHAT_SESSION_FILENAME,
@@ -123,12 +122,12 @@ class OpenCodeRunner(AgentRunner):
             output_limit = get_env_int(
                 "LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT
             )
-            base_url = core.LOCAL_API_URL
-            provider_id = core.LOCAL_PROVIDER_ID
+            base_url = self.local_provider.api_url
+            provider_id = self.local_provider.provider_id
             config["provider"] = {
                 provider_id: {
                     "npm": "@ai-sdk/openai-compatible",
-                    "name": core.LOCAL_PROVIDER_NAME,
+                    "name": self.local_provider.display_name,
                     "options": {"baseURL": base_url},
                     "models": {
                         self.model_name: {
