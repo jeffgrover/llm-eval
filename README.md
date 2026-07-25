@@ -92,9 +92,23 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 -   `--agent`: One of `vibe`, `gemini`, `claude`, `codex`, `opencode`, `crush`, `pi`, or `pi-wiggum`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
 -   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.
--   `--headless`: (Optional) Run in headless mode (defaults to True).
+-   `--provider`: (Optional) Select `omlx`, `llama-server`, or an agent-specific provider.
+-   `--headless`: Do not open the generated report. This is the default.
+-   `--open-report`: Open `summary.html` in the default browser after the run.
+-   `--execute-generated-python`: Execute root-level Python artifacts and capture their output in `OUTPUT.TXT`. This is disabled by default.
+-   `--restore-agent-config`: Restore Vibe's original `active_model` after the run. Pi's temporary provider file is always restored or removed.
 
-The script will automatically create a uniquely named workspace in `evals/`, capture all logs, detect generated scripts, and run them to capture `OUTPUT.TXT`.
+The script creates a uniquely named workspace in `evals/`, captures logs and
+artifacts, and writes `summary.html`. Browser opening and generated Python
+execution are separate opt-in post-processing steps:
+
+```bash
+./evaluate_agent.py --model <model-key> --agent vibe \
+  --prompt-file prompt.txt --open-report
+
+./evaluate_agent.py --model <model-key> --agent vibe \
+  --prompt-file prompt.txt --execute-generated-python
+```
 
 ### Codex CLI
 Codex currently runs through your ChatGPT account service, so use it with `--non-local`:
@@ -187,6 +201,39 @@ Click **View Report** on any card to see the full breakdown, including:
 
 ## Technical Details
 
--   **Report Isolation**: Reports use base64 encoding for artifacts, meaning they are completely self-contained and don't require a local web server to view.
+-   **Report Isolation**: Reports embed textual and small HTML artifacts with base64 encoding and inline local JavaScript for `file://` previews. Images and oversized artifacts remain beside `summary.html`.
 -   **Naming Convention**: Directories are segmented as `evals/{agent}_{model}_{prompt}` for easy searching.
 -   **Dashboard Regeneration**: `generate_index.py` is dependency-free and writes the static `index.html` home page.
+
+## Architecture
+
+The evaluator is split by responsibility:
+
+-   `evaluate_agent.py` parses CLI options, selects a runner, and starts the evaluation.
+-   `evaluation_core.py` owns the shared run lifecycle, workspace handling, metadata collection, LM Studio integration, and immutable local-provider configuration.
+-   `evaluation_metrics.py` normalizes token, cost, cache, and turn metrics from runner result files and fallback logs.
+-   `evaluation_report.py` renders the self-contained `summary.html` report and artifact navigation.
+-   `runner_events.py` normalizes vendor-specific JSON/JSONL events into runner-level text, usage, provider, model, and error fields.
+-   `runners/` contains one CLI adapter per agent. Each adapter owns only its command/configuration and vendor-specific execution flow.
+-   `tests/fixtures/runner_events/` contains representative CLI event streams used by parser contract tests.
+
+Local provider selection produces a frozen configuration object that is passed
+to each runner; selecting oMLX or llama-server no longer mutates process-wide
+provider globals. Temporary configuration changes are scoped to agent execution
+so Pi cleanup and requested Vibe restoration also happen on failure.
+
+## Development and Tests
+
+The Python implementation uses only the standard library. Run the unit and
+event-contract suite with:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m py_compile evaluate_agent.py evaluation_core.py \
+  evaluation_metrics.py evaluation_report.py runner_events.py runners/*.py
+```
+
+When an agent changes its JSON event schema, update its fixture under
+`tests/fixtures/runner_events/` and the corresponding normalization function in
+`runner_events.py` together. This keeps schema changes reviewable without
+requiring the external CLI during tests.
