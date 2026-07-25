@@ -1,0 +1,77 @@
+{
+  "is_error": false,
+  "duration_api_ms": 2529183,
+  "num_turns": 61,
+  "stop_reason": "end_turn",
+  "session_id": "3bb2f4bd-15e6-45b0-824a-70f2fea1ef41",
+  "total_cost_usd": 13.925626999999999,
+  "usage": {
+    "input_tokens": 106,
+    "cache_creation_input_tokens": 295059,
+    "cache_read_input_tokens": 10921990,
+    "output_tokens": 219925,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 295059,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 1,
+        "output_tokens": 1250,
+        "cache_read_input_tokens": 284963,
+        "cache_creation_input_tokens": 1120,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1120
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 15307,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.015387,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-opus-5[1m]": {
+      "inputTokens": 106,
+      "outputTokens": 219925,
+      "cacheReadInputTokens": 10921990,
+      "cacheCreationInputTokens": 295059,
+      "webSearchRequests": 0,
+      "costUSD": 13.910239999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-opus-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "All seven files are delivered and all three checkers pass.\n\n## Verification results\n\n| Check | Result |\n|---|---|\n| `node elevator_logic_test.js` | **7 passed, 0 failed** |\n| `node ../../static_check.js .` | **ok** \u2014 no syntax errors, unresolved refs, or duplicate top-level declarations |\n| `node ../../runtime_check.js .` | **ok** \u2014 `loaded=true canvas=1 nonblank=true frames=152 objects=1576 changes=485`, zero console/page errors |\n\n## What I verified beyond the checkers\n\nThe checkers only prove the page loads. I wrote throwaway Playwright probes to test the behavior the prompt actually cares about, then deleted them:\n\n- **Entrance** \u2014 across every run, `atDoor=0` and `sidewalk=0\u20131`. Nobody bunches outside; arrivals cross `outside \u2192 front_door_threshold \u2192 entrance \u2192 lobby_center` into the lobby.\n- **Seated orientation** \u2014 an automated audit compares every sit waypoint's stored `facing` against the nearest chair mesh's `rotation.y`: *all seat waypoints match their chair orientation*. This holds by construction \u2014 `placeChair`/`placeArmchair`/`placeCouch` create the mesh **and** register the waypoint from one `facing` value, and every seat is modelled with its backrest on local `-Z`. Close-ups confirmed legs toward desk/table, back to the backrest, at desks, conference tables, couches, and bistro chairs.\n- **Group boarding** \u2014 a synchronized 20-worker rush produced a 12-person lobby queue, **4 riders per trip**, and everyone at their desk in ~3 sim-minutes with zero stalls.\n- **Exodus / day-wrap / next day** \u2014 20 simultaneous departures with down-calls on all five floors cleared cleanly; at midnight the scene emptied to `scene=0 seats=0` with the car reset to floor 0 IDLE and all sets empty (no phantom passengers), and the next day ran normally.\n- **Lunch surge** \u2014 `AT_LUNCH` peaks at 9, capped by the 8 bistro seats, then workers ride back up.\n- **Max load** \u2014 90 concurrent people at 600\u00d7 for 4.5 simulated hours: no agent stalled >60s at any sample, one transient 334s wait during the 10:10 peak that resolved. That's genuine congestion for a single 4-person car, not deadlock.\n\n## Tuning changes I made after observing runs\n\nFour things looked wrong in the first passes, so I changed them:\n\n1. Doors slid so far they hung outside the shaft into the lobby \u2014 reduced the slide to 1.05 (still a 1.9-unit clear opening, wider than the four boarding lanes).\n2. The car at ~3.9 m/s was so fast no queue ever formed (max 2 riders all day) \u2014 set to 0.6 floors/s (~2 m/s), which is realistic and lets groups build.\n3. The building filled with 25 visitors by 7:33 AM \u2014 added `occupancyDayFactor()` so visitor traffic ramps with the working day and tails off by 19:00, with a small early-bird floor so the scene isn't dead on load.\n4. 20 agents spawning in one frame overlapped on the sidewalk \u2014 widened the spawn spread to \u00b14.5 \u00d7 \u22121.1/+1.6.\n\nOne judgment call worth flagging: I shortened visitor meeting stays to 14\u201330 min. The prompt's 23% meeting weight is deliberately generous, but combined with long stays it saturated all 20 conference seats and left only 3 workers at desks. Shortening the stay keeps the conference rooms visibly busy (8\u201316 occupied) while preserving the weight you specified.",
+  "ttft_ms": 1903,
+  "ttft_stream_ms": 917,
+  "time_to_request_ms": 78,
+  "type": "result",
+  "duration_ms": 2836648,
+  "uuid": "5b2844e1-8d79-4bb6-adb7-f6feeff72472"
+}

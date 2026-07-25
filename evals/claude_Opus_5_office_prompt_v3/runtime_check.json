@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-07-25T00:48:01.320Z",
+  "url": "http://127.0.0.1:54514/evals/claude_Opus_5_office_prompt_v3/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/claude_Opus_5_office_prompt_v3/person.js",
+    "evals/claude_Opus_5_office_prompt_v3/world.js",
+    "evals/claude_Opus_5_office_prompt_v3/elevator_logic.js",
+    "evals/claude_Opus_5_office_prompt_v3/elevator.js",
+    "evals/claude_Opus_5_office_prompt_v3/sim.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 152,
+  "scene_object_count": 1576,
+  "dynamic_changes": 485,
+  "canvas_changed": false,
+  "duration_ms": 6012,
+  "warnings": []
+}

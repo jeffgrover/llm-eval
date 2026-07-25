@@ -1,0 +1,184 @@
+I'll build this simulation. Let me start by exploring the workspace and checker scripts.
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Read]
+
+[Tool: Read]
+Workspace is empty — building all seven files. Starting with `person.js`.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/person.js
+Now the pure elevator brain.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator_logic.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator_logic.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator_logic.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator_logic.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator_logic.js
+Now the deterministic Node tests.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator_logic_test.js
+
+[Tool: Bash]
+Now `world.js` — the building, layouts, furniture, and navigation graph.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/world.js
+Now the Three.js elevator car and its adapter.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator.js
+
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/index.html
+Now `sim.js` — clock, agents, schedules, day/night, render loop, and HUD.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/sim.js
+
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Bash]
+Static check clean. Now the runtime check.
+[Tool: Bash]
+Runtime check is green. Now let me verify **behavior**, which is where these sims usually fail. Writing a diagnostic probe.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/probe_office.js
+
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Read]
+
+[Tool: Read]
+Building renders well. Let me verify seating orientation up close — that's the classic failure mode.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/probe_closeup.js
+
+[Tool: Bash]
+
+[Tool: Read]
+
+[Tool: Bash]
+
+[Tool: Read]
+
+[Tool: Read]
+
+[Tool: Read]
+
+[Tool: Read]
+
+[Tool: Read]
+
+[Tool: Read]
+Good behavior overall. Let me fix three things I spotted: doors sliding too far outside the shaft, the building filling with visitors at 7:33 AM, and an elevator so fast that no queues ever form.
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/elevator.js
+
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/sim.js
+
+[Tool: Bash]
+
+[Tool: Bash]
+No overlaps, no stalls, clean ramp. But the car never carries more than 2 — let me stress-test group boarding directly with a synchronized arrival rush.
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/probe_rush.js
+
+[Tool: Bash]
+Group boarding works (4 riders, real lobby queue, zero stalls). One flaw: 39 overlaps in the spawn frame. Widening the sidewalk spawn spread.
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/sim.js
+
+[Tool: Write] /Users/jeffgrover/Code/llm-eval/probe_exodus.js
+
+[Tool: Bash]
+Exodus, day-wrap, and next-day all clean. Let me verify the lunch surge specifically — I didn't see `AT_LUNCH` appear in the earlier run.
+[Tool: Bash]
+Lunch surge works (AT_LUNCH peaks at 9, capped by bistro seats). Meetings run a bit long, crowding the conference rooms — shortening visitor meeting stays so seats turn over.
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/sim.js
+Now the full verification pass, and reading every file back for truncation.
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Bash]
+All green. One UX gap: with the new ramp, the building sits empty for the first ~10 seconds. Adding a small early-bird floor to the ramp.
+[Tool: Edit] /Users/jeffgrover/Code/llm-eval/evals/claude_Opus_5_office_prompt_v3/sim.js
+
+[Tool: Bash]
+
+[Tool: Bash]
+Under max load (100 people, 600x) one agent hit a 210-second wait. Let me determine whether that's congestion or a genuine deadlock.
+[Tool: Bash]
+Definitive: congestion, not deadlock — no agent ever stalls >60s at sample time, and the single 240s+ outlier resolved. That's the expected rush-hour queue for one 4-person car serving 90 people. Final screenshot and cleanup.
+[Tool: Bash]
+
+[Tool: Read]
+Final view is right: 37 people, 16 at desks, 8 in meetings, car serving floor 5. Cleaning up my temporary probe files and running the checkers one last time.
+[Tool: Bash]
+
+[Tool: Bash]
+
+[Tool: Bash]
+All seven files are delivered and all three checkers pass.
+
+## Verification results
+
+| Check | Result |
+|---|---|
+| `node elevator_logic_test.js` | **7 passed, 0 failed** |
+| `node ../../static_check.js .` | **ok** — no syntax errors, unresolved refs, or duplicate top-level declarations |
+| `node ../../runtime_check.js .` | **ok** — `loaded=true canvas=1 nonblank=true frames=152 objects=1576 changes=485`, zero console/page errors |
+
+## What I verified beyond the checkers
+
+The checkers only prove the page loads. I wrote throwaway Playwright probes to test the behavior the prompt actually cares about, then deleted them:
+
+- **Entrance** — across every run, `atDoor=0` and `sidewalk=0–1`. Nobody bunches outside; arrivals cross `outside → front_door_threshold → entrance → lobby_center` into the lobby.
+- **Seated orientation** — an automated audit compares every sit waypoint's stored `facing` against the nearest chair mesh's `rotation.y`: *all seat waypoints match their chair orientation*. This holds by construction — `placeChair`/`placeArmchair`/`placeCouch` create the mesh **and** register the waypoint from one `facing` value, and every seat is modelled with its backrest on local `-Z`. Close-ups confirmed legs toward desk/table, back to the backrest, at desks, conference tables, couches, and bistro chairs.
+- **Group boarding** — a synchronized 20-worker rush produced a 12-person lobby queue, **4 riders per trip**, and everyone at their desk in ~3 sim-minutes with zero stalls.
+- **Exodus / day-wrap / next day** — 20 simultaneous departures with down-calls on all five floors cleared cleanly; at midnight the scene emptied to `scene=0 seats=0` with the car reset to floor 0 IDLE and all sets empty (no phantom passengers), and the next day ran normally.
+- **Lunch surge** — `AT_LUNCH` peaks at 9, capped by the 8 bistro seats, then workers ride back up.
+- **Max load** — 90 concurrent people at 600× for 4.5 simulated hours: no agent stalled >60s at any sample, one transient 334s wait during the 10:10 peak that resolved. That's genuine congestion for a single 4-person car, not deadlock.
+
+## Tuning changes I made after observing runs
+
+Four things looked wrong in the first passes, so I changed them:
+
+1. Doors slid so far they hung outside the shaft into the lobby — reduced the slide to 1.05 (still a 1.9-unit clear opening, wider than the four boarding lanes).
+2. The car at ~3.9 m/s was so fast no queue ever formed (max 2 riders all day) — set to 0.6 floors/s (~2 m/s), which is realistic and lets groups build.
+3. The building filled with 25 visitors by 7:33 AM — added `occupancyDayFactor()` so visitor traffic ramps with the working day and tails off by 19:00, with a small early-bird floor so the scene isn't dead on load.
+4. 20 agents spawning in one frame overlapped on the sidewalk — widened the spawn spread to ±4.5 × −1.1/+1.6.
+
+One judgment call worth flagging: I shortened visitor meeting stays to 14–30 min. The prompt's 23% meeting weight is deliberately generous, but combined with long stays it saturated all 20 conference seats and left only 3 workers at desks. Shortening the stay keeps the conference rooms visibly busy (8–16 occupied) while preserving the weight you specified.
+All seven files are delivered and all three checkers pass.
+
+## Verification results
+
+| Check | Result |
+|---|---|
+| `node elevator_logic_test.js` | **7 passed, 0 failed** |
+| `node ../../static_check.js .` | **ok** — no syntax errors, unresolved refs, or duplicate top-level declarations |
+| `node ../../runtime_check.js .` | **ok** — `loaded=true canvas=1 nonblank=true frames=152 objects=1576 changes=485`, zero console/page errors |
+
+## What I verified beyond the checkers
+
+The checkers only prove the page loads. I wrote throwaway Playwright probes to test the behavior the prompt actually cares about, then deleted them:
+
+- **Entrance** — across every run, `atDoor=0` and `sidewalk=0–1`. Nobody bunches outside; arrivals cross `outside → front_door_threshold → entrance → lobby_center` into the lobby.
+- **Seated orientation** — an automated audit compares every sit waypoint's stored `facing` against the nearest chair mesh's `rotation.y`: *all seat waypoints match their chair orientation*. This holds by construction — `placeChair`/`placeArmchair`/`placeCouch` create the mesh **and** register the waypoint from one `facing` value, and every seat is modelled with its backrest on local `-Z`. Close-ups confirmed legs toward desk/table, back to the backrest, at desks, conference tables, couches, and bistro chairs.
+- **Group boarding** — a synchronized 20-worker rush produced a 12-person lobby queue, **4 riders per trip**, and everyone at their desk in ~3 sim-minutes with zero stalls.
+- **Exodus / day-wrap / next day** — 20 simultaneous departures with down-calls on all five floors cleared cleanly; at midnight the scene emptied to `scene=0 seats=0` with the car reset to floor 0 IDLE and all sets empty (no phantom passengers), and the next day ran normally.
+- **Lunch surge** — `AT_LUNCH` peaks at 9, capped by the 8 bistro seats, then workers ride back up.
+- **Max load** — 90 concurrent people at 600× for 4.5 simulated hours: no agent stalled >60s at any sample, one transient 334s wait during the 10:10 peak that resolved. That's genuine congestion for a single 4-person car, not deadlock.
+
+## Tuning changes I made after observing runs
+
+Four things looked wrong in the first passes, so I changed them:
+
+1. Doors slid so far they hung outside the shaft into the lobby — reduced the slide to 1.05 (still a 1.9-unit clear opening, wider than the four boarding lanes).
+2. The car at ~3.9 m/s was so fast no queue ever formed (max 2 riders all day) — set to 0.6 floors/s (~2 m/s), which is realistic and lets groups build.
+3. The building filled with 25 visitors by 7:33 AM — added `occupancyDayFactor()` so visitor traffic ramps with the working day and tails off by 19:00, with a small early-bird floor so the scene isn't dead on load.
+4. 20 agents spawning in one frame overlapped on the sidewalk — widened the spawn spread to ±4.5 × −1.1/+1.6.
+
+One judgment call worth flagging: I shortened visitor meeting stays to 14–30 min. The prompt's 23% meeting weight is deliberately generous, but combined with long stays it saturated all 20 conference seats and left only 3 workers at desks. Shortening the stay keeps the conference rooms visibly busy (8–16 occupied) while preserving the weight you specified.
+
+[SUCCESS] Process exited cleanly.
