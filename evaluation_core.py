@@ -1,0 +1,1165 @@
+"""Shared evaluator lifecycle, metadata, and local-server support."""
+
+import os
+import subprocess
+import threading
+import time
+import shutil
+import sys
+import json
+import re
+import platform
+import urllib.request
+import urllib.error
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from evaluation_metrics import TokenUsage, TokenUsageCollector
+from evaluation_report import generate_html_report
+
+# --- Configuration & Constants ---
+LM_STUDIO_API_URL = "http://localhost:1234/v1"
+LM_STUDIO_REST_BASE = "http://localhost:1234"
+LLAMA_SERVER_API_URL = "http://localhost:8080/v1"
+OMLX_API_URL = os.environ.get("OMLX_BASE_URL", "http://localhost:8000/v1")
+LOCAL_API_URL = LM_STUDIO_API_URL
+LOCAL_PROVIDER_ID = "lmstudio"
+LOCAL_PROVIDER_NAME = "LM Studio (local)"
+LOCAL_API_KEY = "lm-studio"
+EVALS_DIR = Path("evals")
+PROJECT_ROOT = Path(__file__).resolve().parent
+SERVER_LOG_FILENAME = "SERVER.LOG"
+CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
+CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
+CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
+PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
+DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
+DEFAULT_LOCAL_OUTPUT_LIMIT = 4096
+
+
+def get_omlx_api_key() -> str:
+    """Use an explicit override, then the key from oMLX's local settings."""
+    configured_key = os.environ.get("OMLX_API_KEY")
+    if configured_key:
+        return configured_key
+    try:
+        settings_path = Path.home() / ".omlx" / "settings.json"
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        api_key = settings.get("auth", {}).get("api_key")
+        if isinstance(api_key, str) and api_key:
+            return api_key
+    except (OSError, json.JSONDecodeError, AttributeError):
+        pass
+    # oMLX accepts any placeholder when API-key verification is disabled.
+    return "omlx"
+
+
+OMLX_API_KEY = get_omlx_api_key()
+
+# Tracks whether the lms CLI is responsive (set during model loading)
+_lms_cli_available = True
+
+
+def is_llama_server_provider(provider: Optional[str]) -> bool:
+    return (provider or "").lower().strip() == "llama-server"
+
+
+def is_omlx_provider(provider: Optional[str]) -> bool:
+    return (provider or "").lower().strip() == "omlx"
+
+
+def use_llama_server_provider() -> None:
+    global LOCAL_API_URL, LOCAL_PROVIDER_ID, LOCAL_PROVIDER_NAME, LOCAL_API_KEY
+    global _lms_cli_available
+
+    LOCAL_API_URL = LLAMA_SERVER_API_URL
+    LOCAL_PROVIDER_ID = "llama-server"
+    LOCAL_PROVIDER_NAME = "llama-server (local)"
+    LOCAL_API_KEY = "llama-server"
+    _lms_cli_available = False
+
+
+def use_omlx_provider() -> None:
+    """Configure the local-provider globals for an oMLX OpenAI API server."""
+    global LOCAL_API_URL, LOCAL_PROVIDER_ID, LOCAL_PROVIDER_NAME, LOCAL_API_KEY
+    global _lms_cli_available
+
+    LOCAL_API_URL = OMLX_API_URL
+    LOCAL_PROVIDER_ID = "omlx"
+    LOCAL_PROVIDER_NAME = "oMLX (local)"
+    LOCAL_API_KEY = OMLX_API_KEY
+    _lms_cli_available = False
+
+
+def get_env_int(name: str, default: int, minimum: int = 1) -> int:
+    """Read a positive integer environment override with a safe fallback."""
+    value = os.environ.get(name)
+    if not value:
+        return default
+    try:
+        parsed = int(value)
+        if parsed >= minimum:
+            return parsed
+    except ValueError:
+        pass
+    print(f"[-] Ignoring invalid {name}={value!r}; using {default}.")
+    return default
+
+
+def read_prompt_file(prompt_file: Path) -> str:
+    """Read the evaluation prompt exactly as written on disk."""
+    with open(prompt_file, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def send_stdin(process: subprocess.Popen, input_text: Optional[str]) -> None:
+    """Send prompt text to a child process without putting it on the command line.
+
+    The write happens on a background thread so the caller can start draining
+    stdout immediately. Writing inline would deadlock on large prompts: once the
+    prompt exceeds the OS pipe buffer (~16 KB on macOS) and the child's stdout
+    pipe also fills during startup, both processes block waiting on each other.
+    """
+    if input_text is None or process.stdin is None:
+        return
+
+    def _write():
+        try:
+            process.stdin.write(input_text)
+            process.stdin.close()
+        except (BrokenPipeError, ValueError):
+            pass
+
+    threading.Thread(target=_write, daemon=True).start()
+
+
+def safe_stdout_write(text: str) -> None:
+    """Write text to the console even when Windows uses a legacy code page."""
+    try:
+        sys.stdout.write(text)
+    except UnicodeEncodeError:
+        encoding = sys.stdout.encoding or "utf-8"
+        sys.stdout.write(text.encode(encoding, errors="backslashreplace").decode(encoding))
+    sys.stdout.flush()
+
+
+def format_display_cmd(cmd: List[str], prompt_placeholder: Optional[str] = None) -> str:
+    """Format a command for logs without dumping the full prompt."""
+    if prompt_placeholder is None:
+        return " ".join(cmd)
+    return f"{' '.join(cmd)} {prompt_placeholder}".strip()
+
+# Claude model friendly name -> API model ID mapping
+CLAUDE_MODEL_IDS = {
+    "opus 4.6": "claude-opus-4-6",
+    "sonnet 4.6": "claude-sonnet-4-6",
+    "haiku 4.5": "claude-haiku-4-5-20251001",
+    "opus 4": "claude-opus-4-20250514",
+    "sonnet 4": "claude-sonnet-4-20250514",
+    "sonnet 3.5": "claude-3-5-sonnet-20241022",
+    "haiku 3.5": "claude-3-5-haiku-20241022",
+}
+
+# --- LM Studio Client ---
+
+
+def lms_api_request(
+    path: str, method: str = "GET", data: dict = None, timeout: int = 15
+) -> Optional[dict]:
+    """Makes an HTTP request to the LM Studio REST API. Returns parsed JSON or None on failure."""
+    url = f"{LM_STUDIO_REST_BASE}{path}"
+    try:
+        body = json.dumps(data).encode("utf-8") if data else None
+        req = urllib.request.Request(url, data=body, method=method)
+        req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        OSError,
+        json.JSONDecodeError,
+    ) as e:
+        print(f"[-] LM Studio API request failed ({method} {path}): {e}")
+        return None
+
+
+def load_lms_model(model_key: str):
+    """Loads a model into LM Studio, preferring the REST API over the CLI."""
+    global _lms_cli_available
+
+    # Try REST API first
+    models = lms_api_request("/api/v0/models")
+    if models is not None:
+        # REST API is reachable — use it exclusively
+        model_list = (
+            models
+            if isinstance(models, list)
+            else models.get("data", models.get("models", []))
+        )
+
+        target_loaded = False
+        others_loaded = []
+
+        for m in model_list:
+            model_id = m.get("id", m.get("path", ""))
+            state = m.get("state", "")
+            if model_key in model_id:
+                if state == "loaded":
+                    target_loaded = True
+                    print(
+                        f"[+] Model '{model_key}' is already loaded — skipping reload."
+                    )
+            elif state == "loaded":
+                others_loaded.append(m)
+
+        # Unload other models first
+        for other in others_loaded:
+            other_id = other.get("id", other.get("path", ""))
+            instance_id = other.get("instance_id", other_id)
+            print(f"[*] Unloading other model: {other_id}")
+            lms_api_request(
+                "/api/v1/models/unload", method="POST", data={"model": instance_id}
+            )
+
+        if target_loaded:
+            return  # Already loaded, nothing to do
+
+        print(f"[*] Loading model '{model_key}' via REST API...")
+        result = lms_api_request(
+            "/api/v1/models/load", method="POST", data={"model": model_key}, timeout=120
+        )
+        if result is not None:
+            print(f"[+] Model '{model_key}' loaded successfully via REST API.")
+            return
+        print("[-] REST API load failed. Falling back to CLI...")
+
+    # Fallback: try the lms CLI (may hang on Windows)
+    print("[*] REST API not available, falling back to lms CLI...")
+    print("[*] Unloading any existing models...")
+    try:
+        subprocess.run(["lms", "unload", "--all"], check=True, text=True, timeout=30)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        print("[-] Warning: Failed to unload models via CLI, attempting to proceed...")
+        _lms_cli_available = False
+    except FileNotFoundError:
+        print(
+            "[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped."
+        )
+        sys.exit(1)
+
+    print(f"[*] Loading model '{model_key}' into LM Studio...")
+    cmd = ["lms", "load", model_key, "-y"]
+
+    try:
+        subprocess.run(cmd, check=True, text=True, timeout=120)
+        print(f"[+] Model '{model_key}' loaded successfully.")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        print(f"[-] Failed to load model via CLI: {e}")
+        _lms_cli_available = False
+        sys.exit(1)
+    except FileNotFoundError:
+        print(
+            "[-] 'lms' command not found. Please ensure LM Studio CLI is installed and bootstrapped."
+        )
+        sys.exit(1)
+
+
+# --- Metadata & Reporting ---
+
+
+class MetadataCollector:
+    @staticmethod
+    def get_hardware_info() -> Dict[str, str]:
+        info = {
+            "Machine": platform.machine(),
+            "Processor": platform.processor(),
+            "System": platform.system(),
+            "Release": platform.release(),
+        }
+        if sys.platform == "darwin":
+            try:
+                # Try to get detailed Mac info
+                cmd = ["system_profiler", "SPHardwareDataType"]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                output = result.stdout
+
+                chip_match = re.search(r"Chip:\s+(.+)", output)
+                mem_match = re.search(r"Memory:\s+(.+)", output)
+
+                if chip_match:
+                    info["Chip"] = chip_match.group(1)
+                if mem_match:
+                    info["Memory"] = mem_match.group(1)
+            except Exception:
+                pass
+        elif sys.platform == "linux":
+            try:
+                # Try to get machine manufacturer from DMI
+                vendor_path = "/sys/devices/virtual/dmi/id/sys_vendor"
+                if os.path.exists(vendor_path):
+                    with open(vendor_path, "r", encoding="utf-8") as f:
+                        vendor = f.read().strip()
+                        info["Machine"] = vendor  # Override generic "x86_64"
+
+            except Exception:
+                pass
+
+            try:
+                # Try to get CPU model from lscpu
+                cmd = ["lscpu"]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                output = result.stdout
+
+                # Parse for Model Name line
+                # Example output: "Model name:	Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz"
+                model_match = re.search(r"Model name:\s*(.+)", output, re.MULTILINE)
+                if model_match:
+                    info["Processor"] = model_match.group(1).strip()
+
+            except Exception:
+                pass
+
+            try:
+                # Try to get detailed Linux distribution info using lsb_release
+                cmd = ["lsb_release", "-a"]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                output = result.stdout
+
+                # Parse for Description field
+                # Example output:
+                #   Distributor ID: Ubuntu
+                #   Description:    Ubuntu 22.04.3 LTS
+                #   Release:        22.04
+                #   Codename:       jammy
+                for line in output.splitlines():
+                    if line.strip().startswith("Description:"):
+                        description = line.split(":", 1)[1].strip()
+                        info["System"] = description  # Override the generic "Linux"
+                        break  # Use first description found
+
+            except Exception:
+                pass
+
+            try:
+                # Try to get GPU info on Linux using lspci (more detailed, no sudo needed)
+                # First, find all GPU device addresses
+                gpu_devices_cmd = ["lspci"]
+                gpu_result = subprocess.run(
+                    gpu_devices_cmd, capture_output=True, text=True
+                )
+
+                gpu_addresses = []
+                for line in gpu_result.stdout.splitlines():
+                    if "VGA compatible controller" in line or "3D controller" in line:
+                        # Extract device address (first field)
+                        parts = line.strip().split()
+                        if parts:
+                            gpu_addresses.append(parts[0])
+
+                # Query detailed info for each GPU
+                gpu_count = 0
+                for addr in gpu_addresses:
+                    try:
+                        detail_cmd = ["lspci", "-v", "-s", addr]
+                        detail_result = subprocess.run(
+                            detail_cmd, capture_output=True, text=True
+                        )
+
+                        # Parse the output for VGA or 3D controller lines
+                        for line in detail_result.stdout.splitlines():
+                            if (
+                                "VGA compatible controller" in line
+                                or "3D controller" in line
+                            ):
+                                # Extract the full GPU description
+                                parts = line.split(":", 2)
+                                if len(parts) >= 3:
+                                    gpu_info = parts[2].strip()
+                                    gpu_count += 1
+
+                                    # Store in info dict with numbered keys
+                                    if gpu_count == 1:
+                                        info["GPU Model"] = gpu_info
+                                    else:
+                                        info[f"GPU {gpu_count}"] = gpu_info
+                                    break  # Only need first match per device
+                    except Exception:
+                        continue
+
+                # If no GPUs found via lspci, try the old lshw method as fallback
+                if gpu_count == 0:
+                    cmd = ["lshw", "-C", "display"]
+                    result = subprocess.run(cmd, capture_output=True, text=True)
+                    output = result.stdout
+
+                    for line in output.splitlines():
+                        if line.strip().startswith("vendor:"):
+                            vendor = line.split(":", 1)[1].strip()
+                            info["GPU Vendor"] = vendor
+                        elif line.strip().startswith("product:"):
+                            product = line.split(":", 1)[1].strip()
+                            info["GPU Model"] = product
+            except Exception:
+                pass
+        elif sys.platform == "win32":
+            try:
+                # CPU info via PowerShell
+                cpu_out = subprocess.check_output(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_Processor).Name",
+                    ],
+                    text=True,
+                    timeout=10,
+                ).strip()
+                if cpu_out:
+                    info["Processor"] = cpu_out
+            except Exception:
+                pass
+
+            try:
+                # GPU info via PowerShell
+                gpu_out = subprocess.check_output(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_VideoController).Name",
+                    ],
+                    text=True,
+                    timeout=10,
+                ).strip()
+                if gpu_out:
+                    # May return multiple lines if multiple GPUs
+                    gpu_lines = [g.strip() for g in gpu_out.splitlines() if g.strip()]
+                    for i, gpu in enumerate(gpu_lines):
+                        if i == 0:
+                            info["GPU Model"] = gpu
+                        else:
+                            info[f"GPU {i + 1}"] = gpu
+            except Exception:
+                pass
+
+            try:
+                # RAM via PowerShell
+                ram_out = subprocess.check_output(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
+                    ],
+                    text=True,
+                    timeout=10,
+                ).strip()
+                if ram_out:
+                    ram_bytes = int(ram_out)
+                    ram_gb = round(ram_bytes / (1024**3))
+                    info["Memory"] = f"{ram_gb} GB"
+            except Exception:
+                pass
+
+            try:
+                # Windows version detail
+                ver_out = subprocess.check_output(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-CimInstance Win32_OperatingSystem).Caption",
+                    ],
+                    text=True,
+                    timeout=10,
+                ).strip()
+                if ver_out:
+                    info["System"] = ver_out
+            except Exception:
+                pass
+        return info
+
+    @staticmethod
+    def get_software_versions(
+        agent_binary: str, non_local: bool = False
+    ) -> Dict[str, str]:
+        def strip_ansi(text: str) -> str:
+            ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+            return ansi_escape.sub("", text)
+
+        versions = {}
+
+        if not non_local:
+            # LM Studio CLI Version (with timeout to avoid hangs on Windows)
+            try:
+                lms_out = subprocess.check_output(
+                    ["lms", "version"], text=True, timeout=10
+                ).strip()
+                # New format: "CLI commit: <hash>"
+                m = re.search(r"CLI commit:\s*([a-f0-9]+)", lms_out)
+                if m:
+                    versions["LM Studio CLI Version"] = m.group(1)
+                else:
+                    # Fallback for older versions: "lms - LM Studio CLI - v0.0.47"
+                    m_old = re.search(r"lms - LM Studio CLI - (v[\d.]+)", lms_out)
+                    if m_old:
+                        versions["LM Studio CLI Version"] = m_old.group(1)
+                    else:
+                        versions["LM Studio CLI Version"] = (
+                            lms_out.splitlines()[-1] if lms_out else "Unknown"
+                        )
+            except subprocess.TimeoutExpired:
+                versions["LM Studio CLI Version"] = "CLI timed out"
+            except Exception:
+                versions["LM Studio CLI Version"] = "Unknown"
+
+            # LM Studio App Version (Mac or Linux via file detection)
+            if platform.system() == "Darwin":
+                try:
+                    # mdls -name kMDItemVersion '/Applications/LM Studio.app'
+                    # Output: kMDItemVersion = "0.3.39"
+                    mdls_out = subprocess.check_output(
+                        [
+                            "mdls",
+                            "-name",
+                            "kMDItemVersion",
+                            "/Applications/LM Studio.app",
+                        ],
+                        text=True,
+                    ).strip()
+                    m_app = re.search(r'kMDItemVersion\s*=\s*"(.*?)"', mdls_out)
+                    if m_app:
+                        versions["LM Studio App Version"] = m_app.group(1)
+                    else:
+                        versions["LM Studio App Version"] = "Unknown"
+                except Exception:
+                    versions["LM Studio App Version"] = "Not Found / Error"
+            elif platform.system() == "Linux":
+                try:
+                    # Look for LM Studio AppImages in /opt
+                    # Pattern: /opt/LM-Studio-0.3.39-2-x64.AppImage
+                    # Extract version from filename (everything between "LM-Studio-" and ".AppImage")
+                    import glob
+
+                    app_images = glob.glob("/opt/LM-Studio-*.AppImage")
+
+                    if app_images:
+                        # Sort by version to get the highest version
+                        # Version pattern: 0.3.39-2-x64 (we want to sort numerically)
+                        def extract_version(app_image_path):
+                            # Extract everything between "LM-Studio-" and the first "-" after it
+                            match = re.search(r"LM-Studio-([^-]+)", app_image_path)
+                            if match:
+                                return match.group(1)
+                            return ""
+
+                        # Sort by version (using natural sorting for numbers)
+                        app_images.sort(
+                            key=lambda x: [
+                                int(part) if part.isdigit() else part
+                                for part in extract_version(x).split(".")
+                            ]
+                        )
+
+                        latest_app = app_images[-1]  # Last one after sort
+                        version = extract_version(latest_app)
+                        versions["LM Studio App Version"] = (
+                            version if version else "Unknown"
+                        )
+                    else:
+                        versions["LM Studio App Version"] = "Not Found"
+                except Exception as e:
+                    print(f"[-] Error detecting LM Studio version on Linux: {e}")
+                    versions["LM Studio App Version"] = "Error"
+            elif platform.system() == "Windows":
+                try:
+                    ps_cmd = (
+                        'Get-ItemProperty "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" '
+                        '| Where-Object { $_.DisplayName -like "*LM Studio*" } '
+                        "| Select-Object -ExpandProperty DisplayVersion"
+                    )
+                    ps_out = subprocess.check_output(
+                        ["powershell", "-NoProfile", "-Command", ps_cmd],
+                        text=True,
+                        timeout=10,
+                    ).strip()
+                    versions["LM Studio App Version"] = (
+                        ps_out if ps_out else "Not Found"
+                    )
+                except Exception:
+                    versions["LM Studio App Version"] = "Unknown"
+
+        # Agent Version
+        try:
+            # Most agents support --version
+            agent_ver = subprocess.check_output(
+                [agent_binary, "--version"], text=True
+            ).strip()
+            versions[agent_binary] = strip_ansi(agent_ver)
+        except Exception:
+            versions[agent_binary] = "Unknown"
+
+        return versions
+
+    @staticmethod
+    def get_token_usage(
+        log_path: Path, chat_log_path: Optional[Path] = None
+    ) -> TokenUsage:
+        """Return token usage from the most authoritative available source."""
+        return TokenUsageCollector.collect(log_path, chat_log_path)
+
+    @staticmethod
+    def get_prompt_processing_time(log_path: Path) -> float:
+        """Calculates total time spent on prompt processing from logs."""
+        if not log_path.exists():
+            return 0.0
+
+        total_duration = 0.0
+
+        try:
+            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
+
+            # Regex for timestamp: [YYYY-MM-DD HH:MM:SS]
+            ts_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
+
+            in_block = False
+            block_start_time = None
+            last_timestamp = None
+
+            for line in lines:
+                match = ts_pattern.match(line)
+                if not match:
+                    continue
+
+                current_ts_str = match.group(1)
+                try:
+                    current_ts = datetime.strptime(current_ts_str, "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    continue
+
+                last_timestamp = current_ts
+
+                if "Prompt processing progress" in line:
+                    if not in_block:
+                        in_block = True
+                        block_start_time = current_ts
+                else:
+                    if in_block:
+                        if block_start_time:
+                            total_duration += (
+                                current_ts - block_start_time
+                            ).total_seconds()
+                        in_block = False
+                        block_start_time = None
+
+            if in_block and block_start_time and last_timestamp:
+                total_duration += (last_timestamp - block_start_time).total_seconds()
+        except Exception as e:
+            print(f"[-] Error calculating prompt processing time: {e}")
+
+        return total_duration
+
+    @staticmethod
+    def parse_model_info(
+        model_key: str, non_local: bool = False, agent_name: str = None
+    ) -> Dict[str, str]:
+        # Basic Info
+        info = {"Full Name": model_key}
+
+        # Cloud provider model info for non-local agents
+        if non_local and agent_name:
+            if agent_name == "claude":
+                info["Provider"] = "Anthropic"
+                info["Type"] = "Cloud API"
+                model_id = CLAUDE_MODEL_IDS.get(model_key.lower().strip())
+                if model_id:
+                    info["Model ID"] = model_id
+                elif model_key.startswith("claude-"):
+                    info["Model ID"] = model_key
+                return info
+            elif agent_name in ("gemini", "agy", "antigravity"):
+                info["Provider"] = "Google"
+                info["Type"] = "Cloud API"
+                info["Model ID"] = model_key
+                return info
+            elif agent_name == "pi":
+                if "/" in model_key:
+                    provider, model_id = model_key.split("/", 1)
+                    # Normalize provider display names (e.g. "google-gemini-cli" -> "Google")
+                    provider_display = (
+                        provider.split("-")[0].title()
+                        if "-" in provider
+                        else provider.title()
+                    )
+                    info["Provider"] = provider_display
+                    info["Model ID"] = model_id
+                else:
+                    info["Provider"] = "Google"  # pi defaults to google provider
+                    info["Model ID"] = model_key
+                info["Type"] = "Cloud API"
+                return info
+            elif agent_name == "codex":
+                info["Provider"] = "OpenAI"
+                info["Type"] = "Cloud API"
+                info["Model ID"] = model_key
+                return info
+            elif agent_name in ("vibe", "mistral"):
+                info["Provider"] = "Mistral AI"
+                info["Type"] = "Cloud API"
+                info["Model ID"] = model_key
+                return info
+
+        # Heuristic Defaults
+        if "24b" in model_key.lower():
+            info["Parameters"] = "24B"
+        elif "8b" in model_key.lower():
+            info["Parameters"] = "8B"
+        elif "7b" in model_key.lower():
+            info["Parameters"] = "7B"
+
+        if not non_local:
+            # Query LM Studio REST API for detailed model info
+            try:
+                models = lms_api_request("/api/v0/models", timeout=5)
+                if models is not None:
+                    model_list = (
+                        models
+                        if isinstance(models, list)
+                        else models.get("data", models.get("models", []))
+                    )
+                    for m in model_list:
+                        mid = m.get("id", m.get("path", ""))
+                        if model_key in mid:
+                            if m.get("arch"):
+                                info["Architecture"] = m["arch"]
+                            if m.get("quantization"):
+                                info["Quantization"] = m["quantization"]
+                            if m.get("max_context_length"):
+                                info["Max Context"] = str(m["max_context_length"])
+                            if m.get("compatibility_type"):
+                                info["Compatibility"] = m["compatibility_type"]
+                            if m.get("publisher"):
+                                info["Publisher"] = m["publisher"]
+                            if m.get("state"):
+                                info["State"] = m["state"]
+                            if mid:
+                                info["Full Name"] = mid
+                            break
+                else:
+                    # Fallback to lms ls CLI
+                    ls_output = subprocess.check_output(
+                        ["lms", "ls"], text=True, timeout=10
+                    )
+                    for line in ls_output.splitlines():
+                        if "LOADED" in line:
+                            parts = re.split(r"\s{2,}", line.strip())
+                            if len(parts) >= 4:
+                                info["Size"] = parts[-2]
+                                info["Architecture"] = parts[-3]
+                                info["Parameters"] = parts[-4]
+                                if len(parts) >= 5:
+                                    info["Full Name"] = parts[0]
+                            break
+            except Exception:
+                pass
+
+        # Try to extract quantization (e.g., Q4, Q8)
+        quant = re.search(r"(Q\d+[a-zA-Z0-9_]*)", model_key, re.IGNORECASE)
+        if quant:
+            info["Quantization"] = quant.group(1)
+
+        return info
+
+
+# --- Agent Runners ---
+
+
+class AgentRunner:
+    supports_custom_provider = False
+
+    def __init__(
+        self,
+        agent_name: str,
+        model_name: str,
+        prompt_file: Path,
+        headless: bool,
+        non_local: bool = False,
+        restore_agent_config: bool = False,
+        custom_provider: Optional[str] = None,
+    ):
+        self.agent_name = agent_name
+        self.model_name = model_name
+        self.prompt_file = prompt_file
+        self.headless = headless
+        self.non_local = non_local
+        self.restore_agent_config = restore_agent_config
+        self.custom_provider = custom_provider
+
+        # Binary to name mapping
+        self.binary_map = {
+            "mistral": "vibe",
+            "gemini": "agy",
+            "antigravity": "agy",
+            "agy": "agy",
+        }
+        self.agent_binary = self.binary_map.get(agent_name, agent_name)
+
+        # Prepare workspace
+        self.safe_model_name = "".join(
+            c if c.isalnum() or c in ("-", "_") else "_" for c in model_name
+        ).strip()
+        # Requested naming convention: {binary_name}_{safe_model_name}_{prompt_stem}
+        self.work_dir = (
+            EVALS_DIR / f"{self.agent_binary}_{self.safe_model_name}_{prompt_file.stem}"
+        )
+        self.workspace_overwrite_confirmed = False
+
+        self.log_process: Optional[subprocess.Popen] = None
+
+    def confirm_workspace_overwrite(self):
+        """Prompts before replacing an existing evaluation directory."""
+        if not self.work_dir.exists() or self.workspace_overwrite_confirmed:
+            return
+        try:
+            response = input(
+                f"[!] Evaluation directory already exists: {self.work_dir}\n"
+                "Overwrite it and delete the existing contents? [y/N]: "
+            ).strip().lower()
+        except EOFError:
+            response = ""
+        if response not in ("y", "yes"):
+            print("[*] Evaluation aborted; existing results were left unchanged.")
+            sys.exit(1)
+        self.workspace_overwrite_confirmed = True
+
+    def setup_workspace(self):
+        """Creates the evaluation directory."""
+        if self.work_dir.exists():
+            self.confirm_workspace_overwrite()
+            print(f"[*] Deleting existing directory contents: {self.work_dir}")
+            shutil.rmtree(self.work_dir)
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+        print(f"[+] Created workspace: {self.work_dir}")
+
+    def get_model_extra_info(self) -> Dict[str, str]:
+        """Returns additional model metadata to merge into the Model Details box. Override per agent."""
+        return {}
+
+    def get_env_vars(self) -> Dict[str, str]:
+        """Returns the environment variables needed for the agent to talk to localhost."""
+        env = os.environ.copy()
+        # Several CLIs are Python entrypoints on Windows. If they inherit a
+        # legacy console code page, their own JSON/status output can crash
+        # before this evaluator has a chance to decode it.
+        env["PYTHONUTF8"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
+        if not self.non_local:
+            # Standard OpenAI-compatible env vars
+            env["OPENAI_API_BASE"] = LOCAL_API_URL
+            env["OPENAI_BASE_URL"] = LOCAL_API_URL
+            env["OPENAI_API_KEY"] = LOCAL_API_KEY  # Usually ignored but required
+        return env
+
+    def start_server_logger(self):
+        """Starts streaming server logs to file."""
+        self._run_start_time = datetime.now()
+
+        if self.non_local:
+            return
+
+        # Skip if lms CLI is known to be unresponsive (e.g. hangs on Windows)
+        if not _lms_cli_available:
+            print(
+                "[*] Skipping lms log stream (CLI unavailable). Will read on-disk server logs instead."
+            )
+            return
+
+        log_path = self.work_dir / SERVER_LOG_FILENAME
+        print(f"[*] Starting server log stream to: {log_path}")
+
+        try:
+            self.server_log_file = open(log_path, "w", encoding="utf-8")
+            self.log_process = subprocess.Popen(
+                ["lms", "log", "stream", "--source", "server"],
+                stdout=self.server_log_file,
+                stderr=subprocess.STDOUT,
+            )
+            # Quick check: if process exits immediately it likely can't connect
+            time.sleep(0.5)
+            if self.log_process.poll() is not None:
+                print(
+                    "[-] lms log stream exited immediately — will read on-disk server logs instead."
+                )
+                self.server_log_file.close()
+                self.log_process = None
+        except Exception as e:
+            print(f"[-] Failed to start server logger: {e}")
+
+    def _collect_server_log_from_disk(self):
+        """Reads LM Studio's on-disk server logs as a fallback when lms log stream fails.
+
+        Copies log entries from the run start time onward into SERVER.LOG so that
+        token parsing and prompt processing time work normally.
+        """
+        if self.non_local:
+            return
+        if LOCAL_PROVIDER_ID != "lmstudio":
+            return
+
+        log_path = self.work_dir / SERVER_LOG_FILENAME
+
+        # If SERVER.LOG already has useful content (from lms log stream), skip
+        if log_path.exists() and log_path.stat().st_size > 0:
+            try:
+                content = log_path.read_text(encoding="utf-8", errors="ignore")
+                if '"usage"' in content or "Prompt processing progress" in content:
+                    return  # lms log stream worked fine
+            except Exception:
+                pass
+
+        # Find LM Studio's on-disk log directory
+        lms_log_dir = Path.home() / ".lmstudio" / "server-logs"
+        if not lms_log_dir.exists():
+            print(
+                "[-] LM Studio server-logs directory not found, cannot recover token metrics."
+            )
+            return
+
+        start_time = getattr(self, "_run_start_time", None)
+        if not start_time:
+            return
+
+        # Collect log files that could contain entries from our run
+        # Format: ~/.lmstudio/server-logs/YYYY-MM/YYYY-MM-DD.N.log
+        year_month = start_time.strftime("%Y-%m")
+        month_dir = lms_log_dir / year_month
+        if not month_dir.exists():
+            return
+
+        # Find today's log file(s)
+        today_str = start_time.strftime("%Y-%m-%d")
+        log_files = sorted(month_dir.glob(f"{today_str}.*.log"))
+        if not log_files:
+            return
+
+        # Timestamp format in LM Studio logs: [YYYY-MM-DD HH:MM:SS]
+        start_ts_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
+        ts_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
+
+        collected_lines = []
+        capturing = False
+
+        for log_file in log_files:
+            try:
+                with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        if not capturing:
+                            m = ts_pattern.match(line)
+                            if m and m.group(1) >= start_ts_str:
+                                capturing = True
+                        if capturing:
+                            collected_lines.append(line)
+            except Exception as e:
+                print(f"[-] Error reading LM Studio log {log_file}: {e}")
+
+        if collected_lines:
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.writelines(collected_lines)
+            print(
+                f"[+] Recovered {len(collected_lines)} lines from LM Studio on-disk logs into SERVER.LOG"
+            )
+        else:
+            print("[-] No matching log entries found in LM Studio on-disk logs.")
+
+    def stop_server_logger(self):
+        """Stops the server log stream."""
+        if self.log_process:
+            print("[*] Stopping server logger...")
+            self.log_process.terminate()
+            try:
+                self.log_process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.log_process.kill()
+            self.log_process = None
+
+        if hasattr(self, "server_log_file") and self.server_log_file:
+            self.server_log_file.close()
+
+        # Fallback: read from LM Studio's on-disk logs if streaming didn't work
+        self._collect_server_log_from_disk()
+
+    def run(self):
+        """Orchestrates the run."""
+        start_time = datetime.now()
+
+        self.setup_workspace()
+        self.configure_agent()
+        self.start_server_logger()
+
+        try:
+            print(f"[*] Running {self.agent_name}...")
+            self.execute_agent()
+        finally:
+            self.stop_server_logger()
+
+        duration_seconds = (datetime.now() - start_time).total_seconds()
+        self._execute_generated_python_artifacts()
+        report_path = self._generate_report(duration_seconds)
+        self._open_report(report_path)
+
+    def _execute_generated_python_artifacts(self) -> None:
+        """Execute root-level Python artifacts and capture their output."""
+        for py_file in self.work_dir.glob("*.py"):
+            if py_file.name == "evaluate_agent.py":
+                continue
+
+            print(f"[*] Automatically executing generated script: {py_file.name}")
+            output_log_path = self.work_dir / "OUTPUT.TXT"
+
+            try:
+                result = subprocess.run(
+                    [sys.executable, py_file.name],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=300,
+                )
+
+                with open(output_log_path, "a", encoding="utf-8") as f:
+                    f.write(f"--- Execution of {py_file.name} ---\n")
+                    f.write("STDOUT:\n")
+                    f.write(result.stdout)
+                    if result.stderr:
+                        f.write("\nSTDERR:\n")
+                        f.write(result.stderr)
+                    f.write("\n---------------------------\n\n")
+
+                print(
+                    f"[+] Execution of {py_file.name} finished. Results appended to OUTPUT.TXT"
+                )
+            except Exception as e:
+                print(f"[-] Execution of {py_file.name} failed: {e}")
+
+    def _collect_metadata(self) -> Dict:
+        """Collect the report metadata for a completed evaluation."""
+        model_info = MetadataCollector.parse_model_info(
+            self.model_name, self.non_local, self.agent_name
+        )
+        model_info.update(self.get_model_extra_info())
+        return {
+            "Hardware": MetadataCollector.get_hardware_info(),
+            "Software": MetadataCollector.get_software_versions(
+                self.agent_binary, self.non_local
+            ),
+            "Model": model_info,
+            "Tokens": MetadataCollector.get_token_usage(
+                self.work_dir / SERVER_LOG_FILENAME,
+                self.work_dir / CHAT_SESSION_FILENAME,
+            ),
+            "PromptTime": MetadataCollector.get_prompt_processing_time(
+                self.work_dir / SERVER_LOG_FILENAME
+            ),
+        }
+
+    def _generate_report(self, duration_seconds: float) -> Path:
+        """Build the self-contained report for a completed evaluation."""
+        print("[*] Generating run report...")
+        try:
+            prompt_text = read_prompt_file(self.prompt_file)
+        except OSError:
+            prompt_text = "Error reading prompt file."
+
+        report_path = generate_html_report(
+            self.work_dir,
+            self._collect_metadata(),
+            prompt_text,
+            duration_seconds,
+            self.agent_name,
+        )
+        print(f"[+] Report generated: {report_path}")
+        return report_path
+
+    @staticmethod
+    def _open_report(report_path: Path) -> None:
+        """Open a generated report in the platform's default browser."""
+        try:
+            if sys.platform == "darwin":  # macOS
+                subprocess.run(["open", str(report_path)])
+            elif sys.platform == "win32":  # Windows
+                os.startfile(str(report_path))
+            else:  # Linux
+                subprocess.run(["xdg-open", str(report_path)])
+        except Exception as e:
+            print(f"[-] Failed to open report: {e}")
+
+    def configure_agent(self):
+        """Hook for agent-specific configuration file generation."""
+        pass
+
+    def execute_agent(self):
+        """Runs the actual agent command."""
+        raise NotImplementedError
+
+    def _run_process(
+        self,
+        cmd: List[str],
+        env: Optional[Dict[str, str]] = None,
+        input_text: Optional[str] = None,
+        display_cmd: Optional[str] = None,
+    ):
+        """Runs the process and streams output to file and stdout."""
+        if env is None:
+            env = self.get_env_vars()
+
+        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
+
+        print(f"[*] Executing: {display_cmd or format_display_cmd(cmd)}")
+        print(f"[*] Output logging to: {chat_log_path}")
+
+        with open(chat_log_path, "w", encoding="utf-8") as log_file:
+            # We want to capture both stdout and stderr
+            # And also print to the console?
+            # Subprocess.PIPE might buffer, but let's try.
+
+            # Start process in the work dir
+            process = subprocess.Popen(
+                cmd,
+                cwd=self.work_dir,
+                env=env,
+                stdin=subprocess.PIPE if input_text is not None else None,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Merge stderr into stdout
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,  # Line buffered
+            )
+            send_stdin(process, input_text)
+
+            # Stream output
+            for line in process.stdout:
+                safe_stdout_write(line)
+                log_file.write(line)
+                log_file.flush()
+
+            try:
+                process.wait(timeout=900)  # Wait with a timeout
+            except subprocess.TimeoutExpired:
+                print(f"[-] Agent process timed out after 900 seconds.")
+                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
+                process.kill()  # Terminate the process
+                process.wait()  # Wait for it to actually terminate
+
+            if process.returncode != 0:
+                print(f"[-] Agent finished with error code {process.returncode}")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
+            else:
+                print(f"[+] Agent finished successfully.")
+                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")

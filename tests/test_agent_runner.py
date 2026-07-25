@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from evaluate_agent import AgentRunner
+from evaluate_agent import AGENT_RUNNERS, AgentRunner
 
 
 class RecordingRunner(AgentRunner):
@@ -49,6 +49,22 @@ class RecordingRunner(AgentRunner):
 
 
 class AgentRunnerLifecycleTests(unittest.TestCase):
+    def test_each_adapter_lives_in_the_runners_package(self):
+        expected_modules = {
+            "claude": "runners.claude",
+            "codex": "runners.codex",
+            "crush": "runners.crush",
+            "gemini": "runners.gemini",
+            "opencode": "runners.opencode",
+            "pi": "runners.pi",
+            "pi-wiggum": "runners.pi_wiggum",
+            "vibe": "runners.vibe",
+        }
+
+        for agent, module_name in expected_modules.items():
+            with self.subTest(agent=agent):
+                self.assertEqual(AGENT_RUNNERS[agent].__module__, module_name)
+
     def test_run_keeps_orchestration_steps_in_order(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             runner = RecordingRunner(Path(temp_dir))
