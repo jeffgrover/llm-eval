@@ -38,6 +38,22 @@ class GeminiRunnerTests(unittest.TestCase):
                 "gemini-test",
             )
 
+    def test_base_runner_stores_custom_provider(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            runner = GeminiRunner(
+                "agy",
+                "gemini-test",
+                Path("test_prompt.txt"),
+                headless=True,
+                non_local=True,
+                custom_provider="google",
+            )
+            runner.work_dir = work_dir
+
+            self.assertTrue(runner.supports_custom_provider)
+            self.assertEqual(runner.custom_provider, "google")
+
     def test_generated_artifacts_ignore_runner_bookkeeping(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             work_dir = Path(temp_dir)

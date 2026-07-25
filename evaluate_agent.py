@@ -17,6 +17,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from evaluation_metrics import (
+    CLAUDE_RESULT_FILENAME,
+    CODEX_RESULT_FILENAME,
+    GEMINI_RESULT_FILENAME,
+    OPENCODE_RESULT_FILENAME,
+    PI_RESULT_FILENAME,
+    PI_WIGGUM_RESULT_FILENAME,
+    VIBE_RESULT_FILENAME,
+    TokenUsage,
+    TokenUsageCollector,
+)
+
 # --- Configuration & Constants ---
 LM_STUDIO_API_URL = "http://localhost:1234/v1"
 LM_STUDIO_REST_BASE = "http://localhost:1234"
@@ -30,15 +42,8 @@ EVALS_DIR = Path("evals")
 PROJECT_ROOT = Path(__file__).resolve().parent
 SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
-CLAUDE_RESULT_FILENAME = "CLAUDE_RESULT.JSON"
-GEMINI_RESULT_FILENAME = "GEMINI_RESULT.JSON"
-OPENCODE_RESULT_FILENAME = "OPENCODE_RESULT.JSON"
-CODEX_RESULT_FILENAME = "CODEX_RESULT.JSON"
 CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
 CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
-VIBE_RESULT_FILENAME = "VIBE_RESULT.JSON"
-PI_RESULT_FILENAME = "PI_RESULT.JSON"
-PI_WIGGUM_RESULT_FILENAME = "PI_WIGGUM_RESULT.JSON"
 PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
 DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
 DEFAULT_LOCAL_OUTPUT_LIMIT = 4096
@@ -612,315 +617,9 @@ class MetadataCollector:
     @staticmethod
     def get_token_usage(
         log_path: Path, chat_log_path: Optional[Path] = None
-    ) -> Dict[str, int]:
-        """Parses server logs, agent chat logs, or Claude result JSON for token usage statistics."""
-        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-
-        # Check for Claude result JSON first (from --output-format stream-json)
-        if chat_log_path:
-            claude_result_path = chat_log_path.parent / CLAUDE_RESULT_FILENAME
-            if claude_result_path.exists():
-                try:
-                    with open(claude_result_path, "r", encoding="utf-8") as f:
-                        result_data = json.load(f)
-                    # Prefer modelUsage for comprehensive per-model totals
-                    model_usage = result_data.get("modelUsage", {})
-                    if model_usage:
-                        for model_id, model_data in model_usage.items():
-                            usage["prompt_tokens"] += (
-                                model_data.get("inputTokens", 0)
-                                + model_data.get("cacheCreationInputTokens", 0)
-                                + model_data.get("cacheReadInputTokens", 0)
-                            )
-                            usage["completion_tokens"] += model_data.get(
-                                "outputTokens", 0
-                            )
-                            cache_read = model_data.get("cacheReadInputTokens", 0)
-                            if cache_read:
-                                usage["cache_read_tokens"] = cache_read
-                    else:
-                        # Fallback to top-level usage object
-                        usage_data = result_data.get("usage", {})
-                        usage["prompt_tokens"] = (
-                            usage_data.get("input_tokens", 0)
-                            + usage_data.get("cache_creation_input_tokens", 0)
-                            + usage_data.get("cache_read_input_tokens", 0)
-                        )
-                        usage["completion_tokens"] = usage_data.get("output_tokens", 0)
-                        cache_read = usage_data.get("cache_read_input_tokens", 0)
-                        if cache_read:
-                            usage["cache_read_tokens"] = cache_read
-                    usage["total_tokens"] = (
-                        usage["prompt_tokens"] + usage["completion_tokens"]
-                    )
-                    # Include cost if available
-                    cost = result_data.get("cost_usd") or result_data.get(
-                        "total_cost_usd"
-                    )
-                    if cost:
-                        usage["cost_usd"] = cost
-                    num_turns = result_data.get("num_turns")
-                    if num_turns:
-                        usage["num_turns"] = num_turns
-                    if usage["total_tokens"] > 0:
-                        return usage
-                except Exception as e:
-                    print(f"[-] Error parsing Claude result JSON: {e}")
-
-        # Check for Gemini result JSON
-        if chat_log_path:
-            gemini_result_path = chat_log_path.parent / GEMINI_RESULT_FILENAME
-            if gemini_result_path.exists():
-                try:
-                    with open(gemini_result_path, "r", encoding="utf-8") as f:
-                        result_data = json.load(f)
-                    stats = result_data.get("stats", {})
-                    if stats:
-                        usage["prompt_tokens"] = stats.get("input_tokens", 0)
-                        usage["completion_tokens"] = stats.get("output_tokens", 0)
-                        usage["total_tokens"] = stats.get("total_tokens", 0)
-
-                        cached = stats.get("cached", 0)
-                        if cached:
-                            usage["cache_read_tokens"] = cached
-
-                        num_turns = result_data.get("num_turns") or stats.get(
-                            "tool_calls", None
-                        )
-                        if num_turns:
-                            usage["num_turns"] = num_turns
-
-                        if usage["total_tokens"] > 0:
-                            return usage
-                    else:
-                        usage["prompt_tokens"] = result_data.get("input_tokens", 0)
-                        usage["completion_tokens"] = result_data.get("output_tokens", 0)
-                        usage["total_tokens"] = result_data.get("total_tokens", 0)
-                        if result_data.get("cache_read_tokens"):
-                            usage["cache_read_tokens"] = result_data["cache_read_tokens"]
-                        if result_data.get("num_turns"):
-                            usage["num_turns"] = result_data["num_turns"]
-                        if result_data.get("cost_usd"):
-                            usage["cost_usd"] = result_data["cost_usd"]
-                        if usage["total_tokens"] > 0:
-                            return usage
-                except Exception as e:
-                    print(f"[-] Error parsing Gemini result JSON: {e}")
-
-        # Check for OpenCode result JSON
-        if chat_log_path:
-            opencode_result_path = chat_log_path.parent / OPENCODE_RESULT_FILENAME
-            if opencode_result_path.exists():
-                try:
-                    with open(opencode_result_path, "r", encoding="utf-8") as f:
-                        result_data = json.load(f)
-                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
-                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
-                    usage["total_tokens"] = result_data.get("total_tokens", 0)
-                    cache_read = result_data.get("cache_read_tokens", 0)
-                    if cache_read:
-                        usage["cache_read_tokens"] = cache_read
-                    cost = result_data.get("cost_usd", 0)
-                    if cost:
-                        usage["cost_usd"] = cost
-                    num_turns = result_data.get("num_turns", 0)
-                    if num_turns:
-                        usage["num_turns"] = num_turns
-                    if usage["total_tokens"] > 0:
-                        return usage
-                except Exception as e:
-                    print(f"[-] Error parsing OpenCode result JSON: {e}")
-
-        # Check for Codex result JSON
-        if chat_log_path:
-            codex_result_path = chat_log_path.parent / CODEX_RESULT_FILENAME
-            if codex_result_path.exists():
-                try:
-                    with open(codex_result_path, "r", encoding="utf-8") as f:
-                        result_data = json.load(f)
-                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
-                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
-                    usage["total_tokens"] = result_data.get("total_tokens", 0)
-                    cache_read = result_data.get("cache_read_tokens", 0)
-                    if cache_read:
-                        usage["cache_read_tokens"] = cache_read
-                    cost = result_data.get("cost_usd", 0)
-                    if cost:
-                        usage["cost_usd"] = cost
-                    num_turns = result_data.get("num_turns", 0)
-                    if num_turns:
-                        usage["num_turns"] = num_turns
-                    if usage["total_tokens"] > 0:
-                        return usage
-                except Exception as e:
-                    print(f"[-] Error parsing Codex result JSON: {e}")
-
-        # Check for Pi result JSON
-        if chat_log_path:
-            pi_wiggum_result_path = chat_log_path.parent / PI_WIGGUM_RESULT_FILENAME
-            if pi_wiggum_result_path.exists():
-                try:
-                    with open(pi_wiggum_result_path, "r", encoding="utf-8") as f:
-                        result_data = json.load(f)
-                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
-                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
-                    usage["total_tokens"] = result_data.get("total_tokens", 0)
-                    cache_read = result_data.get("cache_read_tokens", 0)
-                    if cache_read:
-                        usage["cache_read_tokens"] = cache_read
-                    cost = result_data.get("cost_usd", 0)
-                    if cost:
-                        usage["cost_usd"] = cost
-                    num_turns = result_data.get("num_turns", 0)
-                    if num_turns:
-                        usage["num_turns"] = num_turns
-                    attempts = result_data.get("attempts", 0)
-                    if attempts:
-                        usage["wiggum_attempts"] = attempts
-                    if usage["total_tokens"] > 0 or attempts:
-                        return usage
-                except Exception as e:
-                    print(f"[-] Error parsing Pi Wiggum result JSON: {e}")
-
-            pi_result_path = chat_log_path.parent / PI_RESULT_FILENAME
-            if pi_result_path.exists():
-                try:
-                    with open(pi_result_path, "r", encoding="utf-8") as f:
-                        result_data = json.load(f)
-                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
-                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
-                    usage["total_tokens"] = result_data.get("total_tokens", 0)
-                    cache_read = result_data.get("cache_read_tokens", 0)
-                    if cache_read:
-                        usage["cache_read_tokens"] = cache_read
-                    cost = result_data.get("cost_usd", 0)
-                    if cost:
-                        usage["cost_usd"] = cost
-                    num_turns = result_data.get("num_turns", 0)
-                    if num_turns:
-                        usage["num_turns"] = num_turns
-                    if usage["total_tokens"] > 0:
-                        return usage
-                except Exception as e:
-                    print(f"[-] Error parsing Pi result JSON: {e}")
-
-        # Check for Vibe result JSON
-        if chat_log_path:
-            vibe_result_path = chat_log_path.parent / VIBE_RESULT_FILENAME
-            if vibe_result_path.exists():
-                try:
-                    with open(vibe_result_path, "r", encoding="utf-8") as f:
-                        result_data = json.load(f)
-                    # Vibe CLI stores token usage in its session logs (meta.json)
-                    # which we extract and save to VIBE_RESULT.JSON
-                    usage["prompt_tokens"] = result_data.get("input_tokens", 0)
-                    usage["completion_tokens"] = result_data.get("output_tokens", 0)
-                    usage["total_tokens"] = result_data.get("total_tokens", 0)
-                    
-                    cost = result_data.get("cost_usd")
-                    if cost:
-                        usage["cost_usd"] = cost
-                    
-                    num_turns = result_data.get("num_turns", 0)
-                    if num_turns:
-                        usage["num_turns"] = num_turns
-                    
-                    # If we have token info, return early
-                    if usage["total_tokens"] > 0:
-                        return usage
-                except Exception as e:
-                    print(f"[-] Error parsing Vibe result JSON: {e}")
-
-        # Try server log first (LM Studio)
-        if log_path and log_path.exists():
-            try:
-                with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-                    content = f.read()
-
-                # Attempt to parse from JSON 'usage' blocks (LMS 0.3.x style)
-                json_pattern = re.compile(r'"usage":\s*({[^}]+})', re.DOTALL)
-                json_matches = json_pattern.findall(content)
-
-                if json_matches:
-                    for match in json_matches:
-                        try:
-                            usage_data = json.loads(match)
-                            usage["prompt_tokens"] += usage_data.get("prompt_tokens", 0)
-                            usage["completion_tokens"] += usage_data.get(
-                                "completion_tokens", 0
-                            )
-                            usage["total_tokens"] += usage_data.get("total_tokens", 0)
-                        except json.JSONDecodeError:
-                            # Fallback for malformed JSON within the matched block
-                            p_tok = re.search(r'"prompt_tokens":\s*(\d+)', match)
-                            c_tok = re.search(r'"completion_tokens":\s*(\d+)', match)
-                            t_tok = re.search(r'"total_tokens":\s*(\d+)', match)
-                            if p_tok:
-                                usage["prompt_tokens"] += int(p_tok.group(1))
-                            if c_tok:
-                                usage["completion_tokens"] += int(c_tok.group(1))
-                            if t_tok:
-                                usage["total_tokens"] += int(t_tok.group(1))
-                else:
-                    # Fallback to parse from new "prompt eval time" and "eval time" lines (LMS 0.4.x style)
-                    prompt_tokens_match = re.search(
-                        r"prompt eval time =.* (\d+) tokens", content
-                    )
-                    if prompt_tokens_match:
-                        usage["prompt_tokens"] = int(prompt_tokens_match.group(1))
-
-                    completion_tokens_match = re.search(
-                        r"^\s*eval time =.* (\d+) tokens", content, re.MULTILINE
-                    )
-                    if completion_tokens_match:
-                        usage["completion_tokens"] = int(
-                            completion_tokens_match.group(1)
-                        )
-
-                    usage["total_tokens"] = (
-                        usage["prompt_tokens"] + usage["completion_tokens"]
-                    )
-            except Exception as e:
-                print(f"[-] Error parsing server log token usage: {e}")
-
-        # If we still have no tokens, or want to supplement, try chat log (Agent output)
-        if usage["total_tokens"] == 0 and chat_log_path and chat_log_path.exists():
-            try:
-                with open(chat_log_path, "r", encoding="utf-8", errors="ignore") as f:
-                    content = f.read()
-
-                # Heuristics for common agent token reporting patterns
-                # Example: "Tokens: 123 prompt, 45 completion"
-                # Example: "Usage: prompt_tokens=121, completion_tokens=40"
-                patterns = [
-                    (
-                        r'prompt_tokens["\']?\s*[:=]\s*(\d+)',
-                        r'completion_tokens["\']?\s*[:=]\s*(\d+)',
-                    ),
-                    (r"(\d+)\s+prompt tokens", r"(\d+)\s+completion tokens"),
-                    (r"Tokens used:\s*(\d+)\s*input,\s*(\d+)\s*output", None),
-                ]
-
-                for p_pat, c_pat in patterns:
-                    pm = re.search(p_pat, content, re.IGNORECASE)
-                    if pm:
-                        usage["prompt_tokens"] = int(pm.group(1))
-                        if c_pat:
-                            cm = re.search(c_pat, content, re.IGNORECASE)
-                            if cm:
-                                usage["completion_tokens"] = int(cm.group(1))
-                        elif pm.lastindex >= 2:
-                            usage["completion_tokens"] = int(pm.group(2))
-
-                        usage["total_tokens"] = (
-                            usage["prompt_tokens"] + usage["completion_tokens"]
-                        )
-                        if usage["total_tokens"] > 0:
-                            break
-            except Exception:
-                pass
-
-        return usage
+    ) -> TokenUsage:
+        """Return token usage from the most authoritative available source."""
+        return TokenUsageCollector.collect(log_path, chat_log_path)
 
     @staticmethod
     def get_prompt_processing_time(log_path: Path) -> float:
@@ -1467,6 +1166,8 @@ def generate_html_report(
 
 
 class AgentRunner:
+    supports_custom_provider = False
+
     def __init__(
         self,
         agent_name: str,
@@ -1475,6 +1176,7 @@ class AgentRunner:
         headless: bool,
         non_local: bool = False,
         restore_agent_config: bool = False,
+        custom_provider: Optional[str] = None,
     ):
         self.agent_name = agent_name
         self.model_name = model_name
@@ -1482,6 +1184,7 @@ class AgentRunner:
         self.headless = headless
         self.non_local = non_local
         self.restore_agent_config = restore_agent_config
+        self.custom_provider = custom_provider
 
         # Binary to name mapping
         self.binary_map = {
@@ -1681,27 +1384,22 @@ class AgentRunner:
         start_time = datetime.now()
 
         self.setup_workspace()
-
-        # specific agent configuration
         self.configure_agent()
-
-        # Start logging LMS server
         self.start_server_logger()
 
         try:
-            # Execute
             print(f"[*] Running {self.agent_name}...")
             self.execute_agent()
         finally:
-            # Stop logging
             self.stop_server_logger()
 
-        end_time = datetime.now()
-        duration_delta = end_time - start_time
-        duration_seconds = duration_delta.total_seconds()
+        duration_seconds = (datetime.now() - start_time).total_seconds()
+        self._execute_generated_python_artifacts()
+        report_path = self._generate_report(duration_seconds)
+        self._open_report(report_path)
 
-        # --- Automatic Script Execution ---
-        # Find any .py files generated by the agent and run them
+    def _execute_generated_python_artifacts(self) -> None:
+        """Execute root-level Python artifacts and capture their output."""
         for py_file in self.work_dir.glob("*.py"):
             if py_file.name == "evaluate_agent.py":
                 continue
@@ -1735,24 +1433,13 @@ class AgentRunner:
             except Exception as e:
                 print(f"[-] Execution of {py_file.name} failed: {e}")
 
-        # --- Metadata & Reporting ---
-        print("[*] Generating run report...")
-
-        # Metadata collection using centralized binary mapping
-
-        # Read prompt text
-        try:
-            with open(self.prompt_file, "r", encoding="utf-8") as f:
-                prompt_text = f.read()
-        except Exception:
-            prompt_text = "Error reading prompt file."
-
+    def _collect_metadata(self) -> Dict:
+        """Collect the report metadata for a completed evaluation."""
         model_info = MetadataCollector.parse_model_info(
             self.model_name, self.non_local, self.agent_name
         )
         model_info.update(self.get_model_extra_info())
-
-        metadata = {
+        return {
             "Hardware": MetadataCollector.get_hardware_info(),
             "Software": MetadataCollector.get_software_versions(
                 self.agent_binary, self.non_local
@@ -1767,16 +1454,27 @@ class AgentRunner:
             ),
         }
 
+    def _generate_report(self, duration_seconds: float) -> Path:
+        """Build the self-contained report for a completed evaluation."""
+        print("[*] Generating run report...")
+        try:
+            prompt_text = read_prompt_file(self.prompt_file)
+        except OSError:
+            prompt_text = "Error reading prompt file."
+
         report_path = generate_html_report(
-            self.work_dir, metadata, prompt_text, duration_seconds, self.agent_name
+            self.work_dir,
+            self._collect_metadata(),
+            prompt_text,
+            duration_seconds,
+            self.agent_name,
         )
-
         print(f"[+] Report generated: {report_path}")
+        return report_path
 
-        # Open the report (if we didn't just run a py script output, or maybe along with it?)
-        # User said: "In addition to these options on the page..."
-        # If output was .py, implementation plan said we still open summary.html because it contains the OUTPUT.TXT view.
-        # But process_output prints logic to console. Let's open the report too.
+    @staticmethod
+    def _open_report(report_path: Path) -> None:
+        """Open a generated report in the platform's default browser."""
         try:
             if sys.platform == "darwin":  # macOS
                 subprocess.run(["open", str(report_path)])
@@ -1859,32 +1557,14 @@ class AgentRunner:
 
 
 class GeminiRunner(AgentRunner):
+    supports_custom_provider = True
+
     _RUNNER_OUTPUT_FILES = {
         CHAT_SESSION_FILENAME,
         GEMINI_RESULT_FILENAME,
         SERVER_LOG_FILENAME,
         "summary.html",
     }
-
-    def __init__(
-        self,
-        agent_name: str,
-        model_name: str,
-        prompt_file: Path,
-        headless: bool,
-        non_local: bool = False,
-        restore_agent_config: bool = False,
-        custom_provider: Optional[str] = None,
-    ):
-        super().__init__(
-            agent_name,
-            model_name,
-            prompt_file,
-            headless,
-            non_local,
-            restore_agent_config,
-        )
-        self.custom_provider = custom_provider
 
     def get_model_extra_info(self) -> Dict[str, str]:
         """Read provider/model info from Gemini result JSON."""
@@ -2268,28 +1948,9 @@ class ClaudeRunner(AgentRunner):
 
 
 class VibeRunner(AgentRunner):
+    supports_custom_provider = True
+
     _original_active_model: Optional[str] = None
-    
-    def __init__(
-        self,
-        agent_name: str,
-        model_name: str,
-        prompt_file: Path,
-        headless: bool,
-        non_local: bool = False,
-        restore_agent_config: bool = False,
-        custom_provider: Optional[str] = None,
-    ):
-        super().__init__(
-            agent_name,
-            model_name,
-            prompt_file,
-            headless,
-            non_local,
-            restore_agent_config,
-        )
-        # Store provider for use in configure_agent
-        self.custom_provider = custom_provider
 
     def configure_agent(self):
         """Set vibe's active_model to match the --model and --provider passed to this script."""
@@ -2654,30 +2315,11 @@ class VibeRunner(AgentRunner):
 
 
 class OpenCodeRunner(AgentRunner):
+    supports_custom_provider = True
+
     NON_CHAT_MODEL_PATTERNS = (
         "whisper",
     )
-
-    def __init__(
-        self,
-        agent_name: str,
-        model_name: str,
-        prompt_file: Path,
-        headless: bool,
-        non_local: bool = False,
-        restore_agent_config: bool = False,
-        custom_provider: Optional[str] = None,
-    ):
-        super().__init__(
-            agent_name,
-            model_name,
-            prompt_file,
-            headless,
-            non_local,
-            restore_agent_config,
-        )
-        # Store provider for use in configure_agent
-        self.custom_provider = custom_provider
 
     def _model_ref(self) -> Optional[str]:
         """Return the OpenCode provider/model reference to request, if known."""
@@ -3428,25 +3070,7 @@ class CrushRunner(AgentRunner):
 
 
 class PiRunner(AgentRunner):
-    def __init__(
-        self,
-        agent_name: str,
-        model_name: str,
-        prompt_file: Path,
-        headless: bool,
-        non_local: bool = False,
-        restore_agent_config: bool = False,
-        custom_provider: Optional[str] = None,
-    ):
-        super().__init__(
-            agent_name,
-            model_name,
-            prompt_file,
-            headless,
-            non_local,
-            restore_agent_config,
-        )
-        self.custom_provider = custom_provider
+    supports_custom_provider = True
 
     def configure_agent(self):
         """Write ~/.pi/agent/models.json for the selected local OpenAI server."""
@@ -4066,33 +3690,36 @@ If any checker still reports failure, fix the files and rerun the checks before 
 # --- Factory ---
 
 
-def get_runner(agent: str) -> type[AgentRunner]:
-    mapping = {
-        "gemini": GeminiRunner,
-        "agy": GeminiRunner,
-        "antigravity": GeminiRunner,
-        "claude": ClaudeRunner,
-        "codex": CodexRunner,
-        "vibe": VibeRunner,
-        "mistral": VibeRunner,  # Backward compatibility alias
-        "opencode": OpenCodeRunner,
-        "crush": CrushRunner,
-        "pi": PiRunner,
-        "pi-wiggum": PiWiggumRunner,
-    }
-    return mapping.get(agent.lower())
+AGENT_RUNNERS = {
+    "gemini": GeminiRunner,
+    "agy": GeminiRunner,
+    "antigravity": GeminiRunner,
+    "claude": ClaudeRunner,
+    "codex": CodexRunner,
+    "vibe": VibeRunner,
+    "mistral": VibeRunner,  # Backward compatibility alias
+    "opencode": OpenCodeRunner,
+    "crush": CrushRunner,
+    "pi": PiRunner,
+    "pi-wiggum": PiWiggumRunner,
+}
+CLI_AGENT_CHOICES = tuple(name for name in AGENT_RUNNERS if name != "mistral")
+
+
+def get_runner(agent: str) -> Optional[type[AgentRunner]]:
+    return AGENT_RUNNERS.get(agent.lower())
 
 
 # --- Main ---
 
 
-def main():
+def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Evaluate local LLM agents.")
     parser.add_argument("--model", required=True, help="LM Studio model key/identifier")
     parser.add_argument(
         "--agent",
         required=True,
-        choices=["gemini", "agy", "antigravity", "claude", "codex", "vibe", "opencode", "crush", "pi", "pi-wiggum"],
+        choices=CLI_AGENT_CHOICES,
         help="Agent to evaluate (vibe = Mistral Vibe, gemini/agy = Antigravity CLI)",
     )
     parser.add_argument(
@@ -4121,17 +3748,19 @@ def main():
         action="store_true",
         help="Restore agent config (e.g. vibe active_model) to its original value after the run",
     )
+    return parser
 
-    args = parser.parse_args()
 
-    # 1. Get Runner
+def main(argv: Optional[List[str]] = None):
+    args = build_argument_parser().parse_args(argv)
+
     runner_cls = get_runner(args.agent)
     if not runner_cls:
         print(f"[-] Unknown agent: {args.agent}")
         sys.exit(1)
 
-    # Warn if --provider is used with --non-local for runners that do not use custom_provider
-    if args.provider and args.non_local and runner_cls not in (GeminiRunner, OpenCodeRunner, VibeRunner, PiRunner, PiWiggumRunner):
+    # Warn if --provider is used with --non-local for runners that do not use it.
+    if args.provider and args.non_local and not runner_cls.supports_custom_provider:
         print("[!] Warning: --provider flag is ignored when using --non-local mode")
     elif is_llama_server_provider(args.provider):
         use_llama_server_provider()
@@ -4144,30 +3773,18 @@ def main():
         print(f"[-] Prompt file not found: {args.prompt_file}")
         sys.exit(1)
 
-    # Provider names are used directly by Pi, Gemini, OpenCode and Vibe.
-    if runner_cls in (GeminiRunner, OpenCodeRunner, VibeRunner, PiRunner, PiWiggumRunner) and args.provider:
-        runner = runner_cls(
-            args.agent,
-            args.model,
-            args.prompt_file,
-            args.headless,
-            args.non_local,
-            args.restore_agent_config,
-            custom_provider=args.provider,
-        )
-    else:
-        runner = runner_cls(
-            args.agent,
-            args.model,
-            args.prompt_file,
-            args.headless,
-            args.non_local,
-            args.restore_agent_config,
-        )
+    runner = runner_cls(
+        args.agent,
+        args.model,
+        args.prompt_file,
+        args.headless,
+        args.non_local,
+        args.restore_agent_config,
+        custom_provider=args.provider if runner_cls.supports_custom_provider else None,
+    )
 
     runner.confirm_workspace_overwrite()
 
-    # 2. Load Model (Local only)
     skip_local_model_load = False
     if args.agent == "opencode" and not args.non_local and not args.provider:
         provider_name = OpenCodeRunner._resolve_global_provider_for_model(args.model)
@@ -4176,7 +3793,6 @@ def main():
     if not args.non_local and not args.provider and not skip_local_model_load:
         load_lms_model(args.model)
 
-    # 3. Run
     runner.run()
 
 
