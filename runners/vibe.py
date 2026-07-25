@@ -15,6 +15,7 @@ from evaluation_core import (
     safe_stdout_write,
 )
 from evaluation_metrics import VIBE_RESULT_FILENAME
+from runner_events import parse_vibe_event
 
 class VibeRunner(AgentRunner):
     supports_custom_provider = True
@@ -302,20 +303,13 @@ class VibeRunner(AgentRunner):
 
                 try:
                     event = json.loads(stripped)
-                    role = event.get("role", "")
-
-                    # Extract readable text content for chat log and console
-                    content = event.get("content", "")
-                    if content:
-                        # Write content to stdout and log
-                        # Skip system prompt content to reduce noise
-                        if role != "system":
-                            safe_stdout_write(content)
+                    parsed = parse_vibe_event(event)
+                    if parsed.text:
+                        safe_stdout_write(parsed.text)
+                    if parsed.log_raw:
                         log_file.write(line)
                         log_file.flush()
-
-                    # Count assistant messages as turns
-                    if role == "assistant":
+                    if parsed.turn_completed:
                         num_turns += 1
 
                 except json.JSONDecodeError:

@@ -1,0 +1,2 @@
+{"type":"USER_INPUT","content":"build"}
+{"type":"PLANNER_RESPONSE","content":"done","thinking":"think","tool_calls":[{"name":"write_file","args":{"path":"x"}}]}

@@ -1,0 +1,4 @@
+{"type":"message_update","assistantMessageEvent":{"type":"text_delta","delta":"Working"}}
+{"type":"message_update","assistantMessageEvent":{"type":"tool_call_start","name":"write"}}
+{"type":"message_end","message":{"role":"assistant","provider":"test-provider","model":"test-model","usage":{"input":20,"output":7,"cacheRead":4,"cacheWrite":2,"cost":{"total":0.03}}}}
+{"type":"agent_end","summary":"done"}

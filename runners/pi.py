@@ -18,6 +18,7 @@ from evaluation_core import (
     send_stdin,
 )
 from evaluation_metrics import PI_RESULT_FILENAME, PI_WIGGUM_RESULT_FILENAME
+from runner_events import parse_pi_event
 
 class PiRunner(AgentRunner):
     supports_custom_provider = True
@@ -228,52 +229,25 @@ class PiRunner(AgentRunner):
                     continue
                 try:
                     event = json.loads(stripped)
-                    event_type = event.get("type", "")
-
-                    if event_type == "message_end":
-                        msg = event.get("message", {})
-                        if msg.get("role") == "assistant":
-                            # Extract token usage
-                            usage = msg.get("usage", {})
-                            total_input += usage.get("input", 0)
-                            total_output += usage.get("output", 0)
-                            cache_read += usage.get("cacheRead", 0)
-                            cache_write += usage.get("cacheWrite", 0)
-                            cost_obj = usage.get("cost", {})
-                            if isinstance(cost_obj, dict):
-                                total_cost += cost_obj.get("total", 0)
-                            elif isinstance(cost_obj, (int, float)):
-                                total_cost += cost_obj
-                            num_turns += 1
-                            # Capture provider/model from first assistant message
-                            if pi_provider is None:
-                                pi_provider = msg.get("provider")
-                                pi_model = msg.get("model")
-
-                    elif event_type == "message_update":
-                        # Extract text deltas for the chat log and console
-                        ae = event.get("assistantMessageEvent", {})
-                        ae_type = ae.get("type", "")
-                        if ae_type == "text_delta":
-                            delta = ae.get("delta", "")
-                            if delta:
-                                safe_stdout_write(delta)
-                                log_file.write(delta)
-                                log_file.flush()
-                        elif ae_type == "tool_call_start":
-                            tool_name = ae.get("name", "unknown")
-                            info_line = f"\n[Tool: {tool_name}]\n"
-                            safe_stdout_write(info_line)
-                            log_file.write(info_line)
-                            log_file.flush()
-
-                    elif event_type == "agent_end":
-                        # Final summary — log as-is for debugging
+                    parsed = parse_pi_event(event)
+                    if parsed.text:
+                        safe_stdout_write(parsed.text)
+                        log_file.write(parsed.text)
+                        log_file.flush()
+                    if parsed.usage:
+                        total_input += parsed.usage.get("input_tokens", 0)
+                        total_output += parsed.usage.get("output_tokens", 0)
+                        cache_read += parsed.usage.get("cache_read_tokens", 0)
+                        cache_write += parsed.usage.get("cache_write_tokens", 0)
+                        total_cost += parsed.usage.get("cost_usd", 0)
+                    if parsed.turn_completed:
+                        num_turns += 1
+                        if pi_provider is None:
+                            pi_provider = parsed.provider_id
+                            pi_model = parsed.model_id
+                    if parsed.log_raw:
                         log_file.write(line)
                         log_file.flush()
-                    else:
-                        # Other events (session, agent_start, turn_start, etc.)
-                        pass
 
                 except json.JSONDecodeError:
                     # Non-JSON line, pass through

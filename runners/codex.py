@@ -16,6 +16,12 @@ from evaluation_core import (
     send_stdin,
 )
 from evaluation_metrics import CODEX_RESULT_FILENAME
+from runner_events import (
+    codex_usage_from_obj,
+    extract_codex_readable_event,
+    extract_codex_session_id,
+    find_codex_usage_objects,
+)
 
 class CodexRunner(AgentRunner):
     @staticmethod
@@ -73,136 +79,19 @@ class CodexRunner(AgentRunner):
 
     @staticmethod
     def _usage_from_obj(obj: dict) -> Dict[str, int]:
-        """Normalize the token usage shapes emitted by different Codex CLI versions."""
-        if not isinstance(obj, dict):
-            return {}
-
-        input_tokens = (
-            obj.get("input_tokens")
-            or obj.get("prompt_tokens")
-            or obj.get("input")
-            or obj.get("prompt")
-            or 0
-        )
-        output_tokens = (
-            obj.get("output_tokens")
-            or obj.get("completion_tokens")
-            or obj.get("output")
-            or obj.get("completion")
-            or 0
-        )
-        reasoning_tokens = (
-            obj.get("reasoning_output_tokens")
-            or obj.get("reasoning_tokens")
-            or obj.get("reasoning")
-            or 0
-        )
-        cache_read = (
-            obj.get("cached_input_tokens")
-            or obj.get("cache_read_input_tokens")
-            or obj.get("cache_read_tokens")
-            or obj.get("cached")
-            or 0
-        )
-
-        total_tokens = (
-            obj.get("total_tokens")
-            or obj.get("total")
-            or (input_tokens + output_tokens)
-        )
-
-        return {
-            "input_tokens": int(input_tokens or 0),
-            "output_tokens": int(output_tokens or 0),
-            "total_tokens": int(total_tokens or 0),
-            "reasoning_tokens": int(reasoning_tokens or 0),
-            "cache_read_tokens": int(cache_read or 0),
-        }
+        return codex_usage_from_obj(obj)
 
     @staticmethod
     def _find_usage_objects(event: dict) -> List[dict]:
-        found = []
-
-        def visit(value):
-            if isinstance(value, dict):
-                if isinstance(value.get("usage"), dict):
-                    found.append(value["usage"])
-                # Some JSONL variants put token fields directly under a stats object.
-                if any(
-                    key in value
-                    for key in (
-                        "input_tokens",
-                        "prompt_tokens",
-                        "output_tokens",
-                        "completion_tokens",
-                        "total_tokens",
-                    )
-                ):
-                    found.append(value)
-                for child in value.values():
-                    visit(child)
-            elif isinstance(value, list):
-                for child in value:
-                    visit(child)
-
-        visit(event)
-        return found
+        return find_codex_usage_objects(event)
 
     @staticmethod
     def _extract_session_id(event: dict) -> Optional[str]:
-        for key in ("session_id", "thread_id", "conversation_id", "id"):
-            value = event.get(key)
-            if isinstance(value, str) and value:
-                return value
-        for key in ("session", "thread", "conversation"):
-            value = event.get(key)
-            if isinstance(value, dict):
-                nested = CodexRunner._extract_session_id(value)
-                if nested:
-                    return nested
-        return None
+        return extract_codex_session_id(event)
 
     @staticmethod
     def _extract_readable_event(event: dict) -> Optional[str]:
-        event_type = str(event.get("type", event.get("event", "")))
-
-        def text_from_item(item):
-            if not isinstance(item, dict):
-                return None
-            item_type = str(item.get("type", item.get("kind", ""))).lower()
-            role = str(item.get("role", "")).lower()
-            if role == "user":
-                return None
-            if any(name in item_type for name in ("tool", "command")):
-                name = item.get("name") or item.get("command") or item_type
-                return f"\n[Tool: {name}]\n"
-            if any(name in item_type for name in ("assistant", "agent", "message")):
-                for key in ("text", "content", "message", "delta"):
-                    value = item.get(key)
-                    if isinstance(value, str) and value:
-                        return value
-                    if isinstance(value, list):
-                        pieces = []
-                        for part in value:
-                            if isinstance(part, dict):
-                                part_text = part.get("text") or part.get("content")
-                                if isinstance(part_text, str):
-                                    pieces.append(part_text)
-                        if pieces:
-                            return "".join(pieces)
-            return None
-
-        item_text = text_from_item(event.get("item"))
-        if item_text:
-            return item_text
-
-        if "message" in event_type or "agent" in event_type or "assistant" in event_type:
-            for key in ("text", "content", "message", "delta"):
-                value = event.get(key)
-                if isinstance(value, str) and value:
-                    return value
-
-        return None
+        return extract_codex_readable_event(event)
 
     def execute_agent(self):
         if not self.non_local:
@@ -301,23 +190,23 @@ class CodexRunner(AgentRunner):
                     events_file.flush()
 
                     if session_id is None:
-                        session_id = self._extract_session_id(event)
+                        session_id = extract_codex_session_id(event)
 
-                    readable = self._extract_readable_event(event)
+                    readable = extract_codex_readable_event(event)
                     if readable:
                         safe_stdout_write(readable)
                         log_file.write(readable)
                         log_file.flush()
 
                     event_type = str(event.get("type", event.get("event", ""))).lower()
-                    usage_objects = self._find_usage_objects(event)
+                    usage_objects = find_codex_usage_objects(event)
                     if usage_objects and (
                         "turn" in event_type
                         or "complete" in event_type
                         or "usage" in event_type
                         or event.get("usage")
                     ):
-                        usage = self._usage_from_obj(usage_objects[0])
+                        usage = codex_usage_from_obj(usage_objects[0])
                         if usage["total_tokens"] > 0:
                             # Codex reports usage at turn boundaries. If a future CLI version
                             # reports cumulative totals, use the positive delta instead of

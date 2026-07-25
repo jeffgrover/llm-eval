@@ -1,7 +1,6 @@
 """Antigravity/Gemini CLI adapter."""
 
 import json
-import math
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -16,6 +15,7 @@ from evaluation_core import (
     safe_stdout_write,
 )
 from evaluation_metrics import GEMINI_RESULT_FILENAME
+from runner_events import parse_gemini_transcript
 
 class GeminiRunner(AgentRunner):
     supports_custom_provider = True
@@ -47,7 +47,6 @@ class GeminiRunner(AgentRunner):
             return {}
 
     def _get_agy_transcript_stats(self, work_dir: Path, start_time: datetime) -> Dict[str, int]:
-        import math
         stats = {
             "input_tokens": 0,
             "output_tokens": 0,
@@ -89,45 +88,18 @@ class GeminiRunner(AgentRunner):
         if not transcript_path or not transcript_path.exists():
             return stats
 
-        turns = 0
-        tool_calls = 0
-        input_chars = 0
-        output_chars = 0
-
+        records = []
         try:
             with open(transcript_path, "r", encoding="utf-8", errors="ignore") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
                         continue
-                    data = json.loads(line)
-                    stype = data.get("type", "")
-                    if stype == "USER_INPUT":
-                        input_chars += len(data.get("content", ""))
-                    elif stype == "PLANNER_RESPONSE":
-                        turns += 1
-                        content = data.get("content", "")
-                        thinking = data.get("thinking", "")
-                        output_chars += len(content) + len(thinking)
-                        tc = data.get("tool_calls", [])
-                        if isinstance(tc, list):
-                            tool_calls += len(tc)
-                            for t in tc:
-                                if isinstance(t, dict):
-                                    output_chars += len(json.dumps(t.get("args", {})))
+                    records.append(json.loads(line))
         except Exception as e:
             print(f"[-] Error parsing transcript file {transcript_path}: {e}")
 
-        input_tokens = math.ceil(input_chars / 4.0) if input_chars else 0
-        output_tokens = math.ceil(output_chars / 4.0) if output_chars else 0
-
-        stats["input_tokens"] = input_tokens
-        stats["output_tokens"] = output_tokens
-        stats["total_tokens"] = input_tokens + output_tokens
-        stats["tool_calls"] = tool_calls
-        stats["num_turns"] = max(turns, 1)
-
-        return stats
+        return parse_gemini_transcript(records)
 
     def _build_agy_command(self, agy_bin: str, prompt_content: str) -> List[str]:
         """Build an isolated AGY command whose project is the evaluation workspace."""

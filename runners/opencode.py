@@ -20,6 +20,7 @@ from evaluation_core import (
     safe_stdout_write,
 )
 from evaluation_metrics import OPENCODE_RESULT_FILENAME
+from runner_events import parse_opencode_event
 
 class OpenCodeRunner(AgentRunner):
     supports_custom_provider = True
@@ -285,44 +286,23 @@ class OpenCodeRunner(AgentRunner):
                     continue
                 try:
                     event = json.loads(stripped)
-                    event_type = event.get("type", "")
-
-                    # Extract readable text from JSON events
-                    if event_type == "text":
-                        text = event.get("content", event.get("text", ""))
-                        if text:
-                            safe_stdout_write(text)
-                            log_file.write(text)
-                            log_file.flush()
-                    elif event_type == "tool_call":
-                        tool_name = event.get("name", event.get("tool", "unknown"))
-                        info_line = f"\n[Tool: {tool_name}]\n"
-                        safe_stdout_write(info_line)
-                        log_file.write(info_line)
+                    parsed = parse_opencode_event(event)
+                    if parsed.text:
+                        safe_stdout_write(parsed.text)
+                        log_file.write(parsed.text)
                         log_file.flush()
-                    elif event_type == "step_finish":
-                        # Accumulate per-step token usage
-                        part = event.get("part", {})
-                        tokens = part.get("tokens", {})
-                        total_input += tokens.get("input", 0)
-                        total_output += tokens.get("output", 0)
-                        total_reasoning += tokens.get("reasoning", 0)
-                        total_cost += part.get("cost", 0)
-                        cache = tokens.get("cache", {})
-                        cache_read += cache.get("read", 0)
-                        cache_write += cache.get("write", 0)
+                    if parsed.usage:
+                        total_input += parsed.usage.get("input_tokens", 0)
+                        total_output += parsed.usage.get("output_tokens", 0)
+                        total_reasoning += parsed.usage.get("reasoning_tokens", 0)
+                        total_cost += parsed.usage.get("cost_usd", 0)
+                        cache_read += parsed.usage.get("cache_read_tokens", 0)
+                        cache_write += parsed.usage.get("cache_write_tokens", 0)
+                    if parsed.turn_completed:
                         num_turns += 1
-                        log_file.write(line)
-                        log_file.flush()
-                    elif event_type == "error":
-                        error = event.get("error", {})
-                        data = error.get("data", {})
-                        message = data.get("message") or error.get("message") or stripped
-                        error_messages.append(str(message))
-                        log_file.write(line)
-                        log_file.flush()
-                    else:
-                        # Log other event types as raw JSON for debugging
+                    if parsed.error:
+                        error_messages.append(parsed.error)
+                    if parsed.log_raw:
                         log_file.write(line)
                         log_file.flush()
 

@@ -12,6 +12,7 @@ from evaluation_core import (
     send_stdin,
 )
 from evaluation_metrics import CLAUDE_RESULT_FILENAME
+from runner_events import parse_claude_event
 
 class ClaudeRunner(AgentRunner):
     def execute_agent(self):
@@ -95,33 +96,14 @@ class ClaudeRunner(AgentRunner):
                         elif subtype == "thinking_tokens":
                             safe_stdout_write(".")
 
-                    elif event_type == "assistant":
-                        message = event.get("message", {})
-                        for block in message.get("content", []):
-                            if block.get("type") == "text":
-                                text = block.get("text", "")
-                                safe_stdout_write(text)
-                                log_file.write(text)
-                                log_file.flush()
-                            elif block.get("type") == "tool_use":
-                                tool_name = block.get("name", "unknown")
-                                tool_input = block.get("input", {})
-                                if tool_name in ("Write", "Edit"):
-                                    file_path = tool_input.get("file_path", "")
-                                    info_line = f"\n[Tool: {tool_name}] {file_path}\n"
-                                else:
-                                    info_line = f"\n[Tool: {tool_name}]\n"
-                                safe_stdout_write(info_line)
-                                log_file.write(info_line)
-                                log_file.flush()
-
-                    elif event_type == "result":
-                        result_data = event
-                        result_text = event.get("result", "")
-                        if result_text:
-                            safe_stdout_write("\n" + result_text + "\n")
-                            log_file.write("\n" + result_text + "\n")
+                    else:
+                        parsed = parse_claude_event(event)
+                        if parsed.text:
+                            safe_stdout_write(parsed.text)
+                            log_file.write(parsed.text)
                             log_file.flush()
+                        if parsed.result is not None:
+                            result_data = parsed.result
 
                 except json.JSONDecodeError:
                     # Non-JSON line, pass through as-is
