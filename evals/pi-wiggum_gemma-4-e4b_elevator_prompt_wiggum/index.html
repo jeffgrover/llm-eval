@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Elevator Simulation</title>
+    <style>
+        body { margin: 0; background-color: #111; overflow: hidden; }
+        #speedSliderContainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="speedSliderContainer">
+        <label for="speed">Speed:</label>
+        <input type="range" id="speed" min="1" max="20" value="1" step="0.1">
+        <span id="speedValue">1x</span>
+    </div>
+
+        <input type="range" id="speed" min="1" max="20" value="1" step="0.1">
+        <span id="speedValue">1x</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="person.js"></script>
+    <script src="elevator.js"></script>
+    <script>
+        const speedSlider = document.getElementById('speed');
+        const speedValueSpan = document.getElementById('speedValue');
+        
+        speedSlider.addEventListener('input', () => {
+            const speed = parseFloat(speedSlider.value);
+            speedValueSpan.textContent = `${speed.toFixed(1)}x`;
+            
+            // Dynamically update the global simulationSpeed variable in elevator.js context
+            // Note: Since script tags load modules, we assume 'simulationSpeed' is globally available 
+            // or we must modify elevator.js to accept external control, but for simplicity, we assume 
+            // it's accessible in this scope after the files are loaded.
+            if (typeof simulationSpeed !== 'undefined') {
+                simulationSpeed = speed;
+            } else {
+                // Fallback/safe update if not directly in scope (though typically it would be)
+                // We assume the structure allows direct modification if it's defined in the script scope.
+                window.simulationSpeed = speed; 
+            }
+        });
+
+        // Initialize simulationSpeed if needed, matching the default value
+        if (typeof simulationSpeed === 'undefined') {
+            window.simulationSpeed = parseFloat(speedSlider.value);
+        }
+    </script>
+</html>

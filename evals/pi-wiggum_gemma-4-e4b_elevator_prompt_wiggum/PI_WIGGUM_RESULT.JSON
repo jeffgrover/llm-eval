@@ -1,0 +1,172 @@
+{
+  "input_tokens": 217084,
+  "output_tokens": 59124,
+  "total_tokens": 276208,
+  "cache_read_tokens": 1400432,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 99,
+  "attempts": 7,
+  "passed": true,
+  "status": "success",
+  "terminal_reason": "completed",
+  "elapsed_seconds": 2551.639,
+  "checker_summaries": [
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n  - elevator.js: exiting must use scene.attach(...) to preserve world position\n  - elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=342 objects=52 changes=0\n  - static: elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n  - static: elevator.js: exiting must use scene.attach(...) to preserve world position\n  - static: elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "static_errors": [
+        "elevator.js: boarding must use elevatorCar.attach(...) to preserve world position",
+        "elevator.js: exiting must use scene.attach(...) to preserve world position",
+        "elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 342,
+      "scene_object_count": 52,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js:207 |     console.log(\\`Person boarded successfully.\\`); |                 ^ | SyntaxError: Invalid or unexpected token\n  - elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n  - elevator.js: exiting must use scene.attach(...) to preserve world position\n  - elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n  - static: elevator.js:207 |     console.log(\\`Person boarded successfully.\\`); |                 ^ | SyntaxError: Invalid or unexpected token\n  - static: elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n  - static: elevator.js: exiting must use scene.attach(...) to preserve world position\n  - static: elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n  - page: Invalid or unexpected token\n"
+      },
+      "static_errors": [
+        "elevator.js:207 |     console.log(\\`Person boarded successfully.\\`); |                 ^ | SyntaxError: Invalid or unexpected token",
+        "elevator.js: boarding must use elevatorCar.attach(...) to preserve world position",
+        "elevator.js: exiting must use scene.attach(...) to preserve world position",
+        "elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern"
+      ],
+      "console_errors": [],
+      "page_errors": [
+        "Invalid or unexpected token"
+      ],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js:207 |     console.log(\\`Person boarded successfully.\\`); |                 ^ | SyntaxError: Invalid or unexpected token\n  - elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n  - elevator.js: exiting must use scene.attach(...) to preserve world position\n  - elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=0 nonblank=false frames=0 objects=0 changes=0\n  - static: elevator.js:207 |     console.log(\\`Person boarded successfully.\\`); |                 ^ | SyntaxError: Invalid or unexpected token\n  - static: elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n  - static: elevator.js: exiting must use scene.attach(...) to preserve world position\n  - static: elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern\n  - page: Invalid or unexpected token\n"
+      },
+      "static_errors": [
+        "elevator.js:207 |     console.log(\\`Person boarded successfully.\\`); |                 ^ | SyntaxError: Invalid or unexpected token",
+        "elevator.js: boarding must use elevatorCar.attach(...) to preserve world position",
+        "elevator.js: exiting must use scene.attach(...) to preserve world position",
+        "elevator.js: must auto-start startSimulation with the DOMContentLoaded pattern"
+      ],
+      "console_errors": [],
+      "page_errors": [
+        "Invalid or unexpected token"
+      ],
+      "loaded": true,
+      "nonblank_canvas": false,
+      "animation_frames": 0,
+      "scene_object_count": 0,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 2,
+        "output": ": errors, static check written\n  - elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": errors, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=341 objects=52 changes=0\n  - static: elevator.js: boarding must use elevatorCar.attach(...) to preserve world position\n"
+      },
+      "static_errors": [
+        "elevator.js: boarding must use elevatorCar.attach(...) to preserve world position"
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 341,
+      "scene_object_count": 52,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": no-motion, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=341 objects=52 changes=0\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 341,
+      "scene_object_count": 52,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": false,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": no-motion, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=342 objects=52 changes=0\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 342,
+      "scene_object_count": 52,
+      "dynamic_changes": 0
+    },
+    {
+      "passed": true,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": ok, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=341 objects=52 changes=332\n"
+      },
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 341,
+      "scene_object_count": 52,
+      "dynamic_changes": 332
+    }
+  ],
+  "provider_id": "local-b70",
+  "model_id": "gemma-4-e4b",
+  "duration_ms": 2551639
+}

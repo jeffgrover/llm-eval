@@ -1,0 +1,13 @@
+{
+  "checked_at": "2026-07-05T22:05:00.467Z",
+  "files_checked": [
+    "evals/pi_qwen3_6-35b-a3b_elevator_prompt_wiggum/person.js",
+    "evals/pi_qwen3_6-35b-a3b_elevator_prompt_wiggum/elevator.js"
+  ],
+  "static_errors": [
+    "evals/pi_qwen3_6-35b-a3b_elevator_prompt_wiggum/person.js: createPerson must return the person THREE.Group",
+    "evals/pi_qwen3_6-35b-a3b_elevator_prompt_wiggum/elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+    "evals/pi_qwen3_6-35b-a3b_elevator_prompt_wiggum/elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;"
+  ],
+  "static_warnings": []
+}

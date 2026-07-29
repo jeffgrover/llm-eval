@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-07-05T22:06:36.520Z",
+  "url": "http://127.0.0.1:39827/evals/pi_gemma-4-e4b_elevator_prompt_wiggum/index.html",
+  "static_errors": [
+    "evals/pi_gemma-4-e4b_elevator_prompt_wiggum/elevator.js: must store left door as elevatorCar.leftDoor = leftDoor;",
+    "evals/pi_gemma-4-e4b_elevator_prompt_wiggum/elevator.js: must store right door as elevatorCar.rightDoor = rightDoor;",
+    "evals/pi_gemma-4-e4b_elevator_prompt_wiggum/elevator.js: boarding must use elevatorCar.attach(...) to preserve world position",
+    "evals/pi_gemma-4-e4b_elevator_prompt_wiggum/elevator.js: exiting must use scene.attach(...) to preserve world position"
+  ],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/pi_gemma-4-e4b_elevator_prompt_wiggum/person.js",
+    "evals/pi_gemma-4-e4b_elevator_prompt_wiggum/elevator.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 344,
+  "scene_object_count": 6,
+  "dynamic_changes": 0,
+  "canvas_changed": false,
+  "duration_ms": 5869,
+  "warnings": []
+}
