@@ -104,6 +104,22 @@ class EvaluationReportTests(unittest.TestCase):
             self.assertIn("tokens/sec (estimated)", report)
             self.assertIn(">Not reported</span>", report)
 
+    def test_report_includes_mobile_responsive_layout_rules(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            report_path = generate_html_report(
+                Path(temp_dir),
+                self.metadata(),
+                "build it",
+                duration_seconds=10.0,
+                agent_name="codex",
+            )
+            report = report_path.read_text(encoding="utf-8")
+
+            self.assertIn("@media (max-width: 900px)", report)
+            self.assertIn(".content-area { flex-direction: column; height: auto; }", report)
+            self.assertIn(".meta-grid { grid-template-columns: 1fr;", report)
+            self.assertIn("overflow-wrap: anywhere;", report)
+
 
 if __name__ == "__main__":
     unittest.main()
