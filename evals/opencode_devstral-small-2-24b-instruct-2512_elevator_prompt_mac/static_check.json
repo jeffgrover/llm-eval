@@ -1,9 +1,0 @@
-{
-  "checked_at": "2026-07-06T06:42:10.900Z",
-  "files_checked": [
-    "evals/opencode_devstral-small-2-24b-instruct-2512_elevator_prompt_mac/person.js",
-    "evals/opencode_devstral-small-2-24b-instruct-2512_elevator_prompt_mac/elevator.js"
-  ],
-  "static_errors": [],
-  "static_warnings": []
-}

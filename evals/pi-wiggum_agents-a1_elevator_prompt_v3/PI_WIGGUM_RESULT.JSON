@@ -1,0 +1,40 @@
+{
+  "input_tokens": 30428,
+  "output_tokens": 8884,
+  "total_tokens": 39312,
+  "cache_read_tokens": 454352,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 19,
+  "attempts": 1,
+  "passed": true,
+  "status": "success",
+  "terminal_reason": "completed",
+  "elapsed_seconds": 224.564,
+  "checker_summaries": [
+    {
+      "passed": true,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": ok, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=272 objects=79 changes=130\n"
+      },
+      "logic_test": null,
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 272,
+      "scene_object_count": 79,
+      "dynamic_changes": 130
+    }
+  ],
+  "provider_id": "local-b70",
+  "model_id": "agents-a1",
+  "duration_ms": 224564
+}

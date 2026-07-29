@@ -13,6 +13,13 @@ TARGET_ARTIFACT_BYTES = 45 * 1000 * 1000
 TRUNCATE_HEAD_LINES = 100
 TRUNCATE_TAIL_LINES = 100
 TRUNCATION_MARKER_PREFIX = "LLM-EVAL-TRUNCATED"
+WIGGUM_ATTEMPT_PREFIX = "PI_WIGGUM_ATTEMPT_"
+WIGGUM_RETAIN_HEAD_LINES = 5
+WIGGUM_RETAIN_TAIL_LINES = 5
+WIGGUM_TARGET_BYTES = 1 * 1000 * 1000
+TRUNCATION_COUNTS_PATTERN = re.compile(
+    rb"removed ([\d,]+) lines \(([\d,]+) bytes\)"
+)
 
 RESULT_FILES = (
     "CLAUDE_RESULT.JSON",
@@ -70,7 +77,7 @@ def read_text(path: Path, limit: Optional[int] = None) -> str:
 def truncation_marker(path: Path, removed_lines: int, removed_bytes: int, note: str = "") -> bytes:
     message = (
         f"{TRUNCATION_MARKER_PREFIX}: removed {removed_lines:,} lines "
-        f"({removed_bytes:,} bytes) from the middle of this oversized generated file."
+        f"({removed_bytes:,} bytes) from the middle of this generated file."
     )
     if note:
         message = f"{message} {note}"
@@ -86,40 +93,71 @@ def truncation_marker(path: Path, removed_lines: int, removed_bytes: int, note: 
     return f"\n{message}\n".encode("utf-8")
 
 
-def fit_truncated_content(path: Path, content: bytes, removed_lines: int, original_size: int) -> bytes:
-    if len(content) <= TARGET_ARTIFACT_BYTES:
+def fit_truncated_content(
+    path: Path,
+    content: bytes,
+    removed_lines: int,
+    original_size: int,
+    target_bytes: int = TARGET_ARTIFACT_BYTES,
+) -> bytes:
+    if len(content) <= target_bytes:
         return content
 
     marker_token = TRUNCATION_MARKER_PREFIX.encode("utf-8")
     content = b"".join(line for line in content.splitlines(keepends=True) if marker_token not in line)
     placeholder = truncation_marker(path, removed_lines, 0, "Retained edge content was byte-capped because one or more lines were extremely large.")
-    side_budget = max((TARGET_ARTIFACT_BYTES - len(placeholder)) // 2, 0)
+    side_budget = max((target_bytes - len(placeholder)) // 2, 0)
     content = content[:side_budget] + placeholder + content[-side_budget:]
     removed_bytes = original_size - len(content)
     marker = truncation_marker(path, removed_lines, removed_bytes, "Retained edge content was byte-capped because one or more lines were extremely large.")
-    side_budget = max((TARGET_ARTIFACT_BYTES - len(marker)) // 2, 0)
+    side_budget = max((target_bytes - len(marker)) // 2, 0)
     return content[:side_budget] + marker + content[-side_budget:]
 
 
-def shorten_oversized_file(path: Path) -> Optional[Tuple[int, int, int]]:
+def shorten_oversized_file(
+    path: Path,
+    *,
+    max_artifact_bytes: int = MAX_ARTIFACT_BYTES,
+    target_artifact_bytes: int = TARGET_ARTIFACT_BYTES,
+    head_lines: int = TRUNCATE_HEAD_LINES,
+    tail_lines: int = TRUNCATE_TAIL_LINES,
+    recompact_truncated: bool = False,
+) -> Optional[Tuple[int, int, int]]:
     original_size = path.stat().st_size
-    if original_size <= MAX_ARTIFACT_BYTES:
+    if original_size <= max_artifact_bytes:
         return None
 
     head: List[bytes] = []
-    tail = deque(maxlen=TRUNCATE_TAIL_LINES)
+    tail = deque(maxlen=tail_lines)
     total_lines = 0
+    existing_marker: Optional[bytes] = None
+    marker_token = TRUNCATION_MARKER_PREFIX.encode("utf-8")
 
     with path.open("rb") as f:
         for line in f:
+            if marker_token in line:
+                existing_marker = line
+                continue
             total_lines += 1
-            if len(head) < TRUNCATE_HEAD_LINES:
+            if len(head) < head_lines:
                 head.append(line)
             tail.append(line)
 
-    if total_lines <= TRUNCATE_HEAD_LINES + TRUNCATE_TAIL_LINES:
+    if existing_marker and not recompact_truncated:
+        return None
+
+    retained_line_count = head_lines + tail_lines
+    if total_lines <= retained_line_count:
+        if existing_marker:
+            return None
         content = path.read_bytes()
-        capped = fit_truncated_content(path, content, 0, original_size)
+        capped = fit_truncated_content(
+            path,
+            content,
+            0,
+            original_size,
+            target_artifact_bytes,
+        )
         if len(capped) >= len(content):
             return None
         tmp_path = path.with_name(f"{path.name}.tmp-truncated")
@@ -127,22 +165,41 @@ def shorten_oversized_file(path: Path) -> Optional[Tuple[int, int, int]]:
         tmp_path.replace(path)
         return original_size, path.stat().st_size, 0
 
-    if TRUNCATION_MARKER_PREFIX.encode("utf-8") in b"".join(head):
-        return None
+    tail_content = list(tail)
+    removed_lines = total_lines - len(head) - len(tail_content)
+    previous_removed_lines = 0
+    previous_removed_bytes = 0
+    if existing_marker:
+        match = TRUNCATION_COUNTS_PATTERN.search(existing_marker)
+        if match:
+            previous_removed_lines = int(match.group(1).replace(b",", b""))
+            previous_removed_bytes = int(match.group(2).replace(b",", b""))
+        removed_lines += previous_removed_lines
 
-    tail_lines = list(tail)
-    removed_lines = total_lines - len(head) - len(tail_lines)
     marker = truncation_marker(path, removed_lines, 0)
-    new_content = b"".join(head) + marker + b"".join(tail_lines)
-    removed_bytes = original_size - len(new_content)
+    new_content = b"".join(head) + marker + b"".join(tail_content)
+    removed_bytes = previous_removed_bytes + original_size - len(new_content)
     marker = truncation_marker(path, removed_lines, removed_bytes)
-    new_content = b"".join(head) + marker + b"".join(tail_lines)
-    new_content = fit_truncated_content(path, new_content, removed_lines, original_size)
+    new_content = b"".join(head) + marker + b"".join(tail_content)
+    new_content = fit_truncated_content(
+        path,
+        new_content,
+        removed_lines,
+        original_size,
+        target_artifact_bytes,
+    )
 
     tmp_path = path.with_name(f"{path.name}.tmp-truncated")
     tmp_path.write_bytes(new_content)
     tmp_path.replace(path)
     return original_size, path.stat().st_size, removed_lines
+
+
+def is_wiggum_attempt_log(path: Path) -> bool:
+    return (
+        path.name.startswith(WIGGUM_ATTEMPT_PREFIX)
+        and path.suffix.lower() == ".jsonl"
+    )
 
 
 def shorten_oversized_artifacts() -> List[Tuple[Path, int, int, int]]:
@@ -153,7 +210,17 @@ def shorten_oversized_artifacts() -> List[Tuple[Path, int, int, int]]:
     for path in EVALS_DIR.rglob("*"):
         if not path.is_file():
             continue
-        result = shorten_oversized_file(path)
+        if is_wiggum_attempt_log(path):
+            result = shorten_oversized_file(
+                path,
+                max_artifact_bytes=0,
+                target_artifact_bytes=WIGGUM_TARGET_BYTES,
+                head_lines=WIGGUM_RETAIN_HEAD_LINES,
+                tail_lines=WIGGUM_RETAIN_TAIL_LINES,
+                recompact_truncated=True,
+            )
+        else:
+            result = shorten_oversized_file(path)
         if result:
             old_size, new_size, removed_lines = result
             shortened.append((path, old_size, new_size, removed_lines))
@@ -1203,10 +1270,14 @@ def generate_index_html() -> None:
 </html>
 """
 
+    html_content = "\n".join(
+        line.rstrip()
+        for line in html_content.splitlines()
+    ) + "\n"
     INDEX_FILE.write_text(html_content, encoding="utf-8")
     for path, old_size, new_size, removed_lines in shortened:
         print(
-            f"[+] Shortened oversized artifact: {path} "
+            f"[+] Shortened artifact: {path} "
             f"({old_size:,} -> {new_size:,} bytes; removed {removed_lines:,} middle lines)"
         )
     print(f"[+] Index generated at: {INDEX_FILE.absolute()}")

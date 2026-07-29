@@ -1,9 +1,0 @@
-{
-  "checked_at": "2026-07-06T06:42:08.558Z",
-  "files_checked": [
-    "evals/claude_Opus46_elevator_prompt/person.js",
-    "evals/claude_Opus46_elevator_prompt/elevator.js"
-  ],
-  "static_errors": [],
-  "static_warnings": []
-}

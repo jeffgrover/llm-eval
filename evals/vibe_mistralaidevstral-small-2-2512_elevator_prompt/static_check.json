@@ -1,9 +1,0 @@
-{
-  "checked_at": "2026-07-06T06:42:12.849Z",
-  "files_checked": [
-    "evals/vibe_mistralaidevstral-small-2-2512_elevator_prompt/person.js",
-    "evals/vibe_mistralaidevstral-small-2-2512_elevator_prompt/elevator.js"
-  ],
-  "static_errors": [],
-  "static_warnings": []
-}

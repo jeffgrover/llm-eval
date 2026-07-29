@@ -1,9 +1,0 @@
-{
-  "checked_at": "2026-07-06T06:42:11.045Z",
-  "files_checked": [
-    "evals/opencode_glm-4_7-flash_elevator_prompt/person.js",
-    "evals/opencode_glm-4_7-flash_elevator_prompt/elevator.js"
-  ],
-  "static_errors": [],
-  "static_warnings": []
-}

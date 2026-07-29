@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Elevator Simulation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #20242a; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <!-- 1. Load the core Three.js library first -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+
+    <!-- 2. Load OrbitControls, which depends on the core library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- 3. Load your custom scripts last -->
+    <script src="person.js"></script>
+    <script src="elevator.js"></script>
+</body>
+</html>
