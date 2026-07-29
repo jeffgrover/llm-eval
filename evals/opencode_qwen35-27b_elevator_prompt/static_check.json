@@ -1,9 +1,0 @@
-{
-  "checked_at": "2026-07-06T06:42:11.683Z",
-  "files_checked": [
-    "evals/opencode_qwen35-27b_elevator_prompt/person.js",
-    "evals/opencode_qwen35-27b_elevator_prompt/elevator.js"
-  ],
-  "static_errors": [],
-  "static_warnings": []
-}

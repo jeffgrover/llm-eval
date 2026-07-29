@@ -1,5 +1,0 @@
---- Execution of fix_sim.py ---
-STDOUT:
-
----------------------------
-

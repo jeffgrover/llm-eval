@@ -1,3 +1,0 @@
-Task completed!
-
-[SUCCESS] Process exited cleanly.

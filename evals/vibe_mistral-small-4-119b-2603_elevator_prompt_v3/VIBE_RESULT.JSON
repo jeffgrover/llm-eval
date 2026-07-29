@@ -1,8 +1,0 @@
-{
-  "num_turns": 37,
-  "input_tokens": 1168664,
-  "output_tokens": 16715,
-  "total_tokens": 1185379,
-  "model_name": "mistral-small-4-119b-2603",
-  "vibe_version": "python.exe C:\\Users\\Jeff\\.local\\bin\\vibe 2.18.0"
-}

@@ -1,9 +1,0 @@
-{
-  "checked_at": "2026-07-06T06:42:12.160Z",
-  "files_checked": [
-    "evals/pi_gemma-4-e4b-it_elevator_prompt/person.js",
-    "evals/pi_gemma-4-e4b-it_elevator_prompt/elevator.js"
-  ],
-  "static_errors": [],
-  "static_warnings": []
-}
