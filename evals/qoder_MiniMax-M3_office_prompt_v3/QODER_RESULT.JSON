@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 675014,
+  "duration_api_ms": 406174,
+  "is_error": false,
+  "num_turns": 55,
+  "result": "All checks pass. Here's a summary of what I built:\n\n**Files created in `evals/qoder_MiniMax-M3_office_prompt_v3/`:**\n- `person.js` \u2014 Person mesh factory with hip-pivoted legs/arms, walk/sit animation\n- `world.js` \u2014 6-floor building, lobby with cafe/lounges/pit/reception, 5 office floors with 4 offices + conf room + lounge each, navigation graphs, call panels, floor indicators\n- `elevator_logic.js` \u2014 Pure state machine (IDLE\u2192MOVING\u2192DOOR_*) with SCAN scheduling, anti-starvation, capacity gating, dual-environment export\n- `elevator.js` \u2014 Three.js car, sliding doors, destination buttons, in-car floor indicator, wraps `ElevatorLogic`\n- `sim.js` \u2014 Simulated clock, day/night keyframes, 20 workers + 80 visitors, plan compilers (arrive/lunch/lounge/meeting/coworker/leave/visitor), weighted activity chooser, action dispatch, collision resolution, HUD with speed/occupancy sliders\n- `elevator_logic_test.js` \u2014 9 deterministic Node tests, all passing\n- `index.html` \u2014 Three.js 0.147.0 + OrbitControls + scripts in mandated order\n\n**Verification:**\n- `node elevator_logic_test.js` \u2014 9/9 pass\n- `node ../../static_check.js .` \u2014 0 errors, 0 warnings\n- `node ../../runtime_check.js evals/qoder_MiniMax-M3_office_prompt_v3` \u2014 `ok`, canvas present, 40 animation frames, 3554 scene objects, 0 console/page errors",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 24.426081243,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "ad2eec52-0546-4ece-8021-da818be8a37c",
+    "context_usage_ratio": 0.10732
+  },
+  "modelUsage": {
+    "mmodel": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 24.426081243
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "6b29707d-5996-4503-af6b-814244617dba",
+  "session_id": "48e45b32-c901-4602-893d-15e52e5f2c21",
+  "input_tokens": 6117639,
+  "output_tokens": 50748,
+  "total_tokens": 6168387,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.11"
+}

@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 572035,
+  "duration_api_ms": 552187,
+  "is_error": false,
+  "num_turns": 43,
+  "result": "All checks pass, here's a summary of what was built:\n\n**Files created** (7 files):\n- `index.html` - Loads Three.js 0.147.0 from CDN + all scripts in order, HUD overlay\n- `person.js` - Person mesh factory with leg/arm pivots, walk/sit animation, nose for facing direction, 3 color palettes (20 shirts, 10 skin tones, 10 pants)\n- `world.js` - 6-floor office building with semi-transparent walls, entrance gap on floor 0, 4 offices/floor, conference room, lounge, lobby with cafe/bistro/lounge/pit/reception/kiosk, navigation graph + BFS pathfinding, call panels with glowing arrows, shaft indicators\n- `elevator_logic.js` - Pure state machine (IDLE/MOVING/DOOR_OPENING/DOOR_OPEN/DOOR_CLOSING), SCAN scheduling, anti-starvation, capacity 4, spot reservation, dual-environment (browser + Node)\n- `elevator.js` - Three.js elevator car with sliding doors, destination buttons, in-car indicator, adapter around ElevatorLogic\n- `sim.js` - Simulated clock, day/night lighting (dawn/day/dusk/night), 100 agents (20 workers + 80 visitors), visitor top-up scheduler, action dispatch system, collision resolution, stall recovery, entrance threshold advancement\n- `elevator_logic_test.js` - 7 deterministic Node tests, all passing\n\n**Check results**: static check OK, runtime check OK (canvas, 975 objects, animation frames), elevator logic 7/7 tests passed, no `import`/`export`/`file://` violations.",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 7.783640591142859,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "e323b620-1bb9-4259-a836-272db99aba11",
+    "context_usage_ratio": 0.100421
+  },
+  "modelUsage": {
+    "dfmodel": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 7.783640591142859
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "a847e269-e0f4-4727-81bb-b067a170461a",
+  "session_id": "9379faa2-4066-41b2-9acf-4efaf26572f0",
+  "input_tokens": 4531012,
+  "output_tokens": 45921,
+  "total_tokens": 4576933,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.11"
+}

@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 2404267,
+  "duration_api_ms": 2134992,
+  "is_error": false,
+  "num_turns": 53,
+  "result": "Done. The phantom-rider fix landed: `ensurePassenger(person, floor)` in elevator_logic.js re-registers a rider whose spot reservation was aborted by the door safety cap, with passthrough in elevator.js and two call sites in sim.js (boarding completion fallback + `rescueCarAgents`). The temporary `window.__sim` debug hook is removed.\n\nFinal verification, all clean:\n- `elevator_logic_test.js`: 7/7 pass\n- `static_check.js`: ok\n- `runtime_check.js`: ok \u2014 canvas rendering, 194 frames, 917 objects, zero console errors even with sliders boosted to 600x/100 occupancy\n- Behavior probe: all checks passed \u2014 riders now visibly ride (2-4 in car), sitting poses correct (legs -PI/2, facing desks), no door bunching, elevator served floors 0/1/2/5 through the simulated morning\n\nThe seven-file simulation in `evals/qoder_Qwen3_8-Max-Preview_office_prompt_v3/` is complete and verified.",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 6.0744257142857165,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "6416ace4-5803-4b92-b48c-e2090a3df847",
+    "context_usage_ratio": 0.2511777777777778
+  },
+  "modelUsage": {
+    "qmodel_preview": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 6.0744257142857165
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "bc3168d4-3705-4ece-bd16-d58d5d70f62f",
+  "session_id": "7ca8cd46-7009-4c8b-ac77-14d56ffe74cb",
+  "input_tokens": 13526630,
+  "output_tokens": 99622,
+  "total_tokens": 13626252,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.11"
+}
