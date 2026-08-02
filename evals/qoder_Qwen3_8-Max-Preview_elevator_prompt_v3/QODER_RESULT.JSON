@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 381776,
+  "duration_api_ms": 362851,
+  "is_error": false,
+  "num_turns": 12,
+  "result": "All checks pass. Final checklist verified:\n\n- **Files**: `index.html`, `elevator.js`, `person.js` all created, read back, and complete\n- **No modules**: grep confirms zero `import`/`export`/`type=\"module\"`; no `file://`, iframes, or self-embedding\n- **Auto-start**: `startSimulation()` invoked at the bottom of `elevator.js` via the readyState guard\n- **Naming contract**: `scene`/`camera`/`renderer`/`controls`/`elevatorCar`/`people` globals; doors stored as `elevatorCar.leftDoor`/`.rightDoor` after the group is assigned; `person.userData = { leftLeg, rightLeg, isWalking }` with hip-pivot leg groups\n- **H6 constants**: all eight declared as bare top-level `const`s and referenced bare\n- **H8 reparenting**: `elevatorCar.attach(person)` on boarding, `scene.attach(person)` on exit \u2014 world Y stays locked to the correct floor at every stage\n- **Checkers**: `static_check.js` clean; `runtime_check.js` reports `nonblank=true frames=372 objects=72 changes=338` with no errors\n\nThe simulation renders a transparent 6-floor building with shaft cutout, yellow semi-transparent car with sliding doors, walking figures with sine-swing leg animation, a step-queue animation pipeline with 300ms delays, random rider-to-empty-floor trips, OrbitControls, and a 1x\u201320x speed slider.",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 1.0407025714285716,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "5975caaf-8c10-4639-9ae9-fa563c2d52e0",
+    "context_usage_ratio": 0.3094166666666667
+  },
+  "modelUsage": {
+    "qmodel_preview": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 1.0407025714285716
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "ea2b5f98-49b7-4c01-9f72-9656cd010d9b",
+  "session_id": "5096237b-32a2-417d-9970-2422e73a2a50",
+  "input_tokens": 872229,
+  "output_tokens": 19142,
+  "total_tokens": 891371,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.11"
+}

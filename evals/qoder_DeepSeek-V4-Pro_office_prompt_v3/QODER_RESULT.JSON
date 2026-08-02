@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 1321347,
+  "duration_api_ms": 1308873,
+  "is_error": false,
+  "num_turns": 39,
+  "result": "All 7 tasks complete. Here's what was built:\n\n**Files created (3,303 lines total):**\n\n| File | Lines | Purpose |\n|---|---|---|\n| `index.html` | 12 | Loads Three.js CDN + all scripts in order |\n| `person.js` | 153 | Person mesh factory with walk/sit limb animation |\n| `world.js` | 993 | 6-floor building, furniture, nav graph, call panels, BFS pathfinding |\n| `elevator_logic.js` | 335 | Pure elevator state machine (SCAN scheduling, 4-rider capacity, door timing) |\n| `elevator.js` | 246 | Three.js car geometry, sliding doors, destination panel, wraps ElevatorLogic |\n| `sim.js` | 1,297 | Clock, day/night, 20 workers + 80 visitors, plan compilers, collision, HUD |\n| `elevator_logic_test.js` | 267 | 7 deterministic Node tests (all passing) |\n\n**Key behaviors implemented:**\n- Workers arrive 8:15-9:30, sit at desks, attend meetings, break at lounge, lunch at cafe, depart 5-7 PM with stragglers\n- Visitors cycle continuously via top-up scheduler, weighted activities (cafe, lounges, pit, meetings, loitering)\n- Elevator uses SCAN scheduling with passenger destination priority, anti-starvation guards, and 12s door safety cap\n- Entrance has a real 3-unit wall gap with `outside -> front_door_threshold -> entrance -> lobby_center` nav chain\n- Collision avoidance with boarder exemption, stall recovery, jittered spawns, and zero-overlap handling",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 45.6542826,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "0792a995-a615-479b-8847-9b133a098186",
+    "context_usage_ratio": 0.108002
+  },
+  "modelUsage": {
+    "dmodel": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 45.6542826
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "ef137891-7ec6-42f5-8164-fd99b3cd0ac9",
+  "session_id": "b46cf90f-4c9f-4841-93c5-fe10b7db4b98",
+  "input_tokens": 4417924,
+  "output_tokens": 61074,
+  "total_tokens": 4478998,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.11"
+}

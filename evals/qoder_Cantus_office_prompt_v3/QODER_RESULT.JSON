@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 1164773,
+  "duration_api_ms": 1143990,
+  "is_error": false,
+  "num_turns": 21,
+  "result": "Complete. All seven files are written and every checker passes:\n\n- **`static_check.js`**: ok (no syntax errors, unbound identifiers, or duplicate declarations)\n- **`runtime_check.js`**: nonblank canvas, 193 animation frames, 1832 scene objects, 1946 pixel changes (visible motion), zero page errors\n- **`node elevator_logic_test.js`**: 7/7 deterministic tests pass (lobby rush, destination priority, starvation, direction handling, door hold/safety cap, toFloor handshake, reset)\n\nKey implementation points: pure SCAN elevator brain in `elevator_logic.js` with anti-starvation guards; `world.js` builds the transparent 6-floor building with a real 3-unit entrance gap and the full `outside \u2192 front_door_threshold \u2192 entrance \u2192 lobby_center` nav chain; `sim.js` runs lockstep clock/motion at 120x, 20 workers + 80 recyclable visitors with schedules, seat reservations with explicit `RELEASE_SEAT`, seated-facing enforcement via per-waypoint `sitTargets`, boarder lane-entry and collision exemptions, stall recovery, and day/night lighting with HUD sliders.",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 699.7754570234999,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "d5952eee-d56d-45d7-b9ca-1d89ac771c8f",
+    "context_usage_ratio": 0.6836277777777777
+  },
+  "modelUsage": {
+    "cmodel": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 699.7754570234999
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "27f9c988-1af7-4862-bd51-3cdf49d1467b",
+  "session_id": "9a6684b3-c494-4497-932c-50f29efdf4c9",
+  "input_tokens": 4550917,
+  "output_tokens": 94058,
+  "total_tokens": 4644975,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.11"
+}
