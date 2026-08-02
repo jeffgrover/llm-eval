@@ -5,7 +5,10 @@ Use the agentic coding tools available to you to write files that implement a
 the browser with no build process (Three.js 0.147.0 loaded from a CDN).
 
 I hereby pre-approve any plan you generate, do not prompt to approve the
-development plan before coding, you are in YOLO mode.
+development plan before coding, you are in YOLO mode.  There are previously
+implemented solutions in other nearby directories, do not "cheat" by
+looking at the other implementations... come up with your own original
+solution to this simulation.
 
 The simulation must not simply be "an elevator moves people between floors."
 It must read as **a day in the life of a small office**, expressed through
