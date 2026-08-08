@@ -1167,14 +1167,14 @@ def render_styles() -> str:
         .mini-flag { margin-top: 8px; color: #b45309; font-size: 12px; font-weight: 800; }
         .comparison-table-wrap, .agent-section { margin-top: 26px; }
         .table-scroll { overflow-x: auto; }
-        table { border-collapse: collapse; width: 100%; min-width: 1160px; table-layout: fixed; }
+        table { border-collapse: collapse; width: 100%; min-width: 1360px; table-layout: fixed; }
         .score-col { width: 82px; }
         .agent-col { width: 200px; }
-        .provider-col { width: 108px; }
-        .metric-col { width: 76px; }
+        .provider-col { width: 180px; }
+        .metric-col { width: 130px; }
         .breakdown-col { width: auto; }
         .links-col { width: 104px; }
-        th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+        th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow: hidden; }
         th { color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; background: #f1f5f9; }
         tr:last-child td { border-bottom: 0; }
         .score-cell strong { display: block; font-size: 24px; color: var(--accent-strong); }
@@ -1188,7 +1188,8 @@ def render_styles() -> str:
         .provider-local { background: #dcfce7; color: #166534; }
         .provider-unknown { background: #f1f5f9; color: #64748b; }
         .prompt-chip { background: #f8fafc; border: 1px solid #e2e8f0; color: #334155; }
-        .metric { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .metric { font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .provider-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
         .category-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
         .category-pills span { background: #eef2ff; color: #3730a3; border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 800; }
         .breakdown-cell { min-width: 390px; }
