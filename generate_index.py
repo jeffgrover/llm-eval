@@ -1166,15 +1166,15 @@ def render_styles() -> str:
         .score-bar span { display: block; height: 100%; background: linear-gradient(90deg, #2563eb, #059669); border-radius: inherit; }
         .mini-flag { margin-top: 8px; color: #b45309; font-size: 12px; font-weight: 800; }
         .comparison-table-wrap, .agent-section { margin-top: 26px; }
-        .table-scroll { overflow-x: auto; }
-        table { border-collapse: collapse; width: 100%; min-width: 1360px; table-layout: fixed; }
-        .score-col { width: 82px; }
-        .agent-col { width: 200px; }
-        .provider-col { width: 180px; }
-        .metric-col { width: 130px; }
+        .table-scroll { overflow-x: auto; width: 100%; }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        .score-col { width: 72px; }
+        .agent-col { width: 180px; }
+        .provider-col { width: 160px; }
+        .metric-col { width: 110px; }
         .breakdown-col { width: auto; }
-        .links-col { width: 104px; }
-        th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow: hidden; }
+        .links-col { width: 92px; }
+        th, td { padding: 12px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow: hidden; }
         th { color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; background: #f1f5f9; }
         tr:last-child td { border-bottom: 0; }
         .score-cell strong { display: block; font-size: 24px; color: var(--accent-strong); }
@@ -1192,7 +1192,7 @@ def render_styles() -> str:
         .provider-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
         .category-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
         .category-pills span { background: #eef2ff; color: #3730a3; border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 800; }
-        .breakdown-cell { min-width: 390px; }
+        .breakdown-cell { min-width: 300px; }
         .evidence { color: var(--muted); font-size: 12px; line-height: 1.4; }
         .flag { display: inline-block; margin: 7px 5px 0 0; color: var(--red); background: #fee2e2; border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 800; }
         .runtime-errors { margin-top: 8px; display: grid; gap: 4px; color: #7f1d1d; font-size: 12px; line-height: 1.35; }
