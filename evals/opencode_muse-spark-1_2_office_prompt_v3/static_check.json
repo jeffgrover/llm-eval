@@ -1,0 +1,16 @@
+{
+  "checked_at": "2026-08-08T04:10:48.180Z",
+  "files_checked": [
+    "person.js",
+    "world.js",
+    "elevator_logic.js",
+    "elevator.js",
+    "sim.js"
+  ],
+  "static_errors": [
+    "elevator_logic.js:109:42 'e9' is not defined",
+    "sim.js:846:23 'e' is not defined",
+    "sim.js:846:109 'e' is not defined"
+  ],
+  "static_warnings": []
+}
