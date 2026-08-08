@@ -255,6 +255,20 @@ def generate_html_report(
     display_agent_name = AGENT_DISPLAY_NAMES.get(agent_name.lower(), agent_name)
     model_name = metadata["Model"].get("Full Name")
     artifact_navigation = _artifact_navigation(work_dir)
+    warnings = tokens.get("warnings", [])
+    if isinstance(warnings, str):
+        warnings = [warnings]
+    diagnostics_html = ""
+    if warnings:
+        warning_items = "".join(
+            f"<li>{html.escape(str(warning))}</li>" for warning in warnings
+        )
+        diagnostics_html = (
+            '<section class="diagnostics-warning">'
+            '<strong>Run diagnostics</strong>'
+            f"<ul>{warning_items}</ul>"
+            "</section>"
+        )
 
     html_content = f"""
     <!DOCTYPE html>
@@ -268,6 +282,8 @@ def generate_html_report(
             body {{ font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f5f3ff; color: #1d1d1f; }}
             .container {{ max-width: 1200px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; }}
             header {{ background: #1a202c; color: white; padding: 24px; border-bottom: 4px solid #7c3aed; }}
+            .diagnostics-warning {{ margin: 18px 24px 0; padding: 14px 16px; background: #fff7ed; border: 1px solid #fb923c; border-radius: 8px; color: #9a3412; }}
+            .diagnostics-warning ul {{ margin: 8px 0 0 20px; padding: 0; }}
             h1 {{ margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }}
             .header-info {{ display: flex; justify-content: space-between; gap: 16px; font-size: 14px; opacity: 0.9; margin-top: 8px; font-weight: 400; color: #a0aec0; }}
             .header-info div {{ min-width: 0; overflow-wrap: anywhere; }}
@@ -380,6 +396,8 @@ def generate_html_report(
                     <div>Generation Time: <span>{duration_str}</span></div>
                 </div>
             </header>
+
+            {diagnostics_html}
 
             <div class="meta-grid">
                 <div class="meta-item">

@@ -18,7 +18,7 @@ QODER_EVENTS_FILENAME = "QODER_EVENTS.JSONL"
 
 JsonObject = Dict[str, Any]
 MetricValue = Union[int, float, bool, str]
-TokenUsage = Dict[str, MetricValue]
+TokenUsage = Dict[str, Any]
 
 
 class TokenUsageCollector:
@@ -79,7 +79,15 @@ class TokenUsageCollector:
 
     @staticmethod
     def _copy_result_metadata(data: JsonObject, usage: TokenUsage) -> None:
-        for key in ("token_counts_estimated", "cost_available", "cost_note"):
+        for key in (
+            "token_counts_estimated",
+            "cost_available",
+            "cost_note",
+            "tool_calls",
+            "finish_reasons",
+            "artifacts_produced",
+            "warnings",
+        ):
             if key in data:
                 usage[key] = data[key]
 

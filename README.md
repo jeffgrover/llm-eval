@@ -15,13 +15,17 @@ The best results produced so far for each prompt. Click a preview to launch the 
 ## Current Benchmark Focus
 
 - **Elevator prompt**: the main local-model benchmark. It asks agents to build a browser-only Three.js elevator simulation.
-- **Office prompt / office prompt v2**: the main frontier/cloud benchmark. It asks agents to build a richer office-day simulation with persistent agents, schedules, navigation, and elevator behavior.
+- **Office prompt v3**: the main frontier/cloud benchmark. It asks agents to build a richer office-day simulation with persistent agents, schedules, navigation, and elevator behavior.
 
 The generated dashboard keeps these prompt families separate so local elevator runs and frontier office runs can be compared without one burying the other.
 
 ## 1. Local Provider Setup
 
 By default, local evaluations use LM Studio on `http://localhost:1234/v1`.
+The evaluator asks LM Studio to unload other models and load the requested model
+before the run. It prefers LM Studio's REST API and falls back to the `lms` CLI
+when the REST API is unavailable.
+
 For an oMLX server, start oMLX with its default OpenAI-compatible endpoint
 (`http://localhost:8000/v1`) and pass `--provider omlx`:
 
@@ -34,6 +38,10 @@ The model ID must match one returned by `http://localhost:8000/v1/models`.
 The evaluator reads the API key from oMLX's `~/.omlx/settings.json`; set
 `OMLX_BASE_URL` or `OMLX_API_KEY` to override the detected settings.
 
+For a llama.cpp-compatible server at `http://localhost:8080/v1`, use
+`--provider llama-server`. Passing `--provider` bypasses LM Studio model
+loading; the selected server is expected to be running already.
+
 ### LM Studio Setup
 
 First, you'll need a platform to host your local models.
@@ -43,19 +51,18 @@ First, you'll need a platform to host your local models.
     -   Open LM Studio and navigate to the **Local Server** (↔️) tab.
     -   Click **Start Server**. This exposes an OpenAI-compatible API at `http://localhost:1234/v1`.
 3.  **Hardware Tips**:
-    -   **Recommended RAM**: 16 GB - 32 GB of free GPU RAM is ideal for the 20B-30B parameter models listed below.
-    -   **Quantization**: Use 4-bit or 8-bit quantized models to maximize performance on consumer GPUs.
+    -   Leave memory beyond the model weights for the KV cache, prompt-evaluation buffers, the operating system, and the agent CLI. A model that merely loads may still run out of memory when a long agent prompt begins processing.
+    -   Four-bit GGUF quantizations are a practical starting point for larger local models. Prefer a slightly smaller quantization when the largest file leaves little inference headroom.
+    -   Use the load controls described below to reduce context length or prompt-evaluation batch size on memory-constrained systems.
 
-### Recommended Models
-Search for these models in the LM Studio "Search" tab to download them:
+### Choosing a Model
 
--   `mistralai-devstral-small-2-24b-instruct-2512`
--   `zai-org/glm-4.6v-flash`
--   `qwen/qwen3-vl-30b`
--   `qwen3-coder-30b-a3b-instruct`
--   `gpt-oss-20b`
--   `google/gemma-3-27b`
--   `microsoft/phi-4-reasoning-plus`
+Use a chat/instruct model that supports tool calling through an OpenAI-compatible
+chat-completions endpoint. Exact model availability changes quickly, so the
+[live dashboard](https://jeffgrover.github.io/llm-eval/) is the best record of
+models that have actually been exercised by this suite. The `--model` value
+must match the identifier advertised by the selected provider's `/v1/models`
+endpoint.
 
 ---
 
@@ -68,7 +75,7 @@ Install the agents you wish to evaluate. Each has its own setup requirements:
 | **Mistral Vibe** | `vibe` | [mistralai/mistral-vibe](https://github.com/mistralai/mistral-vibe) |
 | **Claude Code** | `claude` | [Anthropic Claude Code Docs](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code) |
 | **Codex CLI** | `codex` | [OpenAI Codex CLI](https://github.com/openai/codex) |
-| **Gemini CLI** | `gemini` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
+| **Gemini / Antigravity CLI** | `agy` | Invoked through the Antigravity-compatible CLI; accepted evaluator names are `gemini`, `agy`, and `antigravity` |
 | **Crush** | `crush` | [charmbracelet/crush](https://github.com/charmbracelet/crush) |
 | **OpenCode** | `opencode` | [opencode-ai/opencode](https://github.com/opencode-ai/opencode) |
 | **Pi Coding Agent** | `pi` | [badlogic/pi-mono](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) |
@@ -90,7 +97,7 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 
 ### Parameters
 -   `--model`: The LM Studio model identifier (or cloud model name when using `--non-local`).
--   `--agent`: One of `vibe`, `gemini`, `claude`, `codex`, `opencode`, `crush`, `pi`, `pi-wiggum`, or `qoder`.
+-   `--agent`: One of `vibe`, `gemini`, `agy`, `antigravity`, `claude`, `codex`, `opencode`, `crush`, `pi`, `pi-wiggum`, or `qoder`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
 -   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.
 -   `--provider`: (Optional) Select `omlx`, `llama-server`, or an agent-specific provider.
@@ -98,6 +105,40 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 -   `--open-report`: Open `summary.html` in the default browser after the run.
 -   `--execute-generated-python`: Execute root-level Python artifacts and capture their output in `OUTPUT.TXT`. This is disabled by default.
 -   `--restore-agent-config`: Restore Vibe's original `active_model` after the run. Pi's temporary provider file is always restored or removed.
+-   `--lms-context-length`: Reload the LM Studio model with an explicit context length. OpenCode is given the same advertised context limit.
+-   `--lms-eval-batch-size`: Set LM Studio llama.cpp's prompt-evaluation batch size. Smaller values can reduce peak memory during prompt ingestion.
+-   `--lms-flash-attention`: Enable Flash Attention when LM Studio loads a compatible llama.cpp model.
+-   `--lms-cpu-kv-cache`: Keep the KV cache in system memory rather than offloading it to the GPU. On unified-memory systems this changes placement/accounting, not the total physical-memory requirement.
+
+LM Studio load behavior for the four `--lms-*` options applies when the
+evaluator is managing an LM Studio model. Supplying any explicit load option
+forces an already-loaded target model to be unloaded and reloaded so LM Studio
+does not silently retain its previous GUI settings. When supported, LM Studio's
+effective load configuration is printed after loading. The context-length value
+also configures OpenCode's provider metadata when OpenCode is pointed at another
+local provider.
+
+For a large model with limited inference headroom, a conservative invocation is:
+
+```bash
+LLM_EVAL_LOCAL_OUTPUT_LIMIT=2048 ./evaluate_agent.py \
+  --model <model-key> \
+  --agent opencode \
+  --prompt-file elevator_prompt_v3.txt \
+  --lms-context-length 16384 \
+  --lms-eval-batch-size 64
+```
+
+OpenCode's default local limits are 32,768 context tokens and 16,384 output
+tokens. Override them with `LLM_EVAL_LOCAL_CONTEXT_LIMIT` and
+`LLM_EVAL_LOCAL_OUTPUT_LIMIT`. An explicit `--lms-context-length` takes
+precedence over `LLM_EVAL_LOCAL_CONTEXT_LIMIT` for OpenCode so the client and
+server agree on the usable context window.
+
+OpenCode results also record the finish reason, tool-call count, generated
+artifact names, and diagnostic warnings. A clean process exit is therefore
+still flagged when the model exhausts its output allowance, emits no tool
+calls, or claims completion without producing artifact files.
 
 The script creates a uniquely named workspace in `evals/`, captures logs and
 artifacts, and writes `summary.html`. Browser opening and generated Python
@@ -119,6 +160,26 @@ Codex currently runs through your ChatGPT account service, so use it with `--non
 ```
 
 Codex runs are saved with `CHAT_SESSION.TXT`, raw `CODEX_EVENTS.JSONL`, `CODEX_LAST_MESSAGE.TXT`, and aggregated token metrics in `CODEX_RESULT.JSON`.
+
+### OpenCode
+
+For each run, the evaluator creates an isolated `opencode.json` in the run
+workspace and selects `<provider>/<model>` when the provider can be resolved.
+For local OpenAI-compatible providers, the catalog is populated dynamically
+from the server's `/v1/models` response, with the explicitly requested model
+retained as a fallback if discovery fails. This allows newly loaded LM Studio
+models to work without maintaining a hard-coded OpenCode model list.
+
+OpenCode normally starts background title generation alongside the main build
+request. The evaluator disables that title agent for unattended runs to avoid a
+second concurrent inference request and its additional prompt/KV memory
+pressure. The generated `opencode.json`, readable transcript, normalized usage,
+and detected provider/model are retained in the run directory.
+
+In non-local mode, pass a complete OpenCode model reference such as
+`provider/model`, or use a bare model name already declared in the user's global
+OpenCode configuration. `--provider <name>` can explicitly select an existing
+custom provider.
 
 ### Qoder CLI
 
@@ -180,15 +241,15 @@ After running one or more experiments, generate the centralized dashboard to bro
     ```bash
     npm install
     npx playwright install chromium
-    node runtime_check.js opencode_glm-4_7-flash_office_prompt_v2
-    # equivalent: node runtime_check.js evals/opencode_glm-4_7-flash_office_prompt_v2
+    node runtime_check.js <run-directory>
+    # equivalent: node runtime_check.js evals/<run-directory>
     ./generate_index.py
     ```
     For a faster static-only pass that catches common `ReferenceError` failures
     such as undeclared animation-loop variables or duplicate global constants:
     ```bash
     npm run static-check
-    node static_check.js evals/opencode_glm-4_7-flash_office_prompt_v2
+    node static_check.js evals/<run-directory>
     ```
     `npm install` and `npx playwright install chromium` are one-time setup
     steps on a machine. After that, rerun only `node runtime_check.js ...` and
@@ -243,6 +304,11 @@ Local provider selection produces a frozen configuration object that is passed
 to each runner; selecting oMLX or llama-server no longer mutates process-wide
 provider globals. Temporary configuration changes are scoped to agent execution
 so Pi cleanup and requested Vibe restoration also happen on failure.
+
+OpenCode local-provider configuration discovers model IDs from `/v1/models`,
+disables concurrent title generation, and records consistent context/output
+limits. LM Studio load settings are sent through `/api/v1/models/load`; explicit
+settings cause a reload and request `echo_load_config` for diagnostic output.
 
 ## Development and Tests
 
