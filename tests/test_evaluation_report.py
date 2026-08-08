@@ -120,6 +120,27 @@ class EvaluationReportTests(unittest.TestCase):
             self.assertIn(".meta-grid { grid-template-columns: 1fr;", report)
             self.assertIn("overflow-wrap: anywhere;", report)
 
+    def test_report_renders_run_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata = self.metadata()
+            metadata["Tokens"]["warnings"] = [
+                "The model reached the configured output-token limit.",
+                "The run produced no generated artifact files.",
+            ]
+
+            report_path = generate_html_report(
+                Path(temp_dir),
+                metadata,
+                "build it",
+                duration_seconds=10.0,
+                agent_name="opencode",
+            )
+            report = report_path.read_text(encoding="utf-8")
+
+            self.assertIn("Run diagnostics", report)
+            self.assertIn("output-token limit", report)
+            self.assertIn("no generated artifact files", report)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,7 +33,7 @@ CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
 CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
 PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
 DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
-DEFAULT_LOCAL_OUTPUT_LIMIT = 4096
+DEFAULT_LOCAL_OUTPUT_LIMIT = 16384
 
 
 def get_omlx_api_key() -> str:
@@ -208,8 +208,25 @@ def lms_api_request(
         return None
 
 
-def load_lms_model(model_key: str) -> bool:
+def load_lms_model(
+    model_key: str,
+    *,
+    context_length: Optional[int] = None,
+    eval_batch_size: Optional[int] = None,
+    flash_attention: bool = False,
+    cpu_kv_cache: bool = False,
+) -> bool:
     """Loads a model into LM Studio, preferring the REST API over the CLI."""
+    load_config = {}
+    if context_length is not None:
+        load_config["context_length"] = context_length
+    if eval_batch_size is not None:
+        load_config["eval_batch_size"] = eval_batch_size
+    if flash_attention:
+        load_config["flash_attention"] = True
+    if cpu_kv_cache:
+        load_config["offload_kv_cache_to_gpu"] = False
+
     # Try REST API first
     models = lms_api_request("/api/v0/models")
     if models is not None:
@@ -228,10 +245,17 @@ def load_lms_model(model_key: str) -> bool:
             state = m.get("state", "")
             if model_key in model_id:
                 if state == "loaded":
-                    target_loaded = True
-                    print(
-                        f"[+] Model '{model_key}' is already loaded — skipping reload."
-                    )
+                    if load_config:
+                        others_loaded.append(m)
+                        print(
+                            f"[*] Reloading model '{model_key}' to apply explicit "
+                            "LM Studio load settings."
+                        )
+                    else:
+                        target_loaded = True
+                        print(
+                            f"[+] Model '{model_key}' is already loaded — skipping reload."
+                        )
             elif state == "loaded":
                 others_loaded.append(m)
 
@@ -248,11 +272,16 @@ def load_lms_model(model_key: str) -> bool:
             return True  # Already loaded, nothing to do
 
         print(f"[*] Loading model '{model_key}' via REST API...")
+        load_request = {"model": model_key, **load_config}
+        if load_config:
+            load_request["echo_load_config"] = True
         result = lms_api_request(
-            "/api/v1/models/load", method="POST", data={"model": model_key}, timeout=120
+            "/api/v1/models/load", method="POST", data=load_request, timeout=120
         )
         if result is not None:
             print(f"[+] Model '{model_key}' loaded successfully via REST API.")
+            if result.get("load_config"):
+                print(f"[+] Applied LM Studio load config: {result['load_config']}")
             return True
         print("[-] REST API load failed. Falling back to CLI...")
 

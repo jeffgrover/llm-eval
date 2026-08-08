@@ -118,9 +118,11 @@ class RunnerEventContractTests(unittest.TestCase):
 
         self.assertEqual(parsed[0].text, "Working")
         self.assertEqual(parsed[1].text, "\n[Tool: write]\n")
+        self.assertEqual(parsed[1].tool_calls, 1)
         self.assertEqual(usage["input_tokens"], 12)
         self.assertEqual(usage["cache_read_tokens"], 3)
         self.assertEqual(usage["cost_usd"], 0.02)
+        self.assertEqual(parsed[2].finish_reason, "stop")
         self.assertEqual(parsed[3].error, "provider failed")
 
     def test_pi_stream_contract(self):

@@ -18,6 +18,8 @@ class ParsedEvent:
     error: Optional[str] = None
     result: Optional[Dict] = None
     log_raw: bool = False
+    tool_calls: int = 0
+    finish_reason: Optional[str] = None
 
 
 def parse_gemini_transcript(records: Iterable[Dict]) -> Dict[str, int]:
@@ -219,7 +221,7 @@ def parse_opencode_event(event: Dict) -> ParsedEvent:
         return ParsedEvent(text=event.get("content", event.get("text", "")))
     if event_type == "tool_call":
         name = event.get("name", event.get("tool", "unknown"))
-        return ParsedEvent(text=f"\n[Tool: {name}]\n")
+        return ParsedEvent(text=f"\n[Tool: {name}]\n", tool_calls=1)
     if event_type == "step_finish":
         part = event.get("part", {})
         tokens = part.get("tokens", {})
@@ -235,6 +237,7 @@ def parse_opencode_event(event: Dict) -> ParsedEvent:
             },
             turn_completed=True,
             log_raw=True,
+            finish_reason=part.get("reason"),
         )
     if event_type == "error":
         error = event.get("error", {})

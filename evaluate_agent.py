@@ -125,6 +125,26 @@ def build_argument_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Restore agent config (e.g. vibe active_model) to its original value after the run",
     )
+    parser.add_argument(
+        "--lms-context-length",
+        type=int,
+        help="Force LM Studio to load the model with this context length",
+    )
+    parser.add_argument(
+        "--lms-eval-batch-size",
+        type=int,
+        help="Force LM Studio llama.cpp prompt-evaluation batch size",
+    )
+    parser.add_argument(
+        "--lms-flash-attention",
+        action="store_true",
+        help="Enable Flash Attention when loading the model in LM Studio",
+    )
+    parser.add_argument(
+        "--lms-cpu-kv-cache",
+        action="store_true",
+        help="Keep LM Studio's KV cache in system memory instead of GPU memory",
+    )
     return parser
 
 
@@ -160,6 +180,7 @@ def main(argv: Optional[List[str]] = None):
         local_provider=local_provider,
         execute_generated_python=args.execute_generated_python,
     )
+    runner.local_context_limit = args.lms_context_length
 
     runner.confirm_workspace_overwrite()
 
@@ -169,7 +190,13 @@ def main(argv: Optional[List[str]] = None):
         skip_local_model_load = provider_name not in (None, "lmstudio", "lm-studio")
 
     if not args.non_local and not args.provider and not skip_local_model_load:
-        runner.lms_cli_available = load_lms_model(args.model)
+        runner.lms_cli_available = load_lms_model(
+            args.model,
+            context_length=args.lms_context_length,
+            eval_batch_size=args.lms_eval_batch_size,
+            flash_attention=args.lms_flash_attention,
+            cpu_kv_cache=args.lms_cpu_kv_cache,
+        )
 
     runner.run()
 

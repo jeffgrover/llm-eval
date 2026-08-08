@@ -5,6 +5,8 @@ import re
 import subprocess
 import sys
 import threading
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -14,6 +16,7 @@ from evaluation_core import (
     DEFAULT_LOCAL_CONTEXT_LIMIT,
     DEFAULT_LOCAL_OUTPUT_LIMIT,
     PROJECT_ROOT,
+    SERVER_LOG_FILENAME,
     get_env_int,
     is_llama_server_provider,
     read_prompt_file,
@@ -21,6 +24,7 @@ from evaluation_core import (
 )
 from evaluation_metrics import OPENCODE_RESULT_FILENAME
 from runner_events import parse_opencode_event
+
 
 class OpenCodeRunner(AgentRunner):
     supports_custom_provider = True
@@ -93,11 +97,39 @@ class OpenCodeRunner(AgentRunner):
         except Exception:
             return {}
 
+    def _discover_local_models(self) -> List[str]:
+        """Return model IDs advertised by the local OpenAI-compatible server."""
+        models_url = f"{self.local_provider.api_url.rstrip('/')}/models"
+        request = urllib.request.Request(
+            models_url,
+            headers={"Authorization": f"Bearer {self.local_provider.api_key}"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                payload = json.load(response)
+        except (OSError, ValueError, urllib.error.URLError) as exc:
+            print(
+                f"[-] Could not discover OpenCode models from {models_url}: {exc}. "
+                f"Using requested model '{self.model_name}'."
+            )
+            return []
+
+        entries = payload.get("data", []) if isinstance(payload, dict) else []
+        discovered = []
+        for entry in entries:
+            model_id = entry.get("id") if isinstance(entry, dict) else None
+            if isinstance(model_id, str) and model_id and model_id not in discovered:
+                discovered.append(model_id)
+        return discovered
+
     def configure_agent(self):
         # OpenCode supports opencode.json
         config = {
             "$schema": "https://opencode.ai/config.json",
             "permission": "allow",  # Bypass all permission prompts for unattended evaluation
+            # Avoid a concurrent title-generation request duplicating local
+            # model prompt/KV memory while the main agent is starting.
+            "agent": {"title": {"disable": True}},
         }
 
         model_ref = self._model_ref()
@@ -117,7 +149,7 @@ class OpenCodeRunner(AgentRunner):
 
         if should_define_local_provider:
             # Default case: define an OpenAI-compatible local provider.
-            context_limit = get_env_int(
+            context_limit = getattr(self, "local_context_limit", None) or get_env_int(
                 "LLM_EVAL_LOCAL_CONTEXT_LIMIT", DEFAULT_LOCAL_CONTEXT_LIMIT
             )
             output_limit = get_env_int(
@@ -125,22 +157,31 @@ class OpenCodeRunner(AgentRunner):
             )
             base_url = self.local_provider.api_url
             provider_id = self.local_provider.provider_id
+            model_ids = self._discover_local_models()
+            if self.model_name not in model_ids:
+                model_ids.append(self.model_name)
+            models = {
+                model_id: {
+                    "name": model_id,
+                    "limit": {
+                        "context": context_limit,
+                        "output": output_limit,
+                    },
+                }
+                for model_id in model_ids
+            }
             config["provider"] = {
                 provider_id: {
                     "npm": "@ai-sdk/openai-compatible",
                     "name": self.local_provider.display_name,
                     "options": {"baseURL": base_url},
-                    "models": {
-                        self.model_name: {
-                            "name": self.model_name,
-                            "limit": {
-                                "context": context_limit,
-                                "output": output_limit,
-                            },
-                        }
-                    },
+                    "models": models,
                 }
             }
+            print(
+                f"[+] OpenCode discovered {len(model_ids)} local model(s) from "
+                f"{base_url.rstrip('/')}/models."
+            )
             print(
                 "[*] OpenCode local limits: "
                 f"context={context_limit}, output={output_limit} tokens "
@@ -226,6 +267,8 @@ class OpenCodeRunner(AgentRunner):
         cache_read = 0
         cache_write = 0
         num_turns = 0
+        tool_calls = 0
+        finish_reasons: List[str] = []
 
         # Provider/model info parsed from log output
         opencode_version = None
@@ -300,6 +343,9 @@ class OpenCodeRunner(AgentRunner):
                         cache_write += parsed.usage.get("cache_write_tokens", 0)
                     if parsed.turn_completed:
                         num_turns += 1
+                    tool_calls += parsed.tool_calls
+                    if parsed.finish_reason:
+                        finish_reasons.append(parsed.finish_reason)
                     if parsed.error:
                         error_messages.append(parsed.error)
                     if parsed.log_raw:
@@ -345,7 +391,31 @@ class OpenCodeRunner(AgentRunner):
                 for message in error_messages[-3:]:
                     log_file.write(f"[ERROR] {message}\n")
 
-        # Save accumulated token usage to result JSON
+        bookkeeping_files = {
+            CHAT_SESSION_FILENAME,
+            OPENCODE_RESULT_FILENAME,
+            SERVER_LOG_FILENAME,
+            "opencode.json",
+            "summary.html",
+        }
+        artifacts = sorted(
+            path.name
+            for path in self.work_dir.iterdir()
+            if path.is_file() and path.name not in bookkeeping_files
+        )
+        warnings = []
+        if "length" in finish_reasons:
+            warnings.append(
+                "The model reached the configured output-token limit before completing the turn."
+            )
+        if tool_calls == 0:
+            warnings.append("The model emitted no tool calls.")
+        if not artifacts:
+            warnings.append("The run produced no generated artifact files.")
+        for warning in warnings:
+            print(f"[-] OpenCode diagnostic: {warning}")
+
+        # Save accumulated token usage and completion diagnostics to result JSON
         if total_input > 0 or total_output > 0 or error_messages:
             result_data = {
                 "input_tokens": total_input,
@@ -356,6 +426,10 @@ class OpenCodeRunner(AgentRunner):
                 "cache_write_tokens": cache_write,
                 "cost_usd": total_cost,
                 "num_turns": num_turns,
+                "tool_calls": tool_calls,
+                "finish_reasons": finish_reasons,
+                "artifacts_produced": artifacts,
+                "warnings": warnings,
             }
             if provider_id:
                 result_data["provider_id"] = provider_id

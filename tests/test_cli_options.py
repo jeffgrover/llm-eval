@@ -36,6 +36,21 @@ class CliOptionTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 self.parse("--headless", "--open-report")
 
+    def test_lm_studio_load_tuning_options(self):
+        args = self.parse(
+            "--lms-context-length",
+            "16384",
+            "--lms-eval-batch-size",
+            "128",
+            "--lms-flash-attention",
+            "--lms-cpu-kv-cache",
+        )
+
+        self.assertEqual(args.lms_context_length, 16384)
+        self.assertEqual(args.lms_eval_batch_size, 128)
+        self.assertTrue(args.lms_flash_attention)
+        self.assertTrue(args.lms_cpu_kv_cache)
+
 
 if __name__ == "__main__":
     unittest.main()
