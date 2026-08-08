@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 235222,
+  "duration_api_ms": 210654,
+  "is_error": false,
+  "num_turns": 11,
+  "result": "Done. Both checkers pass cleanly (static: ok; runtime: nonblank canvas, 385 frames, 88 scene objects, zero console errors).\n\n**Files created** (all original, no neighboring implementations consulted):\n- `index.html` \u2014 speed slider (1x\u201320x), Three.js 0.147.0 + OrbitControls from CDN, plain scripts only\n- `person.js` \u2014 `createPerson()` factory: hip-pivoted legs with feet at y=0, arms hanging from shoulders, `userData` with `leftLeg`/`rightLeg`/`isWalking`\n- `elevator.js` \u2014 all eight H6 constants, building with shaft cutout (4-piece translucent floors), yellow translucent `elevatorCar` with `leftDoor`/`rightDoor` sliding horizontally, and a tick-driven sequential action pipeline\n\n**Simulation loop**: elevator moves to the nearest occupied floor \u2192 doors open \u2192 person walks forward in (leg swing animation) \u2192 `.attach()` reparents to car \u2192 ride \u2192 `.attach()` back to scene \u2192 exits to waiting spot \u2192 empty floor updates, forever. All transparency uses `depthWrite: false`, `DoubleSide`, and layered `renderOrder`; auto-starts on load.",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 0,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "1a9482ee-4347-446f-b618-f4d4307b6f09",
+    "context_usage_ratio": 0.28084444444444445
+  },
+  "modelUsage": {
+    "qmodel_38max": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 0
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "510f7b46-440c-497d-a6ae-d8aabc906842",
+  "session_id": "095d0ad0-7832-448e-84a7-27135414ee90",
+  "input_tokens": 657702,
+  "output_tokens": 13939,
+  "total_tokens": 671641,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.17"
+}

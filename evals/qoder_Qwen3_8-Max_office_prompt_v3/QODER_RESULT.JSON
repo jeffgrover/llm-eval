@@ -1,0 +1,56 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "duration_ms": 3698525,
+  "duration_api_ms": 2322588,
+  "is_error": false,
+  "num_turns": 68,
+  "result": "The simulation is complete and verified. Seven files were built from scratch in the workspace:\n\n- **`index.html`** \u2014 exact mandated script order (Three.js 0.147.0 + OrbitControls from CDN, then the five local scripts).\n- **`person.js`** \u2014 hip/shoulder-pivoted limbs, nose for facing, walk/sit animator.\n- **`world.js`** \u2014 6-floor transparent building with real 3-unit entrance gap, 4 offices + conference + lounge per floor, full lobby (cafe, bistro, lounges, pit, reception, kiosk, coolers, loiter spots), BFS nav graph, chunky call panels with cached canvas-digit textures.\n- **`elevator_logic.js`** \u2014 pure 5-state scheduler with SCAN direction handling, capacity spots, door hold/cap, anti-starvation guards, and oldest-call-first idle pick.\n- **`elevator.js`** \u2014 yellow car, sliding doors, destination buttons, in-car/shaft indicators, thin adapter over the logic.\n- **`sim.js`** \u2014 lockstep clock (1\u2013600x slider), day/night keyframes, 20 workers + 80 recycled visitors with full daily schedules, plan compilers, substepped render loop, HUD with occupancy slider.\n- **`elevator_logic_test.js`** \u2014 8/8 deterministic tests pass.\n\nDebugging surfaced and fixed four real behavioral bugs: unbounded frame deltas skipping door timers (fixed with logic substeps), agents sampling door state too rarely at high speed (adaptive sim substeps), far-floor starvation (oldest-call scheduling + direction reset on turnaround), and a leave-plan re-trigger loop that bounced workers up/down forever (sticky `leaving` flag + exit overshoot guard).\n\nVerification: `node elevator_logic_test.js` 8/8, `static_check` clean, Playwright `runtime_check` nonblank canvas with motion and zero console errors, full-day soaks at 30x\u2013600x show morning rush, meetings, lunch surge, complete evening exodus, clean day wrap, correct seated orientations (38/38 facing checks), and no door bunching.",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0,
+  "total_credits": 0,
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "request_id": "3591d4fc-eded-4c1d-9f98-e9fe818e191b",
+    "context_usage_ratio": 1
+  },
+  "modelUsage": {
+    "qmodel_38max": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0,
+      "credits": 0
+    }
+  },
+  "permission_denials": [],
+  "fast_mode_state": "off",
+  "uuid": "0de3d788-ccf7-4fbd-aa92-bd0b13f9484a",
+  "session_id": "f6e34055-720e-402f-98fa-af6f46035c99",
+  "input_tokens": 20815967,
+  "output_tokens": 120930,
+  "total_tokens": 20936897,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "Qoder uses Credits and the CLI does not report per-run USD cost",
+  "qodercli_version": "1.1.17"
+}

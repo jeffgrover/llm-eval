@@ -1,0 +1,11 @@
+{
+  "input_tokens": 492802,
+  "output_tokens": 33695,
+  "total_tokens": 526497,
+  "reasoning_tokens": 14866,
+  "cache_read_tokens": 1194900,
+  "cache_write_tokens": 0,
+  "cost_usd": 1.0016217500000002,
+  "num_turns": 26,
+  "error": "This request requires more credits, or fewer max_tokens. You requested up to 32000 tokens, but can only afford 8055. To increase, visit https://openrouter.ai/settings/credits and add more credits"
+}
