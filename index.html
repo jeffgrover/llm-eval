@@ -138,14 +138,14 @@
         .mini-flag { margin-top: 8px; color: #b45309; font-size: 12px; font-weight: 800; }
         .comparison-table-wrap, .agent-section { margin-top: 26px; }
         .table-scroll { overflow-x: auto; }
-        table { border-collapse: collapse; width: 100%; min-width: 1160px; table-layout: fixed; }
+        table { border-collapse: collapse; width: 100%; min-width: 1360px; table-layout: fixed; }
         .score-col { width: 82px; }
         .agent-col { width: 200px; }
-        .provider-col { width: 108px; }
-        .metric-col { width: 76px; }
+        .provider-col { width: 180px; }
+        .metric-col { width: 130px; }
         .breakdown-col { width: auto; }
         .links-col { width: 104px; }
-        th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+        th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow: hidden; }
         th { color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; background: #f1f5f9; }
         tr:last-child td { border-bottom: 0; }
         .score-cell strong { display: block; font-size: 24px; color: var(--accent-strong); }
@@ -159,7 +159,8 @@
         .provider-local { background: #dcfce7; color: #166534; }
         .provider-unknown { background: #f1f5f9; color: #64748b; }
         .prompt-chip { background: #f8fafc; border: 1px solid #e2e8f0; color: #334155; }
-        .metric { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .metric { font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .provider-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
         .category-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
         .category-pills span { background: #eef2ff; color: #3730a3; border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 800; }
         .breakdown-cell { min-width: 390px; }
@@ -242,10 +243,10 @@
 
         <section id="elevator-tab" class="tab-panel active">
             <div class="stats-grid">
-                <div class="stat-card"><span>Total Runs</span><strong>21</strong></div>
-                <div class="stat-card"><span>Average Score</span><strong>65.9</strong></div>
+                <div class="stat-card"><span>Total Runs</span><strong>16</strong></div>
+                <div class="stat-card"><span>Average Score</span><strong>89.4</strong></div>
                 <div class="stat-card"><span>Local Runs</span><strong>9</strong></div>
-                <div class="stat-card"><span>Cloud Runs</span><strong>4</strong></div>
+                <div class="stat-card"><span>Cloud Runs</span><strong>5</strong></div>
             </div>
             <section class="leaderboard">
                 <div class="section-heading">
@@ -324,11 +325,11 @@
             <article class="leader-card">
                 <div class="rank">#6</div>
                 <div class="leader-main">
-                    <div class="leader-score">95</div>
-                    <div class="leader-title">Claude Code</div>
-                    <div class="leader-model">Opus_4_8</div>
-                    <div class="leader-meta">Elevator Prompt V2 / Anthropic</div>
-                    <div class="score-bar" aria-label="Score 95 of 100"><span style="width: 95%"></span></div>
+                    <div class="leader-score">96</div>
+                    <div class="leader-title">Qoder CLI</div>
+                    <div class="leader-model">Qwen3_8-Max-Preview</div>
+                    <div class="leader-meta">Elevator Prompt V3 / Qoder</div>
+                    <div class="score-bar" aria-label="Score 96 of 100"><span style="width: 96%"></span></div>
 
                 </div>
             </article>
@@ -539,6 +540,41 @@
 
                 </td>
                 <td><div class="actions"><a class="link-btn" href="evals/pi_coder-next_elevator_prompt_v3/summary.html">Report</a><a class="link-btn subtle" href="evals/pi_coder-next_elevator_prompt_v3/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+            </tr>
+
+
+            <tr>
+                <td>
+                    <div class="score-cell">
+                        <strong>96</strong>
+                        <div class="score-bar" aria-label="Score 96 of 100"><span style="width: 96%"></span></div>
+                        <span>Excellent</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="identity">
+                        <span class="agent-dot" style="background:#4f46e5"></span>
+                        <strong>Qoder CLI</strong>
+                        <span>Qwen3_8-Max-Preview</span>
+                    </div>
+                </td>
+                <td><span class="provider-badge provider-cloud">Qoder</span></td>
+                <td class="metric">≈891,371</td>
+                <td class="metric">N/A</td>
+                <td class="metric">6.4m</td>
+                <td class="breakdown-cell">
+                    <div class="category-pills">
+                        <span>C 10</span>
+                        <span>F 15</span>
+                        <span>I 30</span>
+                        <span>R 40</span>
+                        <span>E 1</span>
+                    </div>
+                    <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
+                    <div></div>
+
+                </td>
+                <td><div class="actions"><a class="link-btn" href="evals/qoder_Qwen3_8-Max-Preview_elevator_prompt_v3/summary.html">Report</a><a class="link-btn subtle" href="evals/qoder_Qwen3_8-Max-Preview_elevator_prompt_v3/index.html" target="_blank" rel="noopener">Preview</a></div></td>
             </tr>
 
 
@@ -890,216 +926,6 @@
                 </td>
                 <td><div class="actions"><a class="link-btn" href="evals/pi_nemotron-3-nano-omni_elevator_prompt_v3/summary.html">Report</a><a class="link-btn subtle" href="evals/pi_nemotron-3-nano-omni_elevator_prompt_v3/index.html" target="_blank" rel="noopener">Preview</a></div></td>
             </tr>
-
-
-            <tr>
-                <td>
-                    <div class="score-cell">
-                        <strong>8</strong>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                        <span>Incomplete</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="identity">
-                        <span class="agent-dot" style="background:#dc2626"></span>
-                        <strong>Mistral Vibe</strong>
-                        <span>mistralai-devstral-small-2-24b-instruct-2512-mlx</span>
-                    </div>
-                </td>
-                <td><span class="provider-badge provider-unknown">unknown</span></td>
-                <td class="metric">0</td>
-                <td class="metric">-</td>
-                <td class="metric">-</td>
-                <td class="breakdown-cell">
-                    <div class="category-pills">
-                        <span>C 1</span>
-                        <span>F 0</span>
-                        <span>I 0</span>
-                        <span>R 5</span>
-                        <span>E 2</span>
-                    </div>
-                    <div class="evidence">no result error flag, static browser preflight: no ES module syntax</div>
-                    <div><span class="flag">Runtime not verified</span><span class="flag">Missing: index.html, person.js, elevator.js</span><span class="flag">No runnable HTML preview</span><span class="flag">No summary report</span></div>
-
-                </td>
-                <td><div class="actions"><span class="muted">No report</span></div></td>
-            </tr>
-
-
-            <tr>
-                <td>
-                    <div class="score-cell">
-                        <strong>8</strong>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                        <span>Incomplete</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="identity">
-                        <span class="agent-dot" style="background:#047857"></span>
-                        <strong>OpenCode CLI</strong>
-                        <span>google_gemma-4-12b-qat</span>
-                    </div>
-                </td>
-                <td><span class="provider-badge provider-unknown">unknown</span></td>
-                <td class="metric">0</td>
-                <td class="metric">-</td>
-                <td class="metric">-</td>
-                <td class="breakdown-cell">
-                    <div class="category-pills">
-                        <span>C 1</span>
-                        <span>F 0</span>
-                        <span>I 0</span>
-                        <span>R 5</span>
-                        <span>E 2</span>
-                    </div>
-                    <div class="evidence">no result error flag, static browser preflight: no ES module syntax</div>
-                    <div><span class="flag">Runtime not verified</span><span class="flag">Missing: index.html, person.js, elevator.js</span><span class="flag">No runnable HTML preview</span><span class="flag">No summary report</span></div>
-
-                </td>
-                <td><div class="actions"><span class="muted">No report</span></div></td>
-            </tr>
-
-
-            <tr>
-                <td>
-                    <div class="score-cell">
-                        <strong>8</strong>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                        <span>Incomplete</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="identity">
-                        <span class="agent-dot" style="background:#047857"></span>
-                        <strong>OpenCode CLI</strong>
-                        <span>unsloth_gemma-4-12b-it</span>
-                    </div>
-                </td>
-                <td><span class="provider-badge provider-unknown">unknown</span></td>
-                <td class="metric">0</td>
-                <td class="metric">-</td>
-                <td class="metric">-</td>
-                <td class="breakdown-cell">
-                    <div class="category-pills">
-                        <span>C 1</span>
-                        <span>F 0</span>
-                        <span>I 0</span>
-                        <span>R 5</span>
-                        <span>E 2</span>
-                    </div>
-                    <div class="evidence">no result error flag, static browser preflight: no ES module syntax</div>
-                    <div><span class="flag">Runtime not verified</span><span class="flag">Missing: index.html, person.js, elevator.js</span><span class="flag">No runnable HTML preview</span><span class="flag">No summary report</span></div>
-
-                </td>
-                <td><div class="actions"><span class="muted">No report</span></div></td>
-            </tr>
-
-
-            <tr>
-                <td>
-                    <div class="score-cell">
-                        <strong>8</strong>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                        <span>Incomplete</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="identity">
-                        <span class="agent-dot" style="background:#0e7490"></span>
-                        <strong>Pi Coding Agent</strong>
-                        <span>google_gemma-4-e4b</span>
-                    </div>
-                </td>
-                <td><span class="provider-badge provider-unknown">unknown</span></td>
-                <td class="metric">0</td>
-                <td class="metric">-</td>
-                <td class="metric">-</td>
-                <td class="breakdown-cell">
-                    <div class="category-pills">
-                        <span>C 1</span>
-                        <span>F 0</span>
-                        <span>I 0</span>
-                        <span>R 5</span>
-                        <span>E 2</span>
-                    </div>
-                    <div class="evidence">no result error flag, static browser preflight: no ES module syntax</div>
-                    <div><span class="flag">Runtime not verified</span><span class="flag">Missing: index.html, person.js, elevator.js</span><span class="flag">No runnable HTML preview</span><span class="flag">No summary report</span></div>
-
-                </td>
-                <td><div class="actions"><span class="muted">No report</span></div></td>
-            </tr>
-
-
-            <tr>
-                <td>
-                    <div class="score-cell">
-                        <strong>8</strong>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                        <span>Incomplete</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="identity">
-                        <span class="agent-dot" style="background:#0e7490"></span>
-                        <strong>Pi Coding Agent</strong>
-                        <span>unsloth_gemma-4-e4b-it</span>
-                    </div>
-                </td>
-                <td><span class="provider-badge provider-unknown">unknown</span></td>
-                <td class="metric">0</td>
-                <td class="metric">-</td>
-                <td class="metric">-</td>
-                <td class="breakdown-cell">
-                    <div class="category-pills">
-                        <span>C 1</span>
-                        <span>F 0</span>
-                        <span>I 0</span>
-                        <span>R 5</span>
-                        <span>E 2</span>
-                    </div>
-                    <div class="evidence">no result error flag, static browser preflight: no ES module syntax</div>
-                    <div><span class="flag">Runtime not verified</span><span class="flag">Missing: index.html, person.js, elevator.js</span><span class="flag">No runnable HTML preview</span><span class="flag">No summary report</span></div>
-
-                </td>
-                <td><div class="actions"><span class="muted">No report</span></div></td>
-            </tr>
-
-
-            <tr>
-                <td>
-                    <div class="score-cell">
-                        <strong>8</strong>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                        <span>Incomplete</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="identity">
-                        <span class="agent-dot" style="background:#be123c"></span>
-                        <strong>Pi Wiggum</strong>
-                        <span>bonsai-27b</span>
-                    </div>
-                </td>
-                <td><span class="provider-badge provider-unknown">unknown</span></td>
-                <td class="metric">0</td>
-                <td class="metric">-</td>
-                <td class="metric">-</td>
-                <td class="breakdown-cell">
-                    <div class="category-pills">
-                        <span>C 1</span>
-                        <span>F 0</span>
-                        <span>I 0</span>
-                        <span>R 5</span>
-                        <span>E 2</span>
-                    </div>
-                    <div class="evidence">no result error flag, static browser preflight: no ES module syntax</div>
-                    <div><span class="flag">Runtime not verified</span><span class="flag">Missing: index.html, person.js, elevator.js</span><span class="flag">No runnable HTML preview</span><span class="flag">No summary report</span></div>
-
-                </td>
-                <td><div class="actions"><span class="muted">No report</span></div></td>
-            </tr>
             </tbody>
                     </table>
                 </div>
@@ -1109,10 +935,10 @@
 
         <section id="office-tab" class="tab-panel">
             <div class="stats-grid">
-                <div class="stat-card"><span>Total Runs</span><strong>20</strong></div>
-                <div class="stat-card"><span>Average Score</span><strong>86.7</strong></div>
+                <div class="stat-card"><span>Total Runs</span><strong>21</strong></div>
+                <div class="stat-card"><span>Average Score</span><strong>87.1</strong></div>
                 <div class="stat-card"><span>Local Runs</span><strong>2</strong></div>
-                <div class="stat-card"><span>Cloud Runs</span><strong>14</strong></div>
+                <div class="stat-card"><span>Cloud Runs</span><strong>15</strong></div>
             </div>
             <section class="leaderboard">
                 <div class="section-heading">
@@ -1692,6 +1518,41 @@
             <tr>
                 <td>
                     <div class="score-cell">
+                        <strong>95</strong>
+                        <div class="score-bar" aria-label="Score 95 of 100"><span style="width: 95%"></span></div>
+                        <span>Excellent</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="identity">
+                        <span class="agent-dot" style="background:#4f46e5"></span>
+                        <strong>Qoder CLI</strong>
+                        <span>Qwen3_8-Max-Preview</span>
+                    </div>
+                </td>
+                <td><span class="provider-badge provider-cloud">Qoder</span></td>
+                <td class="metric">≈13,626,252</td>
+                <td class="metric">N/A</td>
+                <td class="metric">40.1m</td>
+                <td class="breakdown-cell">
+                    <div class="category-pills">
+                        <span>C 10</span>
+                        <span>F 15</span>
+                        <span>I 30</span>
+                        <span>R 40</span>
+                        <span>E 0</span>
+                    </div>
+                    <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
+                    <div></div>
+
+                </td>
+                <td><div class="actions"><a class="link-btn" href="evals/qoder_Qwen3_8-Max-Preview_office_prompt_v3/summary.html">Report</a><a class="link-btn subtle" href="evals/qoder_Qwen3_8-Max-Preview_office_prompt_v3/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+            </tr>
+
+
+            <tr>
+                <td>
+                    <div class="score-cell">
                         <strong>94</strong>
                         <div class="score-bar" aria-label="Score 94 of 100"><span style="width: 94%"></span></div>
                         <span>Excellent</span>
@@ -2121,7 +1982,7 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #dc2626;">Mistral Vibe</span>
-                    <span class="agent-section-count">3 evaluations</span>
+                    <span class="agent-section-count">1 evaluation</span>
                 </div>
                 <div class="eval-grid">
                 <div class="eval-card">
@@ -2138,36 +1999,6 @@
                         <a href="evals/vibe_mistral-medium-3_5_elevator_prompt_v2/summary.html" class="view-btn">View Report</a>
                     </div>
                 </div>
-
-                <div class="eval-card">
-                    <div class="card-header">
-                        <span class="provider-badge provider-unknown">Unknown</span>
-                        <span class="score-badge">8</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="model-name">mistralai-devstral-small-2-24b-instruct-2512-mlx</div>
-                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt</span></div>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="evals/vibe_mistralai-devstral-small-2-24b-instruct-2512-mlx_elevator_prompt/summary.html" class="view-btn disabled">No Report</a>
-                    </div>
-                </div>
-
-                <div class="eval-card">
-                    <div class="card-header">
-                        <span class="provider-badge provider-unknown">Unknown</span>
-                        <span class="score-badge">8</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="model-name">mistralai-devstral-small-2-24b-instruct-2512-mlx</div>
-                        <div class="prompt-row"><span class="prompt-chip">Fib Prompt</span></div>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="evals/vibe_mistralai-devstral-small-2-24b-instruct-2512-mlx_fib_prompt/summary.html" class="view-btn disabled">No Report</a>
-                    </div>
-                </div>
                 </div>
             </section>
 
@@ -2175,7 +2006,7 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #047857;">OpenCode CLI</span>
-                    <span class="agent-section-count">10 evaluations</span>
+                    <span class="agent-section-count">8 evaluations</span>
                 </div>
                 <div class="eval-grid">
                 <div class="eval-card">
@@ -2205,21 +2036,6 @@
                     </div>
                     <div class="card-footer">
                         <a href="evals/opencode_gemma-4-31b-qat_office_prompt_v3/summary.html" class="view-btn">View Report</a>
-                    </div>
-                </div>
-
-                <div class="eval-card">
-                    <div class="card-header">
-                        <span class="provider-badge provider-unknown">Unknown</span>
-                        <span class="score-badge">8</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="model-name">google_gemma-4-12b-qat</div>
-                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt V2</span></div>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="evals/opencode_google_gemma-4-12b-qat_elevator_prompt_v2/summary.html" class="view-btn disabled">No Report</a>
                     </div>
                 </div>
 
@@ -2300,21 +2116,6 @@
 
                 <div class="eval-card">
                     <div class="card-header">
-                        <span class="provider-badge provider-unknown">Unknown</span>
-                        <span class="score-badge">8</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="model-name">unsloth_gemma-4-12b-it</div>
-                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt V2</span></div>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="evals/opencode_unsloth_gemma-4-12b-it_elevator_prompt_v2/summary.html" class="view-btn disabled">No Report</a>
-                    </div>
-                </div>
-
-                <div class="eval-card">
-                    <div class="card-header">
                         <span class="provider-badge provider-local">Local (LM Studio)</span>
                         <span class="score-badge">70</span>
                     </div>
@@ -2334,7 +2135,7 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #0e7490;">Pi Coding Agent</span>
-                    <span class="agent-section-count">5 evaluations</span>
+                    <span class="agent-section-count">3 evaluations</span>
                 </div>
                 <div class="eval-grid">
                 <div class="eval-card">
@@ -2349,21 +2150,6 @@
                     </div>
                     <div class="card-footer">
                         <a href="evals/pi_coder-next_elevator_prompt_v3/summary.html" class="view-btn">View Report</a>
-                    </div>
-                </div>
-
-                <div class="eval-card">
-                    <div class="card-header">
-                        <span class="provider-badge provider-unknown">Unknown</span>
-                        <span class="score-badge">8</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="model-name">google_gemma-4-e4b</div>
-                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt</span></div>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="evals/pi_google_gemma-4-e4b_elevator_prompt/summary.html" class="view-btn disabled">No Report</a>
                     </div>
                 </div>
 
@@ -2396,21 +2182,6 @@
                         <a href="evals/pi_qwen3_6-35b-a3b_elevator_prompt_v3/summary.html" class="view-btn">View Report</a>
                     </div>
                 </div>
-
-                <div class="eval-card">
-                    <div class="card-header">
-                        <span class="provider-badge provider-unknown">Unknown</span>
-                        <span class="score-badge">8</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="model-name">unsloth_gemma-4-e4b-it</div>
-                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt</span></div>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="evals/pi_unsloth_gemma-4-e4b-it_elevator_prompt/summary.html" class="view-btn disabled">No Report</a>
-                    </div>
-                </div>
                 </div>
             </section>
 
@@ -2418,7 +2189,7 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #be123c;">Pi Wiggum</span>
-                    <span class="agent-section-count">7 evaluations</span>
+                    <span class="agent-section-count">6 evaluations</span>
                 </div>
                 <div class="eval-grid">
                 <div class="eval-card">
@@ -2483,21 +2254,6 @@
 
                 <div class="eval-card">
                     <div class="card-header">
-                        <span class="provider-badge provider-unknown">Unknown</span>
-                        <span class="score-badge">8</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="model-name">bonsai-27b</div>
-                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt Wiggum</span></div>
-                        <div class="score-bar" aria-label="Score 8 of 100"><span style="width: 8%"></span></div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="evals/pi-wiggum_bonsai-27b_elevator_prompt_wiggum/summary.html" class="view-btn disabled">No Report</a>
-                    </div>
-                </div>
-
-                <div class="eval-card">
-                    <div class="card-header">
                         <span class="provider-badge provider-local">Local-B70</span>
                         <span class="score-badge">90</span>
                     </div>
@@ -2532,7 +2288,7 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #4f46e5;">Qoder CLI</span>
-                    <span class="agent-section-count">7 evaluations</span>
+                    <span class="agent-section-count">9 evaluations</span>
                 </div>
                 <div class="eval-grid">
                 <div class="eval-card">
@@ -2637,6 +2393,36 @@
                     </div>
                     <div class="card-footer">
                         <a href="evals/qoder_Qwen3_8-Max_office_prompt_v3/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-cloud">Qoder</span>
+                        <span class="score-badge">96</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">Qwen3_8-Max-Preview</div>
+                        <div class="prompt-row"><span class="prompt-chip">Elevator Prompt V3</span></div>
+                        <div class="score-bar" aria-label="Score 96 of 100"><span style="width: 96%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/qoder_Qwen3_8-Max-Preview_elevator_prompt_v3/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-cloud">Qoder</span>
+                        <span class="score-badge">95</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">Qwen3_8-Max-Preview</div>
+                        <div class="prompt-row"><span class="prompt-chip">Office Prompt V3</span></div>
+                        <div class="score-bar" aria-label="Score 95 of 100"><span style="width: 95%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/qoder_Qwen3_8-Max-Preview_office_prompt_v3/summary.html" class="view-btn">View Report</a>
                     </div>
                 </div>
                 </div>
