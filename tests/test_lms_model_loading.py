@@ -45,7 +45,7 @@ class LMStudioModelLoadingTests(unittest.TestCase):
                 call(
                     "/api/v1/models/unload",
                     method="POST",
-                    data={"model": "deepseek-v4-instance"},
+                    data={"instance_id": "deepseek-v4-instance"},
                 ),
                 call(
                     "/api/v1/models/load",

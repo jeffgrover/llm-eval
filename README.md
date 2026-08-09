@@ -64,6 +64,22 @@ models that have actually been exercised by this suite. The `--model` value
 must match the identifier advertised by the selected provider's `/v1/models`
 endpoint.
 
+### Choosing an Agent Harness
+
+Harness choice can materially change a model's score, so choose the comparison
+you actually want:
+
+| Harness | Best use in this suite | Main tradeoff |
+| :--- | :--- | :--- |
+| **Pi** | Clean, low-overhead model baseline | Minimal guidance assumes the model already knows how to plan and use tools well. |
+| **OpenCode** | Balanced general-purpose baseline | More orchestration and prompt/tool policy than Pi, but still relatively portable across model families. |
+| **Crush** | Typed repositories where prescriptive workflow and first-class LSP tools may help | A larger, more directive prompt and broad tool surface can burden smaller/local models; 8K context is insufficient for current releases. |
+| **Claude Code / Codex** | Measure the integrated vendor agent experience | Model and harness are co-designed, so results are less useful as a harness-neutral model comparison. |
+
+In shorthand, prompt prescriptiveness is roughly **Pi < OpenCode < Crush**.
+Use more than one harness when the goal is to distinguish raw model capability
+from the benefit of a particular agent's scaffolding.
+
 ---
 
 ## 2. Agent CLI Installation
@@ -181,6 +197,23 @@ In non-local mode, pass a complete OpenCode model reference such as
 OpenCode configuration. `--provider <name>` can explicitly select an existing
 custom provider.
 
+### Crush
+
+The Crush adapter is validated against Crush 0.87.0. Local runs receive an
+isolated `crush.json` that selects the requested provider/model, advertises the
+same context/output limits used by the evaluator, disables provider-list
+updates and telemetry, and permits the current built-in tools for unattended
+execution. Non-local runs use the user's configured providers and accept either
+a bare model ID or an explicit `provider/model` reference.
+
+Each run retains readable output in `CHAT_SESSION.TXT`, Crush's machine-readable
+session export in `CRUSH_SESSION.JSON`, and normalized tokens, cost, turns, tool
+calls, finish reasons, selected provider/model, CLI version, artifacts, and
+warnings in `CRUSH_RESULT.JSON`. These counters feed both `summary.html` and the
+central dashboard. Current Crush has substantial system/tool prompt overhead;
+in validation, an 8,192-token local context failed before the one-line user
+prompt could run, so use at least the evaluator's 32K default.
+
 ### Qoder CLI
 
 Qoder is a cloud-only runner, so use it with `--non-local` and one of the model
@@ -296,7 +329,7 @@ The evaluator is split by responsibility:
 -   `evaluation_core.py` owns the shared run lifecycle, workspace handling, metadata collection, LM Studio integration, and immutable local-provider configuration.
 -   `evaluation_metrics.py` normalizes token, cost, cache, and turn metrics from runner result files and fallback logs.
 -   `evaluation_report.py` renders the self-contained `summary.html` report and artifact navigation.
--   `runner_events.py` normalizes vendor-specific JSON/JSONL events into runner-level text, usage, provider, model, and error fields, including Qoder's explicit estimated-usage fallback.
+-   `runner_events.py` normalizes vendor-specific JSON/JSONL events into runner-level text, usage, provider, model, and error fields, including Crush session exports and Qoder's explicit estimated-usage fallback.
 -   `runners/` contains one CLI adapter per agent. Each adapter owns only its command/configuration and vendor-specific execution flow.
 -   `tests/fixtures/runner_events/` contains representative CLI event streams used by parser contract tests.
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from evaluate_agent import CHAT_SESSION_FILENAME, SERVER_LOG_FILENAME
 from evaluation_metrics import (
     CLAUDE_RESULT_FILENAME,
+    CRUSH_RESULT_FILENAME,
     OPENCODE_RESULT_FILENAME,
     PI_WIGGUM_RESULT_FILENAME,
     QODER_RESULT_FILENAME,
@@ -51,6 +52,37 @@ class TokenUsageCollectorTests(unittest.TestCase):
                     "cache_read_tokens": 15,
                     "cost_usd": 0.25,
                     "num_turns": 3,
+                },
+            )
+
+    def test_crush_result_metrics_are_reported(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / CRUSH_RESULT_FILENAME).write_text(
+                json.dumps(
+                    {
+                        "input_tokens": 200,
+                        "output_tokens": 40,
+                        "total_tokens": 240,
+                        "cost_usd": 0.05,
+                        "num_turns": 2,
+                        "tool_calls": 3,
+                        "finish_reasons": ["tool_use", "stop"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                self.collect(work_dir),
+                {
+                    "prompt_tokens": 200,
+                    "completion_tokens": 40,
+                    "total_tokens": 240,
+                    "cost_usd": 0.05,
+                    "num_turns": 2,
+                    "tool_calls": 3,
+                    "finish_reasons": ["tool_use", "stop"],
                 },
             )
 

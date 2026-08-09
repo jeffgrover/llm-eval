@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "id": "abc123",
+    "uuid": "11111111-2222-3333-4444-555555555555",
+    "cost": 0.0125,
+    "prompt_tokens": 120,
+    "completion_tokens": 30,
+    "total_tokens": 150
+  },
+  "messages": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "parts": [{"type": "text", "text": "Build it"}]
+    },
+    {
+      "id": "assistant-1",
+      "role": "assistant",
+      "provider": "lmstudio",
+      "model": "test-model",
+      "parts": [
+        {"type": "tool", "name": "write"},
+        {"type": "finish", "reason": "tool_use"}
+      ]
+    },
+    {
+      "id": "assistant-2",
+      "role": "assistant",
+      "provider": "lmstudio",
+      "model": "test-model",
+      "parts": [{"type": "finish", "reason": "stop"}]
+    }
+  ]
+}
