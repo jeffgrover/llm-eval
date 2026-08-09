@@ -11,6 +11,7 @@ from runner_events import (
     extract_codex_session_id,
     find_codex_usage_objects,
     normalize_qoder_result,
+    normalize_crush_session,
     parse_claude_event,
     parse_gemini_transcript,
     parse_opencode_event,
@@ -173,15 +174,47 @@ class RunnerEventContractTests(unittest.TestCase):
                 headless=True,
                 non_local=True,
             )
+            runner.work_dir = Path(temp_dir)
 
-            with mock.patch.object(runner, "_run_process") as run_process:
+            with (
+                mock.patch.object(runner, "_run_process", return_value=0) as run_process,
+                mock.patch.object(runner, "_read_last_session", return_value={}),
+                mock.patch.object(runner, "_crush_version", return_value="v0.87.0"),
+            ):
                 runner.execute_agent()
 
-            run_process.assert_called_once_with(
-                fixture["argv"],
-                input_text="build it",
-                display_cmd=fixture["display"],
+            call = run_process.call_args
+            argv = call.args[0]
+            self.assertEqual(argv[0], runner.agent_binary)
+            self.assertEqual(argv[1:5], fixture["argv_tail_prefix"])
+            self.assertEqual(argv[5], "--data-dir")
+            self.assertTrue(argv[6])
+            self.assertEqual(call.kwargs["input_text"], "build it")
+            self.assertEqual(
+                call.kwargs["display_cmd"],
+                "crush run --quiet --model test-model "
+                "--data-dir <isolated> < prompt",
             )
+
+    def test_crush_session_contract(self):
+        session = json.loads(
+            (FIXTURE_DIR / "crush_session.json").read_text(encoding="utf-8")
+        )
+
+        result = normalize_crush_session(
+            session, process_returncode=0, crush_version="v0.87.0"
+        )
+
+        self.assertEqual(result["input_tokens"], 120)
+        self.assertEqual(result["output_tokens"], 30)
+        self.assertEqual(result["total_tokens"], 150)
+        self.assertEqual(result["cost_usd"], 0.0125)
+        self.assertEqual(result["num_turns"], 2)
+        self.assertEqual(result["tool_calls"], 1)
+        self.assertEqual(result["finish_reasons"], ["tool_use", "stop"])
+        self.assertEqual(result["provider_id"], "lmstudio")
+        self.assertEqual(result["model_id"], "test-model")
+        self.assertFalse(result["is_error"])
 
 
 if __name__ == "__main__":

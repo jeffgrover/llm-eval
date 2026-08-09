@@ -38,6 +38,7 @@ class ArtifactRetentionTests(unittest.TestCase):
             self.assertEqual(shortened[0][3], 10)
             self.assertEqual(shortened_again, [])
 
+
     def test_small_non_wiggum_artifacts_are_not_shortened(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             evals_dir = Path(tmpdir) / "evals"
@@ -93,6 +94,36 @@ class ArtifactRetentionTests(unittest.TestCase):
             )
             self.assertEqual(shortened[0][3], 290)
             self.assertEqual(shortened_again, [])
+
+
+class EvaluationDiscoveryTests(unittest.TestCase):
+    def test_scan_ignores_empty_and_server_log_only_directories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evals_dir = Path(tmpdir) / "evals"
+            (evals_dir / "pi_empty_elevator_prompt").mkdir(parents=True)
+            log_only = evals_dir / "vibe_log-only_elevator_prompt"
+            log_only.mkdir()
+            (log_only / "SERVER.LOG").write_text("server output", encoding="utf-8")
+
+            with patch.object(generate_index, "EVALS_DIR", evals_dir):
+                evaluations = generate_index.scan_evaluations()
+
+            self.assertEqual(evaluations, [])
+
+    def test_scan_keeps_partial_run_with_any_non_server_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evals_dir = Path(tmpdir) / "evals"
+            partial = evals_dir / "opencode_partial_elevator_prompt"
+            nested = partial / "src"
+            nested.mkdir(parents=True)
+            (partial / "SERVER.LOG").write_text("server output", encoding="utf-8")
+            (nested / "person.js").write_text("// partial", encoding="utf-8")
+
+            with patch.object(generate_index, "EVALS_DIR", evals_dir):
+                evaluations = generate_index.scan_evaluations()
+
+            self.assertEqual(len(evaluations), 1)
+            self.assertEqual(evaluations[0]["Path"], partial)
 
 
 if __name__ == "__main__":

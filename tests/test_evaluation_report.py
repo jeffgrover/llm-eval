@@ -1,10 +1,12 @@
 import base64
+import json
 import re
 import tempfile
 import unittest
 from pathlib import Path
 
 from evaluation_report import format_duration_human, generate_html_report
+from evaluation_metrics import CRUSH_RESULT_FILENAME, TokenUsageCollector
 
 
 class EvaluationReportTests(unittest.TestCase):
@@ -140,6 +142,41 @@ class EvaluationReportTests(unittest.TestCase):
             self.assertIn("Run diagnostics", report)
             self.assertIn("output-token limit", report)
             self.assertIn("no generated artifact files", report)
+
+    def test_crush_result_tokens_flow_into_summary(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / CRUSH_RESULT_FILENAME).write_text(
+                json.dumps(
+                    {
+                        "input_tokens": 321,
+                        "output_tokens": 45,
+                        "total_tokens": 366,
+                        "num_turns": 2,
+                        "cost_usd": 0.0123,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            metadata = self.metadata()
+            metadata["Tokens"] = TokenUsageCollector.collect(
+                work_dir / "SERVER.LOG", work_dir / "CHAT_SESSION.TXT"
+            )
+
+            report_path = generate_html_report(
+                work_dir,
+                metadata,
+                "build it",
+                duration_seconds=10.0,
+                agent_name="crush",
+            )
+            report = report_path.read_text(encoding="utf-8")
+
+            self.assertIn("Charmbracelet Crush", report)
+            self.assertIn(">321</span>", report)
+            self.assertIn(">45</span>", report)
+            self.assertIn(">366</span>", report)
+            self.assertIn("$0.0123", report)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,73 @@ class ParsedEvent:
     finish_reason: Optional[str] = None
 
 
+def normalize_crush_session(
+    session: Dict,
+    process_returncode: int = 0,
+    crush_version: Optional[str] = None,
+) -> Dict:
+    """Normalize `crush session last --json` into evaluator metrics."""
+    meta = session.get("meta", {})
+    messages = session.get("messages", [])
+    if not isinstance(meta, dict):
+        meta = {}
+    if not isinstance(messages, list):
+        messages = []
+
+    assistant_messages = [
+        message
+        for message in messages
+        if isinstance(message, dict) and message.get("role") == "assistant"
+    ]
+    tool_calls = 0
+    finish_reasons: List[str] = []
+    provider_id = None
+    model_id = None
+    for message in assistant_messages:
+        provider_id = message.get("provider") or provider_id
+        model_id = message.get("model") or model_id
+        parts = message.get("parts", [])
+        if not isinstance(parts, list):
+            continue
+        for part in parts:
+            if not isinstance(part, dict):
+                continue
+            part_type = part.get("type")
+            if part_type in ("tool", "tool_call", "tool_use"):
+                tool_calls += 1
+            if part_type == "finish" and part.get("reason"):
+                finish_reasons.append(str(part["reason"]))
+
+    input_tokens = meta.get("prompt_tokens", 0) or 0
+    output_tokens = meta.get("completion_tokens", 0) or 0
+    total_tokens = meta.get("total_tokens", 0) or input_tokens + output_tokens
+    is_error = process_returncode != 0 or "error" in finish_reasons
+    result = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "cost_usd": meta.get("cost", 0) or 0,
+        "num_turns": len(assistant_messages),
+        "tool_calls": tool_calls,
+        "finish_reasons": finish_reasons,
+        "session_id": meta.get("uuid") or meta.get("id"),
+        "provider_id": provider_id,
+        "model_id": model_id,
+        "status": "error" if is_error else "success",
+        "is_error": is_error,
+        "process_returncode": process_returncode,
+    }
+    if crush_version:
+        result["crush_version"] = crush_version
+    if is_error:
+        result["error"] = (
+            "Crush session finished with an error"
+            if "error" in finish_reasons
+            else f"Crush exited with code {process_returncode}"
+        )
+    return result
+
+
 def parse_gemini_transcript(records: Iterable[Dict]) -> Dict[str, int]:
     """Estimate Antigravity token counts from its transcript records."""
     turns = 0

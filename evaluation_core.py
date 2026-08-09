@@ -265,7 +265,9 @@ def load_lms_model(
             instance_id = other.get("instance_id", other_id)
             print(f"[*] Unloading other model: {other_id}")
             lms_api_request(
-                "/api/v1/models/unload", method="POST", data={"model": instance_id}
+                "/api/v1/models/unload",
+                method="POST",
+                data={"instance_id": instance_id},
             )
 
         if target_loaded:
@@ -1181,7 +1183,7 @@ class AgentRunner:
         env: Optional[Dict[str, str]] = None,
         input_text: Optional[str] = None,
         display_cmd: Optional[str] = None,
-    ):
+    ) -> int:
         """Runs the process and streams output to file and stdout."""
         if env is None:
             env = self.get_env_vars()
@@ -1233,3 +1235,5 @@ class AgentRunner:
             else:
                 print(f"[+] Agent finished successfully.")
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+
+        return process.returncode

@@ -1,1 +1,3 @@
-{"argv":["crush","run","-y"],"display":"crush run -y < prompt"}
+{
+  "argv_tail_prefix": ["run", "--quiet", "--model", "test-model"]
+}

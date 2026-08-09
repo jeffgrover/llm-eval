@@ -25,6 +25,7 @@ RESULT_FILES = (
     "CLAUDE_RESULT.JSON",
     "GEMINI_RESULT.JSON",
     "OPENCODE_RESULT.JSON",
+    "CRUSH_RESULT.JSON",
     "PI_WIGGUM_RESULT.JSON",
     "PI_RESULT.JSON",
     "CODEX_RESULT.JSON",
@@ -33,6 +34,7 @@ RESULT_FILES = (
 )
 
 RUNTIME_CHECK_FILE = "runtime_check.json"
+NON_RESULT_FILES = {"server.log"}
 
 AGENT_DISPLAY_NAMES = {
     "mistral": "Mistral Vibe",
@@ -766,6 +768,11 @@ def scan_evaluations() -> List[Dict]:
 
     for item in EVALS_DIR.iterdir():
         if not item.is_dir():
+            continue
+        if not any(
+            path.is_file() and path.name.lower() not in NON_RESULT_FILES
+            for path in item.rglob("*")
+        ):
             continue
         summary_path = item / "summary.html"
         result = parse_result_json(item)
