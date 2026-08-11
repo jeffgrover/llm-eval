@@ -12,10 +12,10 @@ import platform
 import urllib.request
 import urllib.error
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from evaluation_metrics import TokenUsage, TokenUsageCollector
 from evaluation_report import generate_html_report
@@ -832,6 +832,100 @@ class MetadataCollector:
         return info
 
 
+# --- Process Streaming ---
+
+DEFAULT_PROCESS_TIMEOUT = 900
+
+
+@dataclass
+class ProcessResult:
+    """Outcome of a streamed agent subprocess."""
+
+    returncode: int
+    timed_out: bool = False
+
+
+def run_streaming_process(
+    cmd: List[str],
+    work_dir: Path,
+    chat_log_path: Path,
+    env: Optional[Dict[str, str]] = None,
+    input_text: Optional[str] = None,
+    display_cmd: Optional[str] = None,
+    timeout: int = DEFAULT_PROCESS_TIMEOUT,
+    on_line: Optional[Callable[[str, any], None]] = None,
+    merge_stderr: bool = True,
+    cwd: Optional[Path] = None,
+    shell: bool = False,
+) -> ProcessResult:
+    """Run a subprocess, stream stdout to both console and a log file.
+
+    Encapsulates the common Popen → stdin → line iteration → timeout → exit
+    lifecycle shared by every runner adapter.  Each adapter supplies an
+    ``on_line(line, log_file)`` callback for per-line event parsing.
+
+    Args:
+        cmd: Command and arguments.
+        work_dir: Working directory for the child process.
+        chat_log_path: Path to write the human-readable chat transcript.
+        env: Environment variables (defaults to ``os.environ``).
+        input_text: Text piped to stdin on a background thread.
+        display_cmd: Log-friendly command summary.
+        timeout: Seconds before the process is killed.
+        on_line: Called for every stdout line with ``(line, log_file)``.
+        merge_stderr: Merge stderr into stdout (default) or keep separate.
+        cwd: Override working directory (defaults to ``work_dir``).
+        shell: Use shell execution (needed for .cmd wrappers on Windows).
+    """
+    if env is None:
+        env = os.environ.copy()
+
+    print(f"[*] Executing: {display_cmd or format_display_cmd(cmd)}")
+    print(f"[*] Output logging to: {chat_log_path}")
+
+    timed_out = False
+
+    with open(chat_log_path, "w", encoding="utf-8") as log_file:
+        process = subprocess.Popen(
+            cmd,
+            cwd=cwd or work_dir,
+            env=env,
+            stdin=subprocess.PIPE if input_text is not None else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            shell=shell,
+        )
+        send_stdin(process, input_text)
+
+        for line in process.stdout:
+            if on_line:
+                on_line(line, log_file)
+
+        try:
+            process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            print(f"[-] Agent process timed out after {timeout} seconds.")
+            log_file.write(f"\n[ERROR] Process timed out after {timeout} seconds.\n")
+            process.kill()
+            process.wait()
+
+        if process.returncode == 0:
+            print(f"[+] Agent finished successfully.")
+            log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+        else:
+            print(f"[-] Agent finished with error code {process.returncode}")
+            log_file.write(
+                f"\n[ERROR] Process exited with code {process.returncode}\n"
+            )
+
+    return ProcessResult(returncode=process.returncode, timed_out=timed_out)
+
+
 # --- Agent Runners ---
 
 
@@ -1184,56 +1278,22 @@ class AgentRunner:
         input_text: Optional[str] = None,
         display_cmd: Optional[str] = None,
     ) -> int:
-        """Runs the process and streams output to file and stdout."""
-        if env is None:
-            env = self.get_env_vars()
+        """Run the process and stream output to file and stdout.
 
-        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
-
-        print(f"[*] Executing: {display_cmd or format_display_cmd(cmd)}")
-        print(f"[*] Output logging to: {chat_log_path}")
-
-        with open(chat_log_path, "w", encoding="utf-8") as log_file:
-            # We want to capture both stdout and stderr
-            # And also print to the console?
-            # Subprocess.PIPE might buffer, but let's try.
-
-            # Start process in the work dir
-            process = subprocess.Popen(
-                cmd,
-                cwd=self.work_dir,
-                env=env,
-                stdin=subprocess.PIPE if input_text is not None else None,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,  # Merge stderr into stdout
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,  # Line buffered
-            )
-            send_stdin(process, input_text)
-
-            # Stream output
-            for line in process.stdout:
-                safe_stdout_write(line)
-                log_file.write(line)
-                log_file.flush()
-
-            try:
-                process.wait(timeout=900)  # Wait with a timeout
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()  # Terminate the process
-                process.wait()  # Wait for it to actually terminate
-
-            if process.returncode != 0:
-                print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
-                )
-            else:
-                print(f"[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
-
-        return process.returncode
+        Delegates to :func:`run_streaming_process` for the common lifecycle.
+        Returns the process exit code for backward compatibility.
+        """
+        result = run_streaming_process(
+            cmd=cmd,
+            work_dir=self.work_dir,
+            chat_log_path=self.work_dir / CHAT_SESSION_FILENAME,
+            env=env or self.get_env_vars(),
+            input_text=input_text,
+            display_cmd=display_cmd,
+            on_line=lambda line, log_file: (
+                safe_stdout_write(line),
+                log_file.write(line),
+                log_file.flush(),
+            ),
+        )
+        return result.returncode

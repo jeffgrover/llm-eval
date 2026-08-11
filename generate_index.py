@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""Dashboard generator – thin orchestrator.
+
+Scans evaluation directories, scores runs, and renders the HTML
+dashboard.  Scoring algorithms live in :mod:`eval_scoring`; filesystem
+discovery and data loading live in :mod:`eval_scanner`.
+"""
+
 import html
 import json
 import re
@@ -6,7 +13,48 @@ from collections import deque
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-EVALS_DIR = Path("evals")
+from evaluation_metrics import (
+    RESULT_FILES,
+    RunMetrics,
+    _parse_result_data,
+    load_run_metrics,
+)
+from eval_scanner import (
+    AGENT_COLORS,
+    AGENT_DISPLAY_NAMES,
+    EVALS_DIR,
+    NON_RESULT_FILES,
+    RUNTIME_CHECK_FILE,
+    detect_provider,
+    get_agent_color,
+    get_display_name,
+    get_known_prompts,
+    parse_directory_name,
+    parse_metrics,
+    parse_result_json,
+    parse_runtime_check,
+    scan_evaluations,
+)
+from eval_scoring import (
+    browser_js_source,
+    contains_any,
+    deterministic_score,
+    first_preview_link,
+    is_elevator_prompt,
+    is_office_prompt,
+    points,
+    read_text,
+    required_files_for_prompt,
+    runtime_error_summary,
+    score_efficiency,
+    score_elevator,
+    score_generic,
+    score_office,
+    score_runtime,
+    scoring_methodology_tooltip,
+    short_runtime_error,
+)
+
 INDEX_FILE = Path("index.html")
 MAX_ARTIFACT_BYTES = 50 * 1000 * 1000
 TARGET_ARTIFACT_BYTES = 45 * 1000 * 1000
@@ -21,59 +69,9 @@ TRUNCATION_COUNTS_PATTERN = re.compile(
     rb"removed ([\d,]+) lines \(([\d,]+) bytes\)"
 )
 
-RESULT_FILES = (
-    "CLAUDE_RESULT.JSON",
-    "GEMINI_RESULT.JSON",
-    "OPENCODE_RESULT.JSON",
-    "CRUSH_RESULT.JSON",
-    "PI_WIGGUM_RESULT.JSON",
-    "PI_RESULT.JSON",
-    "CODEX_RESULT.JSON",
-    "VIBE_RESULT.JSON",
-    "QODER_RESULT.JSON",
-)
-
-RUNTIME_CHECK_FILE = "runtime_check.json"
-NON_RESULT_FILES = {"server.log"}
-
-AGENT_DISPLAY_NAMES = {
-    "mistral": "Mistral Vibe",
-    "gemini": "Antigravity CLI",
-    "agy": "Antigravity CLI",
-    "antigravity": "Antigravity CLI",
-    "claude": "Claude Code",
-    "codex": "Codex CLI",
-    "crush": "Charmbracelet Crush",
-    "opencode": "OpenCode CLI",
-    "pi-wiggum": "Pi Wiggum",
-    "pi": "Pi Coding Agent",
-    "qoder": "Qoder CLI",
-    "vibe": "Mistral Vibe",
-}
-
-AGENT_COLORS = {
-    "Claude Code": "#b45309",
-    "Codex CLI": "#111827",
-    "Antigravity CLI": "#2563eb",
-    "Gemini CLI": "#2563eb",
-    "OpenCode CLI": "#047857",
-    "Mistral Vibe": "#dc2626",
-    "Charmbracelet Crush": "#7c3aed",
-    "Pi Coding Agent": "#0e7490",
-    "Pi Wiggum": "#be123c",
-    "Qoder CLI": "#4f46e5",
-}
-
 
 def esc(value) -> str:
     return html.escape(str(value), quote=True)
-
-
-def read_text(path: Path, limit: Optional[int] = None) -> str:
-    if not path.exists() or not path.is_file():
-        return ""
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    return text[:limit] if limit and len(text) > limit else text
 
 
 def truncation_marker(path: Path, removed_lines: int, removed_bytes: int, note: str = "") -> bytes:
@@ -229,445 +227,9 @@ def shorten_oversized_artifacts() -> List[Tuple[Path, int, int, int]]:
     return shortened
 
 
-def get_known_prompts() -> set:
-    prompts = set()
-    excluded = {"README", "CLAUDE", "AGENTS"}
-    for pattern in ("*.txt", "*.md"):
-        for f in Path(".").glob(pattern):
-            if f.stem not in excluded:
-                prompts.add(f.stem)
-    return prompts
-
-
-def get_display_name(agent_raw: str) -> str:
-    return AGENT_DISPLAY_NAMES.get(agent_raw.lower(), agent_raw.title())
-
-
-def get_agent_color(agent_name: str) -> str:
-    return AGENT_COLORS.get(agent_name, "#64748b")
-
-
-def detect_provider(summary_path: Path) -> str:
-    content = read_text(summary_path)
-    if not content:
-        return "unknown"
-    if "Cloud API" in content:
-        m = re.search(r'Provider:</span>\s*<span[^>]*>([^<]+)', content)
-        return m.group(1).strip() if m else "Cloud"
-    if "LM Studio" in content:
-        return "Local (LM Studio)"
-    m = re.search(r'Provider:</span>\s*<span[^>]*>([^<]+)', content)
-    if m:
-        provider = m.group(1).strip()
-        return "Local (LM Studio)" if provider.lower() == "lmstudio" else provider
-    return "unknown"
-
-
-def parse_directory_name(dir_name: str, known_prompts: set) -> Dict[str, str]:
-    sep = "_" if "_" in dir_name else "-"
-    parts = dir_name.split(sep)
-    if len(parts) < 3:
-        return {"Agent": "Unknown", "Model": dir_name, "Prompt": "", "Raw": dir_name}
-
-    agent = parts[0]
-    if len(parts) > 1 and f"{parts[0]}-{parts[1]}" in AGENT_DISPLAY_NAMES:
-        agent = f"{parts[0]}-{parts[1]}"
-        parts = [agent] + parts[2:]
-    model_parts = parts[1:]
-    prompt = ""
-    model = sep.join(model_parts)
-
-    for i in range(len(model_parts) - 1, 0, -1):
-        candidate = sep.join(model_parts[i:])
-        if candidate in known_prompts:
-            prompt = candidate
-            model = sep.join(model_parts[:i])
-            break
-
-    return {
-        "Agent": get_display_name(agent),
-        "Model": model,
-        "Prompt": prompt,
-        "Raw": dir_name,
-    }
-
-
-def parse_result_json(work_dir: Path) -> Dict:
-    for filename in RESULT_FILES:
-        path = work_dir / filename
-        if path.exists():
-            try:
-                data = json.loads(read_text(path))
-                data["_result_file"] = filename
-                return data
-            except json.JSONDecodeError:
-                return {"_result_file": filename, "_parse_error": True}
-    return {}
-
-
-def parse_runtime_check(work_dir: Path) -> Dict:
-    path = work_dir / RUNTIME_CHECK_FILE
-    if not path.exists():
-        return {}
-    try:
-        data = json.loads(read_text(path))
-        return data if isinstance(data, dict) else {"_parse_error": True}
-    except json.JSONDecodeError:
-        return {"_parse_error": True}
-
-
-def parse_metrics(result: Dict) -> Dict[str, float]:
-    metrics = {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "cache_read_tokens": 0,
-        "cost_usd": 0.0,
-        "num_turns": 0,
-        "duration_ms": 0,
-        "success": None,
-        "error": False,
-        "token_counts_estimated": False,
-        "cost_available": None,
-    }
-    if not result:
-        return metrics
-
-    stats = result.get("stats", {})
-    if stats:
-        metrics["input_tokens"] = stats.get("input_tokens", stats.get("input", 0)) or 0
-        metrics["output_tokens"] = stats.get("output_tokens", 0) or 0
-        metrics["total_tokens"] = stats.get("total_tokens", 0) or 0
-        metrics["cache_read_tokens"] = stats.get("cached", 0) or 0
-        metrics["duration_ms"] = stats.get("duration_ms", 0) or result.get("duration_ms", 0) or 0
-        metrics["num_turns"] = stats.get("tool_calls", 0) or 0
-        metrics["success"] = result.get("status") == "success"
-        metrics["error"] = result.get("status") not in (None, "success")
-        metrics["token_counts_estimated"] = bool(
-            result.get("token_counts_estimated")
-        )
-        if "cost_available" in result:
-            metrics["cost_available"] = bool(result["cost_available"])
-        return metrics
-
-    if result.get("token_counts_estimated"):
-        metrics["input_tokens"] = result.get("input_tokens", 0) or 0
-        metrics["output_tokens"] = result.get("output_tokens", 0) or 0
-        metrics["total_tokens"] = (
-            result.get("total_tokens")
-            or metrics["input_tokens"] + metrics["output_tokens"]
-        )
-        metrics["token_counts_estimated"] = True
-    elif "modelUsage" in result:
-        for model_data in result.get("modelUsage", {}).values():
-            metrics["input_tokens"] += (
-                model_data.get("inputTokens", 0)
-                + model_data.get("cacheCreationInputTokens", 0)
-                + model_data.get("cacheReadInputTokens", 0)
-            )
-            metrics["output_tokens"] += model_data.get("outputTokens", 0)
-            metrics["cache_read_tokens"] += model_data.get("cacheReadInputTokens", 0)
-            metrics["cost_usd"] += model_data.get("costUSD", 0) or 0
-        metrics["total_tokens"] = metrics["input_tokens"] + metrics["output_tokens"]
-    else:
-        usage = result.get("usage", {})
-        metrics["input_tokens"] = (
-            result.get("input_tokens")
-            or result.get("prompt_tokens")
-            or usage.get("input_tokens", 0)
-            + usage.get("cache_creation_input_tokens", 0)
-            + usage.get("cache_read_input_tokens", 0)
-            or 0
-        )
-        metrics["output_tokens"] = (
-            result.get("output_tokens")
-            or result.get("completion_tokens")
-            or usage.get("output_tokens", 0)
-            or 0
-        )
-        metrics["total_tokens"] = result.get("total_tokens") or metrics["input_tokens"] + metrics["output_tokens"]
-        metrics["cache_read_tokens"] = result.get("cache_read_tokens") or usage.get("cache_read_input_tokens", 0) or 0
-        metrics["cost_usd"] = result.get("cost_usd") or result.get("total_cost_usd") or 0.0
-
-    if "cost_available" in result:
-        metrics["cost_available"] = bool(result["cost_available"])
-    metrics["duration_ms"] = result.get("duration_ms", 0) or result.get("duration_api_ms", 0) or 0
-    metrics["num_turns"] = result.get("num_turns", 0) or 0
-    metrics["success"] = (
-        result.get("subtype") == "success"
-        or result.get("status") == "success"
-        or result.get("terminal_reason") == "completed"
-    )
-    metrics["error"] = bool(result.get("is_error")) or bool(result.get("_parse_error"))
-    return metrics
-
-
-def points(condition: bool, amount: int, label: str, evidence: List[str]) -> int:
-    if condition:
-        evidence.append(label)
-        return amount
-    return 0
-
-
-def contains_any(text: str, patterns: Tuple[str, ...]) -> bool:
-    return any(re.search(pattern, text, re.IGNORECASE | re.MULTILINE) for pattern in patterns)
-
-
-def browser_js_source(files: Dict[str, str]) -> str:
-    return "\n".join(text for name, text in files.items() if name.lower().endswith(".js"))
-
-
-def is_elevator_prompt(prompt: str) -> bool:
-    return prompt.startswith("elevator_prompt")
-
-
-def is_office_prompt(prompt: str) -> bool:
-    return prompt.startswith("office_prompt")
-
-
-def required_files_for_prompt(prompt: str) -> List[str]:
-    if is_office_prompt(prompt):
-        return ["index.html", "person.js", "world.js", "elevator.js", "sim.js"]
-    if is_elevator_prompt(prompt):
-        return ["index.html", "person.js", "elevator.js"]
-    return []
-
-
-def score_efficiency(metrics: Dict[str, float], evidence: List[str]) -> int:
-    total = metrics.get("total_tokens", 0) or 0
-    turns = metrics.get("num_turns", 0) or 0
-    score = 0
-    if total <= 0:
-        return 2
-    if total <= 75_000:
-        score += 3
-        evidence.append("token use under 75k")
-    elif total <= 175_000:
-        score += 2
-        evidence.append("token use under 175k")
-    elif total <= 500_000:
-        score += 1
-        evidence.append("token use under 500k")
-    if turns == 0 or turns <= 10:
-        score += 2
-        if turns:
-            evidence.append("turn count under 10")
-    elif turns <= 18:
-        score += 1
-        evidence.append("turn count under 18")
-    return min(score, 5)
-
-
-def score_runtime(work_dir: Path, files: Dict[str, str], runtime: Dict, evidence: List[str], flags: List[str]) -> int:
-    index = files.get("index.html", "")
-    browser_code = browser_js_source(files)
-    preview_exists = first_preview_link(work_dir) is not None
-
-    if not runtime:
-        score = 0
-        score += points(not contains_any(browser_code, (r"^\s*import\s+", r"^\s*export\s+")), 5, "static browser preflight: no ES module syntax", evidence)
-        score += points(bool(index) and contains_any(index, (r"<script[^>]+\.js",)), 4, "static browser preflight: scripts loaded", evidence)
-        score += points(preview_exists, 3, "static browser preflight: HTML preview present", evidence)
-        flags.append("Runtime not verified")
-        return min(score, 12)
-
-    if runtime.get("_parse_error"):
-        flags.append("Runtime check parse error")
-        return 0
-
-    static_errors = runtime.get("static_errors") or []
-    console_errors = runtime.get("console_errors") or []
-    page_errors = runtime.get("page_errors") or []
-    startup_clean = bool(runtime.get("loaded")) and not static_errors and not console_errors and not page_errors
-    canvas_count = int(runtime.get("canvas_count") or 0)
-    frame_count = int(runtime.get("animation_frames") or 0)
-    scene_objects = int(runtime.get("scene_object_count") or 0)
-    dynamic_changes = int(runtime.get("dynamic_changes") or 0)
-
-    score = 0
-    score += points(startup_clean, 15, "runtime verified: zero startup errors", evidence)
-    score += points(canvas_count > 0, 4, "runtime verified: canvas created", evidence)
-    score += points(bool(runtime.get("nonblank_canvas")), 4, "runtime verified: nonblank canvas", evidence)
-    score += points(frame_count >= 2, 5, "runtime verified: animation frames advanced", evidence)
-    score += points(scene_objects >= 3, 7, "runtime verified: scene objects detected", evidence)
-    score += points(dynamic_changes > 0, 5, "runtime verified: simulation changes over time", evidence)
-
-    warnings = runtime.get("warnings") or []
-    if warnings:
-        flags.extend(str(w) for w in warnings[:2])
-    if static_errors:
-        flags.append("Static JS reference check failed")
-    return min(score, 40)
-
-
-def score_elevator(work_dir: Path, files: Dict[str, str], evidence: List[str]) -> Tuple[int, Dict[str, int]]:
-    index = files.get("index.html", "")
-    person = files.get("person.js", "")
-    elevator = files.get("elevator.js", "")
-    all_code = "\n".join(files.values())
-    categories = {"files": 0, "implementation": 0}
-
-    for name in required_files_for_prompt("elevator_prompt"):
-        categories["files"] += points(bool(files.get(name)), 4, f"{name} present", evidence)
-    categories["files"] += points(
-        contains_any(index, (r"three@0\.(?:128|147)\.0/build/three\.min\.js",)) and contains_any(index, (r"OrbitControls\.js",)),
-        3,
-        "required Three.js scripts present",
-        evidence,
-    )
-
-    categories["implementation"] += points(contains_any(elevator, (r"FLOOR_COUNT\s*=\s*6", r"FLOOR_COUNT:\s*6")), 3, "six-floor building signal", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"depthWrite\s*:\s*false",)) and "DoubleSide" in elevator, 3, "transparent material settings", evidence)
-    categories["implementation"] += points("sortObjects" in elevator and contains_any(elevator, (r"alpha\s*:\s*true",)), 3, "renderer transparency setup", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"door",)) and contains_any(elevator, (r"open",)) and contains_any(elevator, (r"close",)), 4, "door open/close signals", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"elevatorCar\.attach\s*\(", r"scene\.attach\s*\(")), 4, "person attach/reparenting signal", evidence)
-    categories["implementation"] += points(contains_any(elevator + person, (r"Math\.sin", r"isWalking", r"walkPhase")), 3, "walking animation signal", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"positive\s*Z", r"\+Z", r"Math\.PI", r"rotation\.y")), 3, "orientation/front-of-elevator signal", evidence)
-    categories["implementation"] += points(contains_any(elevator + index, (r"speed", r"slider", r"range", r"20x")), 2, "speed control signal", evidence)
-    categories["implementation"] += points(contains_any(all_code, (r"requestAnimationFrame",)), 5, "animation loop signal", evidence)
-    return sum(categories.values()), categories
-
-
-def score_office(work_dir: Path, files: Dict[str, str], evidence: List[str]) -> Tuple[int, Dict[str, int]]:
-    index = files.get("index.html", "")
-    person = files.get("person.js", "")
-    world = files.get("world.js", "")
-    elevator = files.get("elevator.js", "")
-    sim = files.get("sim.js", "")
-    all_code = "\n".join(files.values())
-    categories = {"files": 0, "implementation": 0}
-
-    for name in required_files_for_prompt("office_prompt"):
-        categories["files"] += points(bool(files.get(name)), 2, f"{name} present", evidence)
-    categories["files"] += points(
-        all(token in index for token in ("person.js", "world.js", "elevator.js", "sim.js")),
-        5,
-        "office scripts loaded in shell",
-        evidence,
-    )
-    categories["implementation"] += points(contains_any(world, (r"FLOOR_COUNT\s*:\s*6", r"FLOOR_COUNT\s*=\s*6")), 3, "six-floor office signal", evidence)
-    categories["implementation"] += points(contains_any(world, (r"office", r"conference", r"lounge", r"desk", r"chair")), 4, "office layout vocabulary", evidence)
-    categories["implementation"] += points(contains_any(world + sim, (r"navigation", r"graph", r"waypoint", r"node")), 4, "navigation graph signal", evidence)
-    categories["implementation"] += points(contains_any(elevator, (r"SCAN", r"direction", r"queue", r"call", r"capacity")), 5, "elevator scheduler/capacity signals", evidence)
-    categories["implementation"] += points(contains_any(sim, (r"clock", r"schedule", r"lunch", r"meeting", r"home", r"arriv")), 5, "daily schedule signals", evidence)
-    categories["implementation"] += points(contains_any(sim, (r"state", r"agent", r"worker", r"goal", r"task")), 3, "agent state machine signals", evidence)
-    categories["implementation"] += points(contains_any(person + sim, (r"isSitting", r"walkPhase", r"Math\.sin")), 3, "walk/sit animation signal", evidence)
-    categories["implementation"] += points(contains_any(world + elevator, (r"call panel", r"indicator", r"button", r"lamp")), 2, "call panel/indicator signal", evidence)
-    categories["implementation"] += points(contains_any(sim + world, (r"light", r"sun", r"day", r"night")), 1, "day lighting signal", evidence)
-    return sum(categories.values()), categories
-
-
-def score_generic(files: Dict[str, str], evidence: List[str]) -> Tuple[int, Dict[str, int]]:
-    categories = {"files": 0, "implementation": 0}
-    categories["files"] += min(len(files) * 3, 15)
-    if files:
-        evidence.append("generated artifact files present")
-    categories["implementation"] += points(any(name.endswith((".py", ".js", ".html")) for name in files), 15, "code artifact present", evidence)
-    return sum(categories.values()), categories
-
-
-def deterministic_score(ev: Dict) -> Dict:
-    work_dir: Path = ev["Path"]
-    metrics = ev.get("Metrics", {})
-    prompt = ev.get("Prompt", "")
-    evidence: List[str] = []
-    flags = []
-    files = {
-        p.name: read_text(p, limit=500_000)
-        for p in work_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in {".html", ".js", ".py", ".md", ".txt"}
-    }
-    all_code = "\n".join(files.values())
-    runtime = ev.get("Runtime") or {}
-
-    completion = 0
-    completion += points(ev["HasReport"], 3, "summary report present", evidence)
-    completion += points(bool(files), 2, "artifact files present", evidence)
-    completion += points(bool(ev.get("Result")), 2, "machine-readable result metrics present", evidence)
-    completion += points(metrics.get("success") is True, 2, "agent result marked successful", evidence)
-    completion += points(not metrics.get("error"), 1, "no result error flag", evidence)
-
-    if is_office_prompt(prompt):
-        quality, detail_categories = score_office(work_dir, files, evidence)
-    elif is_elevator_prompt(prompt):
-        quality, detail_categories = score_elevator(work_dir, files, evidence)
-    else:
-        quality, detail_categories = score_generic(files, evidence)
-
-    runtime_score = score_runtime(work_dir, files, runtime, evidence, flags)
-    categories = {"completion": completion, **detail_categories, "runtime": runtime_score, "efficiency": score_efficiency(metrics, evidence)}
-    raw_total = min(sum(categories.values()), 100)
-
-    caps = []
-    if missing := [name for name in required_files_for_prompt(prompt) if not (work_dir / name).exists()]:
-        flags.append(f"Missing: {', '.join(missing)}")
-        caps.append((50, "required files missing"))
-    if not first_preview_link(work_dir):
-        flags.append("No runnable HTML preview")
-        caps.append((35, "no runnable HTML preview"))
-    if contains_any(browser_js_source(files), (r"^\s*import\s+", r"^\s*export\s+")):
-        flags.append("ES module syntax in browser artifact")
-        caps.append((45, "classic-script module syntax failure"))
-    if not runtime:
-        caps.append((85, "runtime not verified"))
-    elif runtime.get("_parse_error"):
-        caps.append((55, "runtime check parse error"))
-    else:
-        static_errors = runtime.get("static_errors") or []
-        console_errors = runtime.get("console_errors") or []
-        page_errors = runtime.get("page_errors") or []
-        if static_errors:
-            flags.append("Static JS reference check failed")
-            caps.append((55, "static JS reference check failed"))
-        if console_errors or page_errors or not runtime.get("loaded"):
-            flags.append("Runtime startup failed")
-            caps.append((45, "runtime startup failed"))
-        elif int(runtime.get("canvas_count") or 0) <= 0:
-            flags.append("No runtime canvas")
-            caps.append((35, "no canvas at runtime"))
-        elif not runtime.get("nonblank_canvas"):
-            flags.append("Blank runtime canvas")
-            caps.append((55, "blank runtime canvas"))
-        elif int(runtime.get("animation_frames") or 0) < 2:
-            flags.append("Animation loop not verified")
-            caps.append((55, "animation loop not verified"))
-        elif int(runtime.get("dynamic_changes") or 0) <= 0:
-            flags.append("No runtime motion detected")
-            caps.append((70, "no runtime motion detected"))
-
-    total = raw_total
-    if caps:
-        cap_value, cap_reason = min(caps, key=lambda item: item[0])
-        if raw_total > cap_value:
-            flags.append(f"Capped at {cap_value}: {cap_reason}")
-        total = min(raw_total, cap_value)
-
-    if total >= 85:
-        grade = "Excellent"
-    elif total >= 70:
-        grade = "Strong"
-    elif total >= 55:
-        grade = "Partial"
-    elif total >= 35:
-        grade = "Weak"
-    else:
-        grade = "Incomplete"
-
-    if metrics.get("error"):
-        flags.append("Result flagged error")
-    if not ev["HasReport"]:
-        flags.append("No summary report")
-    flags = list(dict.fromkeys(flags))
-
-    return {
-        "total": total,
-        "raw_total": raw_total,
-        "grade": grade,
-        "categories": categories,
-        "evidence": evidence[:10],
-        "flags": flags,
-        "runtime_errors": runtime_error_summary(runtime),
-    }
+# ---------------------------------------------------------------------------
+# Rendering helpers
+# ---------------------------------------------------------------------------
 
 
 def fmt_int(value) -> str:
@@ -712,86 +274,8 @@ def prompt_label(prompt: str) -> str:
     return prompt.replace("_", " ").title() if prompt else "Unknown Prompt"
 
 
-def first_preview_link(work_dir: Path) -> Optional[str]:
-    for name in ("index.html", "elevator_sim.html", "elevator_simulation.html", "test.html"):
-        if (work_dir / name).exists():
-            return f"evals/{work_dir.name}/{name}"
-    return None
-
-
 def score_bar(score: int) -> str:
     return f'<div class="score-bar" aria-label="Score {score} of 100"><span style="width: {max(2, min(score, 100))}%"></span></div>'
-
-
-def short_runtime_error(message: str, limit: int = 140) -> str:
-    text = re.sub(r"\s+", " ", str(message)).strip()
-    if len(text) <= limit:
-        return text
-    return text[: limit - 3].rstrip() + "..."
-
-
-def runtime_error_summary(runtime: Dict, limit: int = 5) -> List[str]:
-    seen = set()
-    errors = []
-    for err in (runtime.get("static_errors") or []) + (runtime.get("page_errors") or []) + (runtime.get("console_errors") or []):
-        text = short_runtime_error(err)
-        key = text.lower()
-        if not text or key in seen:
-            continue
-        seen.add(key)
-        errors.append(text)
-        if len(errors) >= limit:
-            break
-    return errors
-
-
-def scoring_methodology_tooltip() -> str:
-    text = (
-        "Scores prioritize working browser simulations. Runtime verification can contribute up to 40 points for "
-        "zero startup errors, a nonblank canvas, animation frames, scene complexity, and visible changes over time. "
-        "Prompt-specific implementation signals, required files, completion metadata, and efficiency make up the "
-        "remaining points. Hard caps prevent browser-dead, blank, missing-file, or unverified runs from ranking as excellent."
-    )
-    return (
-        '<span class="info-wrap" tabindex="0" aria-label="Scoring methodology">'
-        '<span class="info-icon" aria-hidden="true">i</span>'
-        f'<span class="info-tooltip" role="tooltip">{esc(text)}</span>'
-        '</span>'
-    )
-
-
-def scan_evaluations() -> List[Dict]:
-    known_prompts = get_known_prompts()
-    evaluations = []
-    if not EVALS_DIR.exists():
-        return evaluations
-
-    for item in EVALS_DIR.iterdir():
-        if not item.is_dir():
-            continue
-        if not any(
-            path.is_file() and path.name.lower() not in NON_RESULT_FILES
-            for path in item.rglob("*")
-        ):
-            continue
-        summary_path = item / "summary.html"
-        result = parse_result_json(item)
-        metrics = parse_metrics(result)
-        runtime = parse_runtime_check(item)
-        info = parse_directory_name(item.name, known_prompts)
-        info["Path"] = item
-        info["HasReport"] = summary_path.exists()
-        info["ReportLink"] = f"evals/{item.name}/summary.html"
-        info["PreviewLink"] = first_preview_link(item)
-        info["Provider"] = detect_provider(summary_path)
-        info["Result"] = result
-        info["Metrics"] = metrics
-        info["Runtime"] = runtime
-        info["Score"] = deterministic_score(info)
-        evaluations.append(info)
-
-    evaluations.sort(key=lambda x: (-x["Score"]["total"], x["Agent"].lower(), x["Model"].lower()))
-    return evaluations
 
 
 def render_reference_section() -> str:

@@ -48,10 +48,10 @@ class QoderRunnerTests(unittest.TestCase):
 
             with (
                 mock.patch(
-                    "runners.qoder.subprocess.Popen",
+                    "evaluation_core.subprocess.Popen",
                     return_value=FakeQoderProcess(),
                 ) as popen,
-                mock.patch("runners.qoder.send_stdin"),
+                mock.patch("evaluation_core.send_stdin"),
                 contextlib.redirect_stdout(io.StringIO()),
             ):
                 runner.execute_agent()

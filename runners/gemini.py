@@ -11,6 +11,7 @@ from evaluation_core import (
     AgentRunner,
     CHAT_SESSION_FILENAME,
     SERVER_LOG_FILENAME,
+    run_streaming_process,
     read_prompt_file,
     safe_stdout_write,
 )
@@ -150,50 +151,32 @@ class GeminiRunner(AgentRunner):
         start_time = datetime.now()
         tool_call_count = 0
 
-        with open(chat_log_path, "w", encoding="utf-8") as log_file:
-            process = subprocess.Popen(
-                cmd,
-                cwd=self.work_dir,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
+        def on_line(line: str, log_file) -> None:
+            nonlocal tool_call_count
+            safe_stdout_write(line)
+            log_file.write(line)
+            log_file.flush()
+            if "[Tool:" in line or "tool_call" in line:
+                tool_call_count += 1
+
+        result = run_streaming_process(
+            cmd=cmd,
+            work_dir=self.work_dir,
+            chat_log_path=chat_log_path,
+            env=env,
+            display_cmd=display_cmd,
+            on_line=on_line,
+        )
+
+        generated_artifacts = self._generated_artifacts()
+        if result.returncode == 0 and not generated_artifacts:
+            artifact_error = (
+                "AGY exited cleanly but produced no root-level artifacts in "
+                f"{self.work_dir.resolve()}."
             )
-
-            for line in process.stdout:
-                safe_stdout_write(line)
-                log_file.write(line)
-                log_file.flush()
-                if "[Tool:" in line or "tool_call" in line:
-                    tool_call_count += 1
-
-            try:
-                process.wait(timeout=900)
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()
-                process.wait()
-
-            generated_artifacts = self._generated_artifacts()
-            if process.returncode == 0 and generated_artifacts:
-                print(f"[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
-            elif process.returncode == 0:
-                artifact_error = (
-                    "AGY exited cleanly but produced no root-level artifacts in "
-                    f"{self.work_dir.resolve()}."
-                )
-                print(f"[-] {artifact_error}")
+            print(f"[-] {artifact_error}")
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
                 log_file.write(f"\n[ERROR] {artifact_error}\n")
-            else:
-                print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
-                )
 
         end_time = datetime.now()
         duration_ms = int((end_time - start_time).total_seconds() * 1000)
@@ -209,7 +192,7 @@ class GeminiRunner(AgentRunner):
         transcript_stats = self._get_agy_transcript_stats(self.work_dir, start_time)
 
         provider_name = self.custom_provider.title() if self.custom_provider else "Google"
-        run_succeeded = process.returncode == 0 and bool(generated_artifacts)
+        run_succeeded = result.returncode == 0 and bool(generated_artifacts)
 
         result_data = {
             "type": "result",
@@ -229,7 +212,7 @@ class GeminiRunner(AgentRunner):
             "model_id": self.model_name,
             "artifacts": generated_artifacts,
         }
-        if process.returncode == 0 and not generated_artifacts:
+        if result.returncode == 0 and not generated_artifacts:
             result_data["error"] = (
                 "AGY exited successfully but did not create any root-level "
                 f"artifacts in {self.work_dir.resolve()}."

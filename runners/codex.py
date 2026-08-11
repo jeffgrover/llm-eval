@@ -11,9 +11,9 @@ from evaluation_core import (
     CHAT_SESSION_FILENAME,
     CODEX_EVENTS_FILENAME,
     CODEX_LAST_MESSAGE_FILENAME,
+    run_streaming_process,
     read_prompt_file,
     safe_stdout_write,
-    send_stdin,
 )
 from evaluation_metrics import CODEX_RESULT_FILENAME
 from runner_events import (
@@ -22,6 +22,7 @@ from runner_events import (
     extract_codex_session_id,
     find_codex_usage_objects,
 )
+
 
 class CodexRunner(AgentRunner):
     @staticmethod
@@ -77,22 +78,6 @@ class CodexRunner(AgentRunner):
         except Exception:
             return {}
 
-    @staticmethod
-    def _usage_from_obj(obj: dict) -> Dict[str, int]:
-        return codex_usage_from_obj(obj)
-
-    @staticmethod
-    def _find_usage_objects(event: dict) -> List[dict]:
-        return find_codex_usage_objects(event)
-
-    @staticmethod
-    def _extract_session_id(event: dict) -> Optional[str]:
-        return extract_codex_session_id(event)
-
-    @staticmethod
-    def _extract_readable_event(event: dict) -> Optional[str]:
-        return extract_codex_readable_event(event)
-
     def execute_agent(self):
         if not self.non_local:
             print("[-] Codex runner currently supports only --non-local ChatGPT account mode.")
@@ -116,10 +101,7 @@ class CodexRunner(AgentRunner):
                 print(f"    ... and {len(supported_models) - 20} more")
             sys.exit(1)
 
-        cmd = [
-            codex_bin,
-            "exec",
-        ]
+        cmd = [codex_bin, "exec"]
 
         if "--json" in exec_help:
             cmd.append("--json")
@@ -150,100 +132,80 @@ class CodexRunner(AgentRunner):
         events_path = self.work_dir / CODEX_EVENTS_FILENAME
         result_json_path = self.work_dir / CODEX_RESULT_FILENAME
 
-        print("[*] Executing: codex exec --json --output-last-message CODEX_LAST_MESSAGE.TXT ...")
-        print(f"[*] Output logging to: {chat_log_path}")
+        # Mutable state captured by the on_line callback
+        state = {
+            "total_input": 0,
+            "total_output": 0,
+            "total_reasoning": 0,
+            "cache_read": 0,
+            "num_turns": 0,
+            "session_id": None,
+            "last_usage_total": 0,
+        }
+        events_file = open(events_path, "w", encoding="utf-8")
 
-        total_input = 0
-        total_output = 0
-        total_reasoning = 0
-        cache_read = 0
-        num_turns = 0
-        session_id = None
-        last_usage_total = 0
-
-        with (
-            open(chat_log_path, "w", encoding="utf-8") as log_file,
-            open(events_path, "w", encoding="utf-8") as events_file,
-        ):
-            process = subprocess.Popen(
-                cmd,
-                cwd=self.work_dir,
-                env=env,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-            )
-            send_stdin(process, prompt_content)
-
-            for line in process.stdout:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-
-                try:
-                    event = json.loads(stripped)
-                    events_file.write(line)
-                    events_file.flush()
-
-                    if session_id is None:
-                        session_id = extract_codex_session_id(event)
-
-                    readable = extract_codex_readable_event(event)
-                    if readable:
-                        safe_stdout_write(readable)
-                        log_file.write(readable)
-                        log_file.flush()
-
-                    event_type = str(event.get("type", event.get("event", ""))).lower()
-                    usage_objects = find_codex_usage_objects(event)
-                    if usage_objects and (
-                        "turn" in event_type
-                        or "complete" in event_type
-                        or "usage" in event_type
-                        or event.get("usage")
-                    ):
-                        usage = codex_usage_from_obj(usage_objects[0])
-                        if usage["total_tokens"] > 0:
-                            # Codex reports usage at turn boundaries. If a future CLI version
-                            # reports cumulative totals, use the positive delta instead of
-                            # double-counting the full cumulative snapshot.
-                            current_total = usage["total_tokens"]
-                            if current_total >= last_usage_total and last_usage_total > 0:
-                                scale = (current_total - last_usage_total) / current_total
-                            else:
-                                scale = 1
-                            total_input += round(usage["input_tokens"] * scale)
-                            total_output += round(usage["output_tokens"] * scale)
-                            total_reasoning += round(usage["reasoning_tokens"] * scale)
-                            cache_read += round(usage["cache_read_tokens"] * scale)
-                            last_usage_total = max(last_usage_total, current_total)
-                            num_turns += 1
-
-                except json.JSONDecodeError:
-                    safe_stdout_write(line)
-                    log_file.write(line)
-                    log_file.flush()
+        def on_line(line: str, log_file) -> None:
+            stripped = line.strip()
+            if not stripped:
+                return
 
             try:
-                process.wait(timeout=900)
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()
-                process.wait()
+                event = json.loads(stripped)
+                events_file.write(line)
+                events_file.flush()
 
-            if process.returncode == 0:
-                print(f"\n[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
-            else:
-                print(f"\n[-] Agent finished with error code {process.returncode}")
-                log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
-                )
+                if state["session_id"] is None:
+                    state["session_id"] = extract_codex_session_id(event)
+
+                readable = extract_codex_readable_event(event)
+                if readable:
+                    safe_stdout_write(readable)
+                    log_file.write(readable)
+                    log_file.flush()
+
+                event_type = str(event.get("type", event.get("event", ""))).lower()
+                usage_objects = find_codex_usage_objects(event)
+                if usage_objects and (
+                    "turn" in event_type
+                    or "complete" in event_type
+                    or "usage" in event_type
+                    or event.get("usage")
+                ):
+                    usage = codex_usage_from_obj(usage_objects[0])
+                    if usage["total_tokens"] > 0:
+                        # Codex reports usage at turn boundaries. If a future CLI version
+                        # reports cumulative totals, use the positive delta instead of
+                        # double-counting the full cumulative snapshot.
+                        current_total = usage["total_tokens"]
+                        last_total = state["last_usage_total"]
+                        if current_total >= last_total and last_total > 0:
+                            scale = (current_total - last_total) / current_total
+                        else:
+                            scale = 1
+                        state["total_input"] += round(usage["input_tokens"] * scale)
+                        state["total_output"] += round(usage["output_tokens"] * scale)
+                        state["total_reasoning"] += round(usage["reasoning_tokens"] * scale)
+                        state["cache_read"] += round(usage["cache_read_tokens"] * scale)
+                        state["last_usage_total"] = max(last_total, current_total)
+                        state["num_turns"] += 1
+
+            except json.JSONDecodeError:
+                safe_stdout_write(line)
+                log_file.write(line)
+                log_file.flush()
+
+        try:
+            run_streaming_process(
+                cmd=cmd,
+                work_dir=self.work_dir,
+                chat_log_path=chat_log_path,
+                env=env,
+                input_text=prompt_content,
+                display_cmd="codex exec --json --output-last-message CODEX_LAST_MESSAGE.TXT ...",
+                on_line=on_line,
+            )
+        finally:
+            events_file.close()
 
         if last_message_path.exists() and last_message_path.stat().st_size > 0:
             try:
@@ -256,17 +218,17 @@ class CodexRunner(AgentRunner):
                 print(f"[-] Failed to append Codex final message: {e}")
 
         result_data = {
-            "input_tokens": total_input,
-            "output_tokens": total_output,
-            "total_tokens": total_input + total_output,
-            "reasoning_tokens": total_reasoning,
-            "cache_read_tokens": cache_read,
-            "num_turns": num_turns,
+            "input_tokens": state["total_input"],
+            "output_tokens": state["total_output"],
+            "total_tokens": state["total_input"] + state["total_output"],
+            "reasoning_tokens": state["total_reasoning"],
+            "cache_read_tokens": state["cache_read"],
+            "num_turns": state["num_turns"],
             "provider_id": "OpenAI",
             "model_id": self.model_name,
         }
-        if session_id:
-            result_data["session_id"] = session_id
+        if state["session_id"]:
+            result_data["session_id"] = state["session_id"]
         try:
             result_data["codex_version"] = subprocess.check_output(
                 [codex_bin, "--version"], text=True, timeout=10

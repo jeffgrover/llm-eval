@@ -1,18 +1,18 @@
 """Claude Code CLI adapter."""
 
 import json
-import subprocess
 
 from evaluation_core import (
     AgentRunner,
     CHAT_SESSION_FILENAME,
     CLAUDE_MODEL_IDS,
+    run_streaming_process,
     read_prompt_file,
     safe_stdout_write,
-    send_stdin,
 )
 from evaluation_metrics import CLAUDE_RESULT_FILENAME
 from runner_events import parse_claude_event
+
 
 class ClaudeRunner(AgentRunner):
     def execute_agent(self):
@@ -50,83 +50,59 @@ class ClaudeRunner(AgentRunner):
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / CLAUDE_RESULT_FILENAME
 
-        print(
-            f"[*] Executing: claude -p <prompt> --permission-mode bypassPermissions --output-format stream-json"
-        )
-        print(f"[*] Output logging to: {chat_log_path}")
-
         result_data = None
 
-        with open(chat_log_path, "w", encoding="utf-8") as log_file:
-            process = subprocess.Popen(
-                cmd,
-                cwd=self.work_dir,
-                env=env,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-            )
-            send_stdin(process, prompt_content)
-
-            for line in process.stdout:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                try:
-                    event = json.loads(stripped)
-                    event_type = event.get("type", "")
-
-                    if event_type == "system":
-                        # Startup / progress events (init, thinking_tokens, etc.)
-                        # carry no transcript text, but printing them to the console
-                        # shows the run is alive during long max-effort thinking
-                        # phases instead of looking frozen.
-                        subtype = event.get("subtype", "")
-                        if subtype == "init":
-                            print(
-                                f"\n[*] Claude session started "
-                                f"(model={event.get('model', '?')}, "
-                                f"perm={event.get('permissionMode', '?')}). Thinking...",
-                                flush=True,
-                            )
-                        elif subtype == "thinking_tokens":
-                            safe_stdout_write(".")
-
-                    else:
-                        parsed = parse_claude_event(event)
-                        if parsed.text:
-                            safe_stdout_write(parsed.text)
-                            log_file.write(parsed.text)
-                            log_file.flush()
-                        if parsed.result is not None:
-                            result_data = parsed.result
-
-                except json.JSONDecodeError:
-                    # Non-JSON line, pass through as-is
-                    safe_stdout_write(line)
-                    log_file.write(line)
-                    log_file.flush()
-
+        def on_line(line: str, log_file) -> None:
+            nonlocal result_data
+            stripped = line.strip()
+            if not stripped:
+                return
             try:
-                process.wait(timeout=900)
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()
-                process.wait()
+                event = json.loads(stripped)
+                event_type = event.get("type", "")
 
-            if process.returncode == 0:
-                print(f"[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
-            else:
-                print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
-                )
+                if event_type == "system":
+                    # Startup / progress events (init, thinking_tokens, etc.)
+                    # carry no transcript text, but printing them to the console
+                    # shows the run is alive during long max-effort thinking
+                    # phases instead of looking frozen.
+                    subtype = event.get("subtype", "")
+                    if subtype == "init":
+                        print(
+                            f"\n[*] Claude session started "
+                            f"(model={event.get('model', '?')}, "
+                            f"perm={event.get('permissionMode', '?')}). Thinking...",
+                            flush=True,
+                        )
+                    elif subtype == "thinking_tokens":
+                        safe_stdout_write(".")
+                else:
+                    parsed = parse_claude_event(event)
+                    if parsed.text:
+                        safe_stdout_write(parsed.text)
+                        log_file.write(parsed.text)
+                        log_file.flush()
+                    if parsed.result is not None:
+                        result_data = parsed.result
+
+            except json.JSONDecodeError:
+                # Non-JSON line, pass through as-is
+                safe_stdout_write(line)
+                log_file.write(line)
+                log_file.flush()
+
+        run_streaming_process(
+            cmd=cmd,
+            work_dir=self.work_dir,
+            chat_log_path=chat_log_path,
+            env=env,
+            input_text=prompt_content,
+            display_cmd=(
+                "claude -p <prompt> --permission-mode bypassPermissions "
+                "--output-format stream-json"
+            ),
+            on_line=on_line,
+        )
 
         # Save result JSON for metadata extraction (token usage, cost, turns)
         if result_data:
