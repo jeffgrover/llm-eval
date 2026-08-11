@@ -188,6 +188,7 @@ def parse_metrics(result: Dict) -> Dict[str, float]:
             "cache_read_tokens": 0, "cost_usd": 0.0, "num_turns": 0,
             "duration_ms": 0, "success": None, "error": False,
             "token_counts_estimated": False, "cost_available": None,
+            "terminal_reason": "", "termination": {},
         }
 
     result_file = result.get("_result_file", "")
@@ -207,6 +208,8 @@ def parse_metrics(result: Dict) -> Dict[str, float]:
         "error": m.error or result.get("_parse_error", False),
         "token_counts_estimated": m.token_counts_estimated,
         "cost_available": m.cost_available,
+        "terminal_reason": m.terminal_reason,
+        "termination": m.termination,
     }
 
 

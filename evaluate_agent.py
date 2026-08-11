@@ -31,6 +31,16 @@ from evaluation_metrics import (
     TokenUsageCollector,
 )
 from evaluation_report import format_duration_human, generate_html_report
+from run_safety import (
+    DEFAULT_DOOM_LOOP_MAX_CYCLE_LENGTH,
+    DEFAULT_DOOM_LOOP_MIN_CALLS,
+    DEFAULT_DOOM_LOOP_REPEATS,
+    DEFAULT_MAX_COST_USD,
+    DEFAULT_MAX_SECONDS,
+    DEFAULT_MAX_TOTAL_TOKENS,
+    DEFAULT_MAX_TURNS,
+    RunSafetyLimits,
+)
 from runners import (
     ClaudeRunner,
     CodexRunner,
@@ -147,6 +157,61 @@ def build_argument_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Keep LM Studio's KV cache in system memory instead of GPU memory",
     )
+    safety_group = parser.add_argument_group("runaway-agent safeguards")
+    safety_group.add_argument(
+        "--max-seconds",
+        type=float,
+        default=DEFAULT_MAX_SECONDS,
+        help=f"Stop after this wall time; 0 disables (default: {DEFAULT_MAX_SECONDS:g})",
+    )
+    safety_group.add_argument(
+        "--max-turns",
+        type=int,
+        default=DEFAULT_MAX_TURNS,
+        help=f"Stop after this many turns; 0 disables (default: {DEFAULT_MAX_TURNS})",
+    )
+    safety_group.add_argument(
+        "--max-total-tokens",
+        type=int,
+        default=DEFAULT_MAX_TOTAL_TOKENS,
+        help=(
+            "Stop after this many accumulated input/output tokens; 0 disables "
+            f"(default: {DEFAULT_MAX_TOTAL_TOKENS})"
+        ),
+    )
+    safety_group.add_argument(
+        "--max-cost-usd",
+        type=float,
+        default=DEFAULT_MAX_COST_USD,
+        help=f"Stop at this reported cost; 0 disables (default: {DEFAULT_MAX_COST_USD:g})",
+    )
+    safety_group.add_argument(
+        "--doom-loop-repeats",
+        type=int,
+        default=DEFAULT_DOOM_LOOP_REPEATS,
+        help=(
+            "Stop after a short tool cycle repeats this many times; 0 disables "
+            f"(default: {DEFAULT_DOOM_LOOP_REPEATS})"
+        ),
+    )
+    safety_group.add_argument(
+        "--doom-loop-max-cycle-length",
+        type=int,
+        default=DEFAULT_DOOM_LOOP_MAX_CYCLE_LENGTH,
+        help=(
+            "Longest repeating tool cycle to detect "
+            f"(default: {DEFAULT_DOOM_LOOP_MAX_CYCLE_LENGTH})"
+        ),
+    )
+    safety_group.add_argument(
+        "--doom-loop-min-calls",
+        type=int,
+        default=DEFAULT_DOOM_LOOP_MIN_CALLS,
+        help=(
+            "Minimum consecutive calls before cycle detection "
+            f"(default: {DEFAULT_DOOM_LOOP_MIN_CALLS})"
+        ),
+    )
     return parser
 
 
@@ -181,6 +246,15 @@ def main(argv: Optional[List[str]] = None):
         custom_provider=args.provider if runner_cls.supports_custom_provider else None,
         local_provider=local_provider,
         execute_generated_python=args.execute_generated_python,
+        safety_limits=RunSafetyLimits(
+            max_seconds=args.max_seconds,
+            max_turns=args.max_turns,
+            max_total_tokens=args.max_total_tokens,
+            max_cost_usd=args.max_cost_usd,
+            doom_loop_repeats=args.doom_loop_repeats,
+            doom_loop_max_cycle_length=args.doom_loop_max_cycle_length,
+            doom_loop_min_calls=args.doom_loop_min_calls,
+        ),
     )
     runner.local_context_limit = args.lms_context_length
 

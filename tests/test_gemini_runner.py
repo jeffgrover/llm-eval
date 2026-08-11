@@ -1,12 +1,14 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from evaluate_agent import (
     CHAT_SESSION_FILENAME,
     GEMINI_RESULT_FILENAME,
     GeminiRunner,
 )
+from evaluation_core import ProcessResult
 
 
 class GeminiRunnerTests(unittest.TestCase):
@@ -65,6 +67,44 @@ class GeminiRunnerTests(unittest.TestCase):
 
             (work_dir / "index.html").write_text("<canvas></canvas>", encoding="utf-8")
             self.assertEqual(runner._generated_artifacts(), ["index.html"])
+
+    def test_clean_exit_without_artifacts_logs_only_failure(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            runner = self.make_runner(work_dir)
+
+            with (
+                mock.patch("runners.gemini.read_prompt_file", return_value="Build it"),
+                mock.patch("runners.gemini.shutil.which", return_value="agy"),
+                mock.patch(
+                    "runners.gemini.run_streaming_process",
+                    return_value=ProcessResult(returncode=0),
+                ),
+                mock.patch.object(
+                    runner,
+                    "_get_agy_transcript_stats",
+                    return_value={
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "total_tokens": 0,
+                        "cached": 0,
+                        "tool_calls": 0,
+                        "num_turns": 0,
+                    },
+                ),
+                mock.patch(
+                    "runners.gemini.subprocess.check_output",
+                    return_value="1.0",
+                ),
+            ):
+                runner.execute_agent()
+
+            transcript = (work_dir / CHAT_SESSION_FILENAME).read_text(encoding="utf-8")
+            self.assertIn(
+                "[ERROR] AGY exited cleanly but produced no root-level artifacts",
+                transcript,
+            )
+            self.assertNotIn("[SUCCESS]", transcript)
 
 
 if __name__ == "__main__":

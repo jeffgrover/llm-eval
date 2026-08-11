@@ -2,13 +2,11 @@
 
 import json
 import re
-import subprocess
 import sys
-import threading
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from evaluation_core import (
     AgentRunner,
@@ -20,10 +18,12 @@ from evaluation_core import (
     get_env_int,
     is_llama_server_provider,
     read_prompt_file,
+    run_streaming_process,
     safe_stdout_write,
 )
 from evaluation_metrics import OPENCODE_RESULT_FILENAME
-from runner_events import parse_opencode_event
+from run_safety import RunSafetyTermination
+from runner_events import extract_opencode_tool_call, parse_opencode_event
 
 
 class OpenCodeRunner(AgentRunner):
@@ -32,6 +32,26 @@ class OpenCodeRunner(AgentRunner):
     NON_CHAT_MODEL_PATTERNS = (
         "whisper",
     )
+
+    _LOG_VERSION_RE = re.compile(
+        r"(?:service=default\s+version=|message=created\b.*?\bversion=)(\S+)"
+    )
+    _LOG_LLM_RE = re.compile(
+        r"(?:service=llm|message=stream)\s+providerID=(\S+)\s+modelID=(\S+).*\bsmall=false\b"
+    )
+
+    @classmethod
+    def _parse_log_metadata(
+        cls, line: str
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """Return version/provider/model values advertised by an OpenCode log line."""
+        version_match = cls._LOG_VERSION_RE.search(line)
+        llm_match = cls._LOG_LLM_RE.search(line)
+        return (
+            version_match.group(1) if version_match else None,
+            llm_match.group(1) if llm_match else None,
+            llm_match.group(2) if llm_match else None,
+        )
 
     def _model_ref(self) -> Optional[str]:
         """Return the OpenCode provider/model reference to request, if known."""
@@ -246,16 +266,6 @@ class OpenCodeRunner(AgentRunner):
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / OPENCODE_RESULT_FILENAME
 
-        if model_ref:
-            print(
-                f"[*] Executing: opencode run <prompt> --model {model_ref} --format json --print-logs"
-            )
-        else:
-            print(
-                "[*] Executing: opencode run <prompt> --format json --print-logs (using OpenCode default model)"
-            )
-        print(f"[*] Output logging to: {chat_log_path}")
-
         # Patterns to suppress from terminal and log file (high-volume internal bus noise)
         _stderr_noise = re.compile(r"service=bus\b")
 
@@ -275,118 +285,113 @@ class OpenCodeRunner(AgentRunner):
         provider_id = None
         model_id = None
         error_messages: List[str] = []
+        safety_monitor = self.create_safety_monitor()
 
-        with open(chat_log_path, "w", encoding="utf-8") as log_file:
-            process = subprocess.Popen(
-                cmd,
-                cwd=PROJECT_ROOT,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-            )
+        def stop_if_needed(termination) -> None:
+            if termination:
+                raise RunSafetyTermination(termination)
 
-            # Read stdout (JSON events) and stderr (logs) concurrently
-            import threading
-
-            _log_version_re = re.compile(r"service=default\s+version=(\S+)")
-            _log_llm_re = re.compile(
-                r"service=llm\s+providerID=(\S+)\s+modelID=(\S+).*\bsmall=false\b"
-            )
-
-            def drain_stderr():
-                nonlocal opencode_version, provider_id, model_id
-                for line in process.stderr:
-                    if _stderr_noise.search(line):
-                        continue
-                    sys.stderr.write(line)
-                    sys.stderr.flush()
-                    log_file.write(line)
-                    log_file.flush()
-                    # Parse opencode version from first log line
-                    if opencode_version is None:
-                        m = _log_version_re.search(line)
-                        if m:
-                            opencode_version = m.group(1)
-                    # Parse provider/model from llm service lines (main build agent only)
-                    if provider_id is None:
-                        m = _log_llm_re.search(line)
-                        if m:
-                            provider_id = m.group(1)
-                            model_id = m.group(2)
-                    if " stream error" in line or "service=session.processor" in line and " error=" in line:
-                        error_messages.append(line.strip())
-
-            stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
-            stderr_thread.start()
-
-            for line in process.stdout:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                try:
-                    event = json.loads(stripped)
-                    parsed = parse_opencode_event(event)
-                    if parsed.text:
-                        safe_stdout_write(parsed.text)
-                        log_file.write(parsed.text)
-                        log_file.flush()
-                    if parsed.usage:
-                        total_input += parsed.usage.get("input_tokens", 0)
-                        total_output += parsed.usage.get("output_tokens", 0)
-                        total_reasoning += parsed.usage.get("reasoning_tokens", 0)
-                        total_cost += parsed.usage.get("cost_usd", 0)
-                        cache_read += parsed.usage.get("cache_read_tokens", 0)
-                        cache_write += parsed.usage.get("cache_write_tokens", 0)
-                    if parsed.turn_completed:
-                        num_turns += 1
-                    tool_calls += parsed.tool_calls
-                    if parsed.finish_reason:
-                        finish_reasons.append(parsed.finish_reason)
-                    if parsed.error:
-                        error_messages.append(parsed.error)
-                    if parsed.log_raw:
-                        log_file.write(line)
-                        log_file.flush()
-
-                except json.JSONDecodeError:
-                    # Non-JSON line (e.g. log output), pass through
-                    safe_stdout_write(line)
-                    log_file.write(line)
-                    log_file.flush()
-
-            stderr_thread.join(timeout=5)
-
+        def on_stdout(line: str, log_file) -> None:
+            nonlocal total_input, total_output, total_reasoning, total_cost
+            nonlocal cache_read, cache_write, num_turns, tool_calls
+            stripped = line.strip()
+            if not stripped:
+                return
             try:
-                process.wait(timeout=900)
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()
-                process.wait()
+                event = json.loads(stripped)
+                parsed = parse_opencode_event(event)
+                if parsed.text:
+                    safe_stdout_write(parsed.text)
+                    log_file.write(parsed.text)
+                    log_file.flush()
+                if parsed.usage:
+                    total_input += parsed.usage.get("input_tokens", 0)
+                    total_output += parsed.usage.get("output_tokens", 0)
+                    total_reasoning += parsed.usage.get("reasoning_tokens", 0)
+                    total_cost += parsed.usage.get("cost_usd", 0)
+                    cache_read += parsed.usage.get("cache_read_tokens", 0)
+                    cache_write += parsed.usage.get("cache_write_tokens", 0)
+                if parsed.turn_completed:
+                    num_turns += 1
+                    stop_if_needed(safety_monitor.observe_turn(parsed.usage))
+                tool_calls += parsed.tool_calls
+                tool_call = extract_opencode_tool_call(event)
+                if tool_call:
+                    stop_if_needed(safety_monitor.observe_tool(*tool_call))
+                if parsed.finish_reason:
+                    finish_reasons.append(parsed.finish_reason)
+                if parsed.error:
+                    error_messages.append(parsed.error)
+                if parsed.log_raw:
+                    log_file.write(line)
+                    log_file.flush()
+            except json.JSONDecodeError:
+                safe_stdout_write(line)
+                log_file.write(line)
+                log_file.flush()
 
-            if model_ref and model_id:
-                expected_model_id = self._model_id_from_ref(model_ref)
-                if model_id != expected_model_id:
-                    error_messages.append(
-                        "OpenCode selected "
-                        f"{provider_id}/{model_id}, expected {model_ref}"
-                    )
+        def on_stderr(line: str, log_file) -> None:
+            nonlocal opencode_version, provider_id, model_id
+            if _stderr_noise.search(line):
+                return
+            sys.stderr.write(line)
+            sys.stderr.flush()
+            log_file.write(line)
+            log_file.flush()
+            version, parsed_provider, parsed_model = self._parse_log_metadata(line)
+            if opencode_version is None and version:
+                opencode_version = version
+            if provider_id is None and parsed_provider:
+                provider_id = parsed_provider
+                model_id = parsed_model
+            if " stream error" in line or (
+                "service=session.processor" in line and " error=" in line
+            ):
+                error_messages.append(line.strip())
 
-            if process.returncode == 0 and not error_messages:
-                print(f"[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+        display_cmd = "opencode run <prompt> --format json --print-logs"
+        if model_ref:
+            display_cmd += f" --model {model_ref}"
+        else:
+            display_cmd += " (using OpenCode default model)"
+        process_result = run_streaming_process(
+            cmd=cmd,
+            work_dir=self.work_dir,
+            chat_log_path=chat_log_path,
+            env=env,
+            display_cmd=display_cmd,
+            timeout=self.safety_limits.process_timeout,
+            on_line=on_stdout,
+            on_stderr_line=on_stderr,
+            merge_stderr=False,
+            cwd=PROJECT_ROOT,
+            report_completion=False,
+        )
+
+        if model_ref and model_id:
+            expected_model_id = self._model_id_from_ref(model_ref)
+            if model_id != expected_model_id:
+                error_messages.append(
+                    f"OpenCode selected {provider_id}/{model_id}, expected {model_ref}"
+                )
+
+        termination = process_result.termination
+        if termination:
+            error_messages.append(termination.message)
+        elif process_result.returncode == 0 and not error_messages:
+            print("[+] Agent finished successfully.")
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
+                log_file.write("\n[SUCCESS] Process exited cleanly.\n")
+        else:
+            if error_messages and process_result.returncode == 0:
+                print("[-] Agent finished with provider/tool error.")
             else:
-                error_code = process.returncode
-                if error_messages and error_code == 0:
-                    print("[-] Agent finished with provider/tool error.")
-                else:
-                    print(f"[-] Agent finished with error code {error_code}")
+                print(
+                    f"[-] Agent finished with error code {process_result.returncode}"
+                )
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
                 log_file.write(
-                    f"\n[ERROR] Process exited with code {error_code}\n"
+                    f"\n[ERROR] Process exited with code {process_result.returncode}\n"
                 )
                 for message in error_messages[-3:]:
                     log_file.write(f"[ERROR] {message}\n")
@@ -404,6 +409,10 @@ class OpenCodeRunner(AgentRunner):
             if path.is_file() and path.name not in bookkeeping_files
         )
         warnings = []
+        if termination:
+            warnings.append(
+                f"Run terminated by safety guardrail: {termination.message}"
+            )
         if "length" in finish_reasons:
             warnings.append(
                 "The model reached the configured output-token limit before completing the turn."
@@ -416,7 +425,7 @@ class OpenCodeRunner(AgentRunner):
             print(f"[-] OpenCode diagnostic: {warning}")
 
         # Save accumulated token usage and completion diagnostics to result JSON
-        if total_input > 0 or total_output > 0 or error_messages:
+        if total_input > 0 or total_output > 0 or error_messages or termination:
             result_data = {
                 "input_tokens": total_input,
                 "output_tokens": total_output,
@@ -430,7 +439,13 @@ class OpenCodeRunner(AgentRunner):
                 "finish_reasons": finish_reasons,
                 "artifacts_produced": artifacts,
                 "warnings": warnings,
+                "status": "error" if error_messages or termination else "success",
+                "is_error": bool(error_messages or termination),
+                "process_returncode": process_result.returncode,
             }
+            if termination:
+                result_data["terminal_reason"] = termination.reason
+                result_data["termination"] = termination.to_dict()
             if provider_id:
                 result_data["provider_id"] = provider_id
             if model_id:

@@ -1,0 +1,2 @@
+{"type":"tool_use","part":{"type":"tool","tool":"read","state":{"status":"completed","input":{"filePath":"/tmp/eval/elevator.js"}}}}
+{"type":"tool_use","part":{"type":"tool","tool":"edit","state":{"status":"completed","input":{"filePath":"/tmp/eval/elevator.js","oldString":"old state","newString":"new state"}}}}

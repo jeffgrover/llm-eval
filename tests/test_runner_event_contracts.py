@@ -126,6 +126,12 @@ class RunnerEventContractTests(unittest.TestCase):
         self.assertEqual(parsed[2].finish_reason, "stop")
         self.assertEqual(parsed[3].error, "provider failed")
 
+    def test_opencode_legacy_tool_call_contract(self):
+        parsed = parse_opencode_event({"type": "tool_call", "name": "write"})
+
+        self.assertEqual(parsed.text, "\n[Tool: write]\n")
+        self.assertEqual(parsed.tool_calls, 1)
+
     def test_pi_stream_contract(self):
         parsed = [
             parse_pi_event(event)

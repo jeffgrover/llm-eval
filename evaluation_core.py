@@ -1,6 +1,7 @@
 """Shared evaluator lifecycle, metadata, and local-server support."""
 
 import os
+import signal
 import subprocess
 import threading
 import time
@@ -12,13 +13,19 @@ import platform
 import urllib.request
 import urllib.error
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, TextIO
 
 from evaluation_metrics import TokenUsage, TokenUsageCollector
 from evaluation_report import generate_html_report
+from run_safety import (
+    RunSafetyLimits,
+    RunSafetyMonitor,
+    RunSafetyTermination,
+    RunTermination,
+)
 
 # --- Configuration & Constants ---
 LM_STUDIO_API_URL = "http://localhost:1234/v1"
@@ -843,6 +850,7 @@ class ProcessResult:
 
     returncode: int
     timed_out: bool = False
+    termination: Optional[RunTermination] = None
 
 
 def run_streaming_process(
@@ -852,11 +860,13 @@ def run_streaming_process(
     env: Optional[Dict[str, str]] = None,
     input_text: Optional[str] = None,
     display_cmd: Optional[str] = None,
-    timeout: int = DEFAULT_PROCESS_TIMEOUT,
-    on_line: Optional[Callable[[str, any], None]] = None,
+    timeout: Optional[float] = DEFAULT_PROCESS_TIMEOUT,
+    on_line: Optional[Callable[[str, TextIO], None]] = None,
+    on_stderr_line: Optional[Callable[[str, TextIO], None]] = None,
     merge_stderr: bool = True,
     cwd: Optional[Path] = None,
     shell: bool = False,
+    report_completion: bool = True,
 ) -> ProcessResult:
     """Run a subprocess, stream stdout to both console and a log file.
 
@@ -871,11 +881,15 @@ def run_streaming_process(
         env: Environment variables (defaults to ``os.environ``).
         input_text: Text piped to stdin on a background thread.
         display_cmd: Log-friendly command summary.
-        timeout: Seconds before the process is killed.
+        timeout: Seconds before the process is killed, or ``None`` to disable.
         on_line: Called for every stdout line with ``(line, log_file)``.
+        on_stderr_line: Optional callback for stderr when it is not merged.
         merge_stderr: Merge stderr into stdout (default) or keep separate.
         cwd: Override working directory (defaults to ``work_dir``).
         shell: Use shell execution (needed for .cmd wrappers on Windows).
+        report_completion: Print and log the exit status in this helper. Callers
+            with additional success criteria can disable this and report their
+            final status after validating those criteria.
     """
     if env is None:
         env = os.environ.copy()
@@ -898,32 +912,127 @@ def run_streaming_process(
             errors="replace",
             bufsize=1,
             shell=shell,
+            start_new_session=os.name != "nt",
         )
         send_stdin(process, input_text)
 
-        for line in process.stdout:
-            if on_line:
-                on_line(line, log_file)
+        callback_errors = []
+        safety_terminations: List[RunTermination] = []
+        output_lock = threading.Lock()
+        force_closing_output = False
+
+        def stop_process_tree() -> None:
+            if process.poll() is not None:
+                return
+            try:
+                if os.name != "nt":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except (OSError, ProcessLookupError):
+                process.kill()
+
+        def record_callback_error(exc: BaseException) -> None:
+            if isinstance(exc, RunSafetyTermination):
+                safety_terminations.append(exc.termination)
+            else:
+                callback_errors.append(exc)
+            stop_process_tree()
+
+        def drain_stdout() -> None:
+            try:
+                for line in process.stdout:
+                    with output_lock:
+                        if on_line:
+                            on_line(line, log_file)
+                        else:
+                            safe_stdout_write(line)
+                            log_file.write(line)
+                            log_file.flush()
+            except BaseException as exc:
+                if not force_closing_output:
+                    record_callback_error(exc)
+
+        def drain_stderr() -> None:
+            try:
+                for line in process.stderr:
+                    with output_lock:
+                        if on_stderr_line:
+                            on_stderr_line(line, log_file)
+                        else:
+                            safe_stdout_write(line)
+                            log_file.write(line)
+                            log_file.flush()
+            except BaseException as exc:
+                if not force_closing_output:
+                    record_callback_error(exc)
+
+        stdout_thread = threading.Thread(target=drain_stdout, daemon=True)
+        stdout_thread.start()
+        stderr_thread = None
+        if not merge_stderr:
+            stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
+            stderr_thread.start()
 
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            print(f"[-] Agent process timed out after {timeout} seconds.")
-            log_file.write(f"\n[ERROR] Process timed out after {timeout} seconds.\n")
-            process.kill()
+            stop_process_tree()
             process.wait()
 
-        if process.returncode == 0:
-            print(f"[+] Agent finished successfully.")
-            log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
-        else:
-            print(f"[-] Agent finished with error code {process.returncode}")
-            log_file.write(
-                f"\n[ERROR] Process exited with code {process.returncode}\n"
+        stdout_thread.join(timeout=5)
+        if stderr_thread:
+            stderr_thread.join(timeout=5)
+        live_threads = [
+            thread
+            for thread in (stdout_thread, stderr_thread)
+            if thread is not None and thread.is_alive()
+        ]
+        if live_threads:
+            force_closing_output = True
+            if process.stdout:
+                process.stdout.close()
+            if process.stderr and process.stderr is not process.stdout:
+                process.stderr.close()
+            for thread in live_threads:
+                thread.join(timeout=1)
+
+        for stream in (process.stdout, getattr(process, "stderr", None)):
+            close = getattr(stream, "close", None)
+            if close:
+                close()
+
+        if callback_errors:
+            raise callback_errors[0]
+
+        termination = safety_terminations[0] if safety_terminations else None
+        if timed_out:
+            termination = RunTermination(
+                reason="time_limit",
+                message=f"Run stopped after reaching the {timeout:g}-second time limit.",
+                evidence={"observed_seconds": timeout, "limit_seconds": timeout},
             )
 
-    return ProcessResult(returncode=process.returncode, timed_out=timed_out)
+        if termination:
+            print(f"[-] Agent run terminated: {termination.message}")
+            log_file.write(f"\n[TERMINATED] {termination.message}\n")
+
+        if report_completion and not termination:
+            if process.returncode == 0:
+                print("[+] Agent finished successfully.")
+                log_file.write("\n[SUCCESS] Process exited cleanly.\n")
+            else:
+                print(f"[-] Agent finished with error code {process.returncode}")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
+
+    return ProcessResult(
+        returncode=process.returncode,
+        timed_out=timed_out,
+        termination=termination,
+    )
 
 
 # --- Agent Runners ---
@@ -944,6 +1053,7 @@ class AgentRunner:
         custom_provider: Optional[str] = None,
         local_provider: Optional[LocalProviderConfig] = None,
         execute_generated_python: bool = False,
+        safety_limits: Optional[RunSafetyLimits] = None,
     ):
         self.agent_name = agent_name
         self.model_name = model_name
@@ -955,6 +1065,7 @@ class AgentRunner:
         self.local_provider = local_provider or LM_STUDIO_PROVIDER
         self.lms_cli_available = self.local_provider.supports_lms_cli
         self.execute_generated_python = execute_generated_python
+        self.safety_limits = safety_limits or RunSafetyLimits()
 
         # Binary to name mapping
         self.binary_map = {
@@ -977,6 +1088,7 @@ class AgentRunner:
         self.workspace_overwrite_confirmed = False
 
         self.log_process: Optional[subprocess.Popen] = None
+        self.last_process_result: Optional[ProcessResult] = None
 
     def confirm_workspace_overwrite(self):
         """Prompts before replacing an existing evaluation directory."""
@@ -1271,6 +1383,10 @@ class AgentRunner:
         """Runs the actual agent command."""
         raise NotImplementedError
 
+    def create_safety_monitor(self) -> RunSafetyMonitor:
+        """Return a fresh monitor scoped to this evaluation workspace."""
+        return RunSafetyMonitor(self.safety_limits, self.work_dir)
+
     def _run_process(
         self,
         cmd: List[str],
@@ -1290,10 +1406,12 @@ class AgentRunner:
             env=env or self.get_env_vars(),
             input_text=input_text,
             display_cmd=display_cmd,
+            timeout=self.safety_limits.process_timeout,
             on_line=lambda line, log_file: (
                 safe_stdout_write(line),
                 log_file.write(line),
                 log_file.flush(),
             ),
         )
+        self.last_process_result = result
         return result.returncode

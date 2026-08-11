@@ -288,6 +288,18 @@ def deterministic_score(ev: Dict) -> Dict:
     raw_total = min(sum(categories.values()), 100)
 
     caps = []
+    terminal_reason = metrics.get("terminal_reason") or ""
+    if terminal_reason == "doom_loop":
+        flags.append("Doom loop detected")
+        caps.append((35, "doom loop terminated"))
+    elif terminal_reason in {
+        "time_limit",
+        "turn_limit",
+        "token_limit",
+        "cost_limit",
+    }:
+        flags.append(f"Safety stop: {terminal_reason.replace('_', ' ')}")
+        caps.append((50, f"{terminal_reason.replace('_', ' ')} reached"))
     if missing := [name for name in required_files_for_prompt(prompt) if not (work_dir / name).exists()]:
         flags.append(f"Missing: {', '.join(missing)}")
         caps.append((50, "required files missing"))

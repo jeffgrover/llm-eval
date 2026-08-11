@@ -11,7 +11,8 @@ from evaluation_core import (
     safe_stdout_write,
 )
 from evaluation_metrics import CLAUDE_RESULT_FILENAME
-from runner_events import parse_claude_event
+from run_safety import RunSafetyTermination
+from runner_events import extract_message_tool_calls, parse_claude_event
 
 
 class ClaudeRunner(AgentRunner):
@@ -51,6 +52,7 @@ class ClaudeRunner(AgentRunner):
         result_json_path = self.work_dir / CLAUDE_RESULT_FILENAME
 
         result_data = None
+        safety_monitor = self.create_safety_monitor()
 
         def on_line(line: str, log_file) -> None:
             nonlocal result_data
@@ -84,6 +86,22 @@ class ClaudeRunner(AgentRunner):
                         log_file.flush()
                     if parsed.result is not None:
                         result_data = parsed.result
+                    if event_type == "assistant":
+                        for tool_name, tool_input in extract_message_tool_calls(event):
+                            termination = safety_monitor.observe_tool(
+                                tool_name, tool_input
+                            )
+                            if termination:
+                                raise RunSafetyTermination(termination)
+                        usage = event.get("message", {}).get("usage", {})
+                        termination = safety_monitor.observe_turn(
+                            {
+                                "input_tokens": usage.get("input_tokens", 0),
+                                "output_tokens": usage.get("output_tokens", 0),
+                            }
+                        )
+                        if termination:
+                            raise RunSafetyTermination(termination)
 
             except json.JSONDecodeError:
                 # Non-JSON line, pass through as-is
@@ -91,7 +109,7 @@ class ClaudeRunner(AgentRunner):
                 log_file.write(line)
                 log_file.flush()
 
-        run_streaming_process(
+        process_result = run_streaming_process(
             cmd=cmd,
             work_dir=self.work_dir,
             chat_log_path=chat_log_path,
@@ -101,8 +119,32 @@ class ClaudeRunner(AgentRunner):
                 "claude -p <prompt> --permission-mode bypassPermissions "
                 "--output-format stream-json"
             ),
+            timeout=self.safety_limits.process_timeout,
             on_line=on_line,
         )
+
+        if process_result.termination:
+            result_data = result_data or {"type": "result"}
+            result_data.update(
+                {
+                    "status": "error",
+                    "is_error": True,
+                    "error": process_result.termination.message,
+                    "terminal_reason": process_result.termination.reason,
+                    "termination": process_result.termination.to_dict(),
+                    "warnings": [
+                        "Run terminated by safety guardrail: "
+                        f"{process_result.termination.message}"
+                    ],
+                }
+            )
+        elif process_result.returncode != 0 and result_data is None:
+            result_data = {
+                "type": "result",
+                "status": "error",
+                "is_error": True,
+                "error": f"Claude exited with code {process_result.returncode}",
+            }
 
         # Save result JSON for metadata extraction (token usage, cost, turns)
         if result_data:

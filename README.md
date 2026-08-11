@@ -125,6 +125,13 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 -   `--lms-eval-batch-size`: Set LM Studio llama.cpp's prompt-evaluation batch size. Smaller values can reduce peak memory during prompt ingestion.
 -   `--lms-flash-attention`: Enable Flash Attention when LM Studio loads a compatible llama.cpp model.
 -   `--lms-cpu-kv-cache`: Keep the KV cache in system memory rather than offloading it to the GPU. On unified-memory systems this changes placement/accounting, not the total physical-memory requirement.
+-   `--max-seconds`: Stop a normal agent run after this wall time (default `900`; `0` disables).
+-   `--max-turns`: Stop after this many streamed assistant turns (default `200`; `0` disables).
+-   `--max-total-tokens`: Stop after this many accumulated input/output tokens when live usage is available (default `5000000`; `0` disables).
+-   `--max-cost-usd`: Stop at this reported live cost (default `$10`; `0` disables).
+-   `--doom-loop-repeats`: Stop a short repeating tool cycle after this many repetitions (default `12`; `0` disables).
+-   `--doom-loop-max-cycle-length`: Longest repeating tool sequence to inspect (default `4`).
+-   `--doom-loop-min-calls`: Minimum consecutive tool calls required before declaring a loop (default `24`).
 
 LM Studio load behavior for the four `--lms-*` options applies when the
 evaluator is managing an LM Studio model. Supplying any explicit load option
@@ -155,6 +162,25 @@ OpenCode results also record the finish reason, tool-call count, generated
 artifact names, and diagnostic warnings. A clean process exit is therefore
 still flagged when the model exhausts its output allowance, emits no tool
 calls, or claims completion without producing artifact files.
+
+### Runaway-agent safeguards
+
+Normal evaluations have a concurrent wall-clock limit, live turn/token/cost
+ceilings, and a repeated tool-cycle detector. The detector normalizes tool name
+and target (for example `read:elevator.js` and `edit:elevator.js`) while ignoring
+changing file contents, then stops short cycles that repeat exactly at the tail
+of the event stream. The tool-cycle check is enabled for structured adapters
+that expose tool names and arguments during the run, including OpenCode,
+Claude, and Qoder. Live token and cost ceilings apply only when the CLI reports
+those values before completion.
+
+A safety stop kills the spawned process group but does not delete the run
+workspace. The result JSON records `terminal_reason`, a human-readable message,
+and detector/limit evidence; `summary.html` displays it as a prominent
+diagnostic. The dashboard treats the run as partial/failed and caps a detected
+doom loop at 35 points. Use any corresponding value of `0` to disable a limit
+for an intentional long-running experiment. Pi Wiggum remains governed by its
+separate evaluator-owned repair-loop cap.
 
 The script creates a uniquely named workspace in `evals/`, captures logs and
 artifacts, and writes `summary.html`. Browser opening and generated Python
@@ -329,6 +355,7 @@ The evaluator is split by responsibility:
 -   `evaluation_core.py` owns the shared run lifecycle, workspace handling, metadata collection, LM Studio integration, and immutable local-provider configuration.
 -   `evaluation_metrics.py` normalizes token, cost, cache, and turn metrics from runner result files and fallback logs.
 -   `evaluation_report.py` renders the self-contained `summary.html` report and artifact navigation.
+-   `run_safety.py` owns configurable hard limits and vendor-neutral repeating tool-cycle detection.
 -   `runner_events.py` normalizes vendor-specific JSON/JSONL events into runner-level text, usage, provider, model, and error fields, including Crush session exports and Qoder's explicit estimated-usage fallback.
 -   `runners/` contains one CLI adapter per agent. Each adapter owns only its command/configuration and vendor-specific execution flow.
 -   `tests/fixtures/runner_events/` contains representative CLI event streams used by parser contract tests.
