@@ -2,8 +2,9 @@
 
 import json
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 CLAUDE_RESULT_FILENAME = "CLAUDE_RESULT.JSON"
@@ -18,9 +19,164 @@ PI_WIGGUM_RESULT_FILENAME = "PI_WIGGUM_RESULT.JSON"
 QODER_RESULT_FILENAME = "QODER_RESULT.JSON"
 QODER_EVENTS_FILENAME = "QODER_EVENTS.JSONL"
 
+#: Ordered result filenames to scan, matching the dashboard priority.
+RESULT_FILES = (
+    CLAUDE_RESULT_FILENAME,
+    GEMINI_RESULT_FILENAME,
+    OPENCODE_RESULT_FILENAME,
+    CRUSH_RESULT_FILENAME,
+    PI_WIGGUM_RESULT_FILENAME,
+    PI_RESULT_FILENAME,
+    CODEX_RESULT_FILENAME,
+    VIBE_RESULT_FILENAME,
+    QODER_RESULT_FILENAME,
+)
+
 JsonObject = Dict[str, Any]
 MetricValue = Union[int, float, bool, str]
 TokenUsage = Dict[str, Any]
+
+
+@dataclass
+class RunMetrics:
+    """Unified metrics extracted from any runner result JSON.
+
+    This is the single source of truth for reading run metrics. Both the
+    per-run report and the dashboard use :func:`load_run_metrics` to parse
+    result files, ensuring consistent token counts, costs, and status flags
+    across all consumers.
+    """
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    reasoning_tokens: int = 0
+    cost_usd: float = 0.0
+    num_turns: int = 0
+    tool_calls: int = 0
+    duration_ms: int = 0
+    success: Optional[bool] = None
+    error: bool = False
+    token_counts_estimated: bool = False
+    cost_available: Optional[bool] = None
+    finish_reasons: List[str] = field(default_factory=list)
+    artifacts_produced: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+    result_file: str = ""
+    parse_error: bool = False
+
+
+def load_run_metrics(work_dir: Path) -> RunMetrics:
+    """Scan ``work_dir`` for a result JSON and return unified metrics.
+
+    Tries each known result filename in priority order and returns metrics
+    from the first one found. Returns an empty :class:`RunMetrics` if no
+    result file exists.
+    """
+    for filename in RESULT_FILES:
+        path = work_dir / filename
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return RunMetrics(result_file=filename, parse_error=True)
+            if not isinstance(data, dict):
+                return RunMetrics(result_file=filename, parse_error=True)
+            return _parse_result_data(data, filename)
+    return RunMetrics()
+
+
+def _parse_result_data(result: Dict, filename: str = "") -> RunMetrics:
+    """Normalize a parsed result JSON dict into :class:`RunMetrics`.
+
+    Handles all known result formats: standard (input/output tokens),
+    Gemini stats, Claude/Qoder modelUsage, and Pi Wiggum aggregates.
+    """
+    m = RunMetrics(result_file=filename)
+
+    # Gemini nests metrics under "stats"
+    stats = result.get("stats", {})
+    if stats:
+        m.input_tokens = stats.get("input_tokens", stats.get("input", 0)) or 0
+        m.output_tokens = stats.get("output_tokens", 0) or 0
+        m.total_tokens = stats.get("total_tokens", 0) or 0
+        m.cache_read_tokens = stats.get("cached", 0) or 0
+        m.duration_ms = stats.get("duration_ms", 0) or result.get("duration_ms", 0) or 0
+        m.tool_calls = stats.get("tool_calls", 0) or 0
+        m.num_turns = stats.get("tool_calls", 0) or 0
+        m.success = result.get("status") == "success"
+        m.error = result.get("status") not in (None, "success")
+        m.token_counts_estimated = bool(result.get("token_counts_estimated"))
+        if "cost_available" in result:
+            m.cost_available = bool(result["cost_available"])
+        return m
+
+    # Estimated tokens (Qoder fallback)
+    if result.get("token_counts_estimated"):
+        m.input_tokens = result.get("input_tokens", 0) or 0
+        m.output_tokens = result.get("output_tokens", 0) or 0
+        m.total_tokens = (
+            result.get("total_tokens")
+            or m.input_tokens + m.output_tokens
+        )
+        m.token_counts_estimated = True
+
+    # Claude/Qoder modelUsage
+    elif "modelUsage" in result:
+        for model_data in result.get("modelUsage", {}).values():
+            m.input_tokens += (
+                model_data.get("inputTokens", 0)
+                + model_data.get("cacheCreationInputTokens", 0)
+                + model_data.get("cacheReadInputTokens", 0)
+            )
+            m.output_tokens += model_data.get("outputTokens", 0)
+            m.cache_read_tokens += model_data.get("cacheReadInputTokens", 0)
+            m.cost_usd += model_data.get("costUSD", 0) or 0
+        m.total_tokens = m.input_tokens + m.output_tokens
+
+    # Standard flat format (OpenCode, Codex, Pi, Vibe, Crush)
+    else:
+        usage = result.get("usage", {})
+        m.input_tokens = (
+            result.get("input_tokens")
+            or result.get("prompt_tokens")
+            or usage.get("input_tokens", 0)
+            + usage.get("cache_creation_input_tokens", 0)
+            + usage.get("cache_read_input_tokens", 0)
+            or 0
+        )
+        m.output_tokens = (
+            result.get("output_tokens")
+            or result.get("completion_tokens")
+            or usage.get("output_tokens", 0)
+            or 0
+        )
+        m.total_tokens = result.get("total_tokens") or m.input_tokens + m.output_tokens
+        m.cache_read_tokens = result.get("cache_read_tokens") or usage.get("cache_read_input_tokens", 0) or 0
+        m.cost_usd = result.get("cost_usd") or result.get("total_cost_usd") or 0.0
+
+    if "cost_available" in result:
+        m.cost_available = bool(result["cost_available"])
+    m.duration_ms = result.get("duration_ms", 0) or result.get("duration_api_ms", 0) or 0
+    m.num_turns = result.get("num_turns", 0) or 0
+    m.success = (
+        result.get("subtype") == "success"
+        or result.get("status") == "success"
+        or result.get("terminal_reason") == "completed"
+    )
+    m.error = bool(result.get("is_error")) or bool(result.get("_parse_error"))
+
+    # Optional metadata
+    m.finish_reasons = result.get("finish_reasons") or []
+    m.artifacts_produced = result.get("artifacts_produced") or []
+    m.warnings = result.get("warnings") or []
+    m.reasoning_tokens = result.get("reasoning_tokens", 0) or 0
+    m.cache_write_tokens = result.get("cache_write_tokens", 0) or 0
+    m.tool_calls = result.get("tool_calls", 0) or 0
+
+    return m
 
 
 class TokenUsageCollector:

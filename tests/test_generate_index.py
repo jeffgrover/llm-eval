@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import generate_index
+import eval_scanner
 
 
 class ArtifactRetentionTests(unittest.TestCase):
@@ -105,7 +106,7 @@ class EvaluationDiscoveryTests(unittest.TestCase):
             log_only.mkdir()
             (log_only / "SERVER.LOG").write_text("server output", encoding="utf-8")
 
-            with patch.object(generate_index, "EVALS_DIR", evals_dir):
+            with patch.object(eval_scanner, "EVALS_DIR", evals_dir):
                 evaluations = generate_index.scan_evaluations()
 
             self.assertEqual(evaluations, [])
@@ -119,7 +120,7 @@ class EvaluationDiscoveryTests(unittest.TestCase):
             (partial / "SERVER.LOG").write_text("server output", encoding="utf-8")
             (nested / "person.js").write_text("// partial", encoding="utf-8")
 
-            with patch.object(generate_index, "EVALS_DIR", evals_dir):
+            with patch.object(eval_scanner, "EVALS_DIR", evals_dir):
                 evaluations = generate_index.scan_evaluations()
 
             self.assertEqual(len(evaluations), 1)
