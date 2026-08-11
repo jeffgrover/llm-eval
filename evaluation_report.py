@@ -258,6 +258,20 @@ def generate_html_report(
     warnings = tokens.get("warnings", [])
     if isinstance(warnings, str):
         warnings = [warnings]
+    else:
+        warnings = list(warnings)
+    terminal_reason = tokens.get("terminal_reason")
+    termination = tokens.get("termination", {})
+    if terminal_reason and not warnings:
+        termination_message = (
+            termination.get("message")
+            if isinstance(termination, dict)
+            else ""
+        )
+        label = str(terminal_reason).replace("_", " ")
+        warnings.append(
+            f"Run terminated ({label}): {termination_message or 'safety limit reached'}"
+        )
     diagnostics_html = ""
     if warnings:
         warning_items = "".join(
@@ -265,7 +279,7 @@ def generate_html_report(
         )
         diagnostics_html = (
             '<section class="diagnostics-warning">'
-            '<strong>Run diagnostics</strong>'
+            f"<strong>{'Run terminated' if terminal_reason else 'Run diagnostics'}</strong>"
             f"<ul>{warning_items}</ul>"
             "</section>"
         )

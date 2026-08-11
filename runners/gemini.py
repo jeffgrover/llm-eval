@@ -145,9 +145,6 @@ class GeminiRunner(AgentRunner):
         )
         if self.model_name:
             display_cmd += f" --model {self.model_name}"
-        print(f"[*] Executing: {display_cmd}")
-        print(f"[*] Output logging to: {chat_log_path}")
-
         start_time = datetime.now()
         tool_call_count = 0
 
@@ -165,11 +162,19 @@ class GeminiRunner(AgentRunner):
             chat_log_path=chat_log_path,
             env=env,
             display_cmd=display_cmd,
+            timeout=self.safety_limits.process_timeout,
             on_line=on_line,
+            report_completion=False,
         )
 
         generated_artifacts = self._generated_artifacts()
-        if result.returncode == 0 and not generated_artifacts:
+        if result.termination:
+            pass
+        elif result.returncode == 0 and generated_artifacts:
+            print("[+] Agent finished successfully.")
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
+                log_file.write("\n[SUCCESS] Process exited cleanly.\n")
+        elif result.returncode == 0:
             artifact_error = (
                 "AGY exited cleanly but produced no root-level artifacts in "
                 f"{self.work_dir.resolve()}."
@@ -177,6 +182,12 @@ class GeminiRunner(AgentRunner):
             print(f"[-] {artifact_error}")
             with open(chat_log_path, "a", encoding="utf-8") as log_file:
                 log_file.write(f"\n[ERROR] {artifact_error}\n")
+        else:
+            print(f"[-] Agent finished with error code {result.returncode}")
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {result.returncode}\n"
+                )
 
         end_time = datetime.now()
         duration_ms = int((end_time - start_time).total_seconds() * 1000)
@@ -192,7 +203,11 @@ class GeminiRunner(AgentRunner):
         transcript_stats = self._get_agy_transcript_stats(self.work_dir, start_time)
 
         provider_name = self.custom_provider.title() if self.custom_provider else "Google"
-        run_succeeded = result.returncode == 0 and bool(generated_artifacts)
+        run_succeeded = (
+            result.returncode == 0
+            and bool(generated_artifacts)
+            and not result.termination
+        )
 
         result_data = {
             "type": "result",
@@ -216,6 +231,18 @@ class GeminiRunner(AgentRunner):
             result_data["error"] = (
                 "AGY exited successfully but did not create any root-level "
                 f"artifacts in {self.work_dir.resolve()}."
+            )
+        if result.termination:
+            result_data.update(
+                {
+                    "error": result.termination.message,
+                    "terminal_reason": result.termination.reason,
+                    "termination": result.termination.to_dict(),
+                    "warnings": [
+                        "Run terminated by safety guardrail: "
+                        f"{result.termination.message}"
+                    ],
+                }
             )
 
         with open(result_json_path, "w", encoding="utf-8") as f:

@@ -274,6 +274,20 @@ class CrushRunner(AgentRunner):
             warnings.append("The run produced no generated artifact files.")
         if session_data is None:
             warnings.append("Crush session JSON was unavailable; usage could not be read.")
+        if self.last_process_result and self.last_process_result.termination:
+            termination = self.last_process_result.termination
+            result.update(
+                {
+                    "status": "error",
+                    "is_error": True,
+                    "error": termination.message,
+                    "terminal_reason": termination.reason,
+                    "termination": termination.to_dict(),
+                }
+            )
+            warnings.append(
+                f"Run terminated by safety guardrail: {termination.message}"
+            )
         result["warnings"] = warnings
 
         result_path = self.work_dir / CRUSH_RESULT_FILENAME

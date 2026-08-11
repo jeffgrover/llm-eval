@@ -16,6 +16,7 @@ from evaluation_core import (
     safe_stdout_write,
 )
 from evaluation_metrics import CODEX_RESULT_FILENAME
+from run_safety import RunSafetyTermination
 from runner_events import (
     codex_usage_from_obj,
     extract_codex_readable_event,
@@ -142,6 +143,7 @@ class CodexRunner(AgentRunner):
             "session_id": None,
             "last_usage_total": 0,
         }
+        safety_monitor = self.create_safety_monitor()
         events_file = open(events_path, "w", encoding="utf-8")
 
         def on_line(line: str, log_file) -> None:
@@ -182,12 +184,22 @@ class CodexRunner(AgentRunner):
                             scale = (current_total - last_total) / current_total
                         else:
                             scale = 1
-                        state["total_input"] += round(usage["input_tokens"] * scale)
-                        state["total_output"] += round(usage["output_tokens"] * scale)
+                        delta_input = round(usage["input_tokens"] * scale)
+                        delta_output = round(usage["output_tokens"] * scale)
+                        state["total_input"] += delta_input
+                        state["total_output"] += delta_output
                         state["total_reasoning"] += round(usage["reasoning_tokens"] * scale)
                         state["cache_read"] += round(usage["cache_read_tokens"] * scale)
                         state["last_usage_total"] = max(last_total, current_total)
                         state["num_turns"] += 1
+                        termination = safety_monitor.observe_turn(
+                            {
+                                "input_tokens": delta_input,
+                                "output_tokens": delta_output,
+                            }
+                        )
+                        if termination:
+                            raise RunSafetyTermination(termination)
 
             except json.JSONDecodeError:
                 safe_stdout_write(line)
@@ -195,13 +207,14 @@ class CodexRunner(AgentRunner):
                 log_file.flush()
 
         try:
-            run_streaming_process(
+            process_result = run_streaming_process(
                 cmd=cmd,
                 work_dir=self.work_dir,
                 chat_log_path=chat_log_path,
                 env=env,
                 input_text=prompt_content,
                 display_cmd="codex exec --json --output-last-message CODEX_LAST_MESSAGE.TXT ...",
+                timeout=self.safety_limits.process_timeout,
                 on_line=on_line,
             )
         finally:
@@ -226,7 +239,27 @@ class CodexRunner(AgentRunner):
             "num_turns": state["num_turns"],
             "provider_id": "OpenAI",
             "model_id": self.model_name,
+            "status": "success" if process_result.returncode == 0 else "error",
+            "is_error": process_result.returncode != 0,
         }
+        if process_result.returncode != 0:
+            result_data["error"] = (
+                f"Codex exited with code {process_result.returncode}"
+            )
+        if process_result.termination:
+            result_data.update(
+                {
+                    "status": "error",
+                    "is_error": True,
+                    "error": process_result.termination.message,
+                    "terminal_reason": process_result.termination.reason,
+                    "termination": process_result.termination.to_dict(),
+                    "warnings": [
+                        "Run terminated by safety guardrail: "
+                        f"{process_result.termination.message}"
+                    ],
+                }
+            )
         if state["session_id"]:
             result_data["session_id"] = state["session_id"]
         try:

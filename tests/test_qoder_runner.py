@@ -16,13 +16,12 @@ FIXTURE_PATH = (
 
 
 class FakeQoderProcess:
-    def __init__(self):
-        self.stdout = [
-            f"{line}\n"
-            for line in FIXTURE_PATH.read_text(encoding="utf-8").splitlines()
-        ]
+    def __init__(self, lines=None, returncode=0):
+        if lines is None:
+            lines = FIXTURE_PATH.read_text(encoding="utf-8").splitlines()
+        self.stdout = [f"{line}\n" for line in lines]
         self.stdin = object()
-        self.returncode = 0
+        self.returncode = returncode
 
     def wait(self, timeout=None):
         return self.returncode
@@ -71,6 +70,38 @@ class QoderRunnerTests(unittest.TestCase):
             self.assertTrue(result["token_counts_estimated"])
             self.assertFalse(result["cost_available"])
             self.assertEqual(result["qodercli_version"], "1.1.5")
+
+    def test_runner_preserves_failed_exit_when_result_event_is_missing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            prompt_path = work_dir / "prompt.txt"
+            prompt_path.write_text("Build it", encoding="utf-8")
+            runner = QoderRunner(
+                "qoder",
+                "Qwen3.8-Max-Preview",
+                prompt_path,
+                headless=True,
+                non_local=True,
+            )
+            runner.work_dir = work_dir
+            lines = FIXTURE_PATH.read_text(encoding="utf-8").splitlines()[:-1]
+
+            with (
+                mock.patch(
+                    "evaluation_core.subprocess.Popen",
+                    return_value=FakeQoderProcess(lines=lines, returncode=2),
+                ),
+                mock.patch("evaluation_core.send_stdin"),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                runner.execute_agent()
+
+            result = json.loads(
+                (work_dir / QODER_RESULT_FILENAME).read_text(encoding="utf-8")
+            )
+            self.assertEqual(result["subtype"], "error_during_execution")
+            self.assertTrue(result["is_error"])
+            self.assertEqual(result["errors"], ["Exit code 2"])
 
 
 if __name__ == "__main__":

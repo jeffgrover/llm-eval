@@ -7,10 +7,12 @@ from evaluate_agent import CHAT_SESSION_FILENAME, SERVER_LOG_FILENAME
 from evaluation_metrics import (
     CLAUDE_RESULT_FILENAME,
     CRUSH_RESULT_FILENAME,
+    GEMINI_RESULT_FILENAME,
     OPENCODE_RESULT_FILENAME,
     PI_WIGGUM_RESULT_FILENAME,
     QODER_RESULT_FILENAME,
     TokenUsageCollector,
+    load_run_metrics,
 )
 from generate_index import parse_metrics
 
@@ -85,6 +87,32 @@ class TokenUsageCollectorTests(unittest.TestCase):
                     "finish_reasons": ["tool_use", "stop"],
                 },
             )
+
+    def test_gemini_turns_match_between_report_and_dashboard_paths(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / GEMINI_RESULT_FILENAME).write_text(
+                json.dumps(
+                    {
+                        "status": "success",
+                        "stats": {
+                            "input_tokens": 100,
+                            "output_tokens": 20,
+                            "total_tokens": 120,
+                            "tool_calls": 28,
+                        },
+                        "num_turns": 29,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            report_usage = self.collect(work_dir)
+            dashboard_metrics = load_run_metrics(work_dir)
+
+            self.assertEqual(report_usage["num_turns"], 29)
+            self.assertEqual(dashboard_metrics.num_turns, 29)
+            self.assertEqual(dashboard_metrics.tool_calls, 28)
 
     def test_wiggum_attempts_are_reported_without_token_metrics(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -237,6 +265,35 @@ class TokenUsageCollectorTests(unittest.TestCase):
                     "cost_available": True,
                 },
             )
+
+    def test_safety_termination_flows_to_report_and_dashboard_metrics(self):
+        result = {
+            "input_tokens": 100,
+            "output_tokens": 20,
+            "total_tokens": 120,
+            "status": "error",
+            "is_error": True,
+            "terminal_reason": "doom_loop",
+            "termination": {
+                "reason": "doom_loop",
+                "message": "Repeated read/edit cycle.",
+                "evidence": {"cycle_length": 2},
+            },
+            "warnings": ["Run terminated by safety guardrail."],
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / OPENCODE_RESULT_FILENAME).write_text(
+                json.dumps(result), encoding="utf-8"
+            )
+
+            report_usage = self.collect(work_dir)
+            dashboard_metrics = parse_metrics(result)
+
+            self.assertEqual(report_usage["terminal_reason"], "doom_loop")
+            self.assertEqual(report_usage["termination"]["evidence"]["cycle_length"], 2)
+            self.assertEqual(dashboard_metrics["terminal_reason"], "doom_loop")
+            self.assertTrue(dashboard_metrics["error"])
 
 
 if __name__ == "__main__":

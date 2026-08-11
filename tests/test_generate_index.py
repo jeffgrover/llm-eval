@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import generate_index
 import eval_scanner
+from eval_scoring import deterministic_score
 
 
 class ArtifactRetentionTests(unittest.TestCase):
@@ -125,6 +126,49 @@ class EvaluationDiscoveryTests(unittest.TestCase):
 
             self.assertEqual(len(evaluations), 1)
             self.assertEqual(evaluations[0]["Path"], partial)
+
+
+class SafetyScoringTests(unittest.TestCase):
+    def test_doom_loop_result_is_flagged_and_capped(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "index.html").write_text(
+                '<canvas></canvas><script src="person.js"></script>'
+                '<script src="elevator.js"></script>',
+                encoding="utf-8",
+            )
+            (work_dir / "person.js").write_text(
+                "class Person { walk() {} }", encoding="utf-8"
+            )
+            (work_dir / "elevator.js").write_text(
+                "class Elevator { SCAN() { this.queue = []; } }",
+                encoding="utf-8",
+            )
+            score = deterministic_score(
+                {
+                    "Path": work_dir,
+                    "HasReport": True,
+                    "Result": {"terminal_reason": "doom_loop"},
+                    "Metrics": {
+                        "success": False,
+                        "error": True,
+                        "terminal_reason": "doom_loop",
+                        "total_tokens": 100,
+                    },
+                    "Runtime": {
+                        "loaded": True,
+                        "canvas_count": 1,
+                        "nonblank_canvas": True,
+                        "animation_frames": 3,
+                        "scene_object_count": 3,
+                        "dynamic_changes": 1,
+                    },
+                    "Prompt": "elevator_prompt_v3",
+                }
+            )
+
+            self.assertLessEqual(score["total"], 35)
+            self.assertIn("Doom loop detected", score["flags"])
 
 
 if __name__ == "__main__":

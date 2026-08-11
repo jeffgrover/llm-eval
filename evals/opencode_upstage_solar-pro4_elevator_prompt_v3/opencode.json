@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": "allow",
+  "agent": {
+    "title": {
+      "disable": true
+    }
+  },
+  "model": "openrouter/upstage/solar-pro4"
+}

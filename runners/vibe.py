@@ -16,6 +16,7 @@ from evaluation_core import (
     safe_stdout_write,
 )
 from evaluation_metrics import VIBE_RESULT_FILENAME
+from run_safety import RunSafetyTermination
 from runner_events import parse_vibe_event
 
 class VibeRunner(AgentRunner):
@@ -280,6 +281,7 @@ class VibeRunner(AgentRunner):
         vibe_version = None
         num_turns = 0
         start_time = datetime.now()  # Track when we started the run
+        safety_monitor = self.create_safety_monitor()
 
         def on_line(line: str, log_file) -> None:
             nonlocal num_turns
@@ -296,18 +298,22 @@ class VibeRunner(AgentRunner):
                     log_file.flush()
                 if parsed.turn_completed:
                     num_turns += 1
+                    termination = safety_monitor.observe_turn({})
+                    if termination:
+                        raise RunSafetyTermination(termination)
             except json.JSONDecodeError:
                 # Non-JSON line, pass through as-is
                 safe_stdout_write(line)
                 log_file.write(line)
                 log_file.flush()
 
-        run_streaming_process(
+        process_result = run_streaming_process(
             cmd=cmd,
             work_dir=self.work_dir,
             chat_log_path=chat_log_path,
             env=env,
             display_cmd="vibe -p <prompt> --output streaming --auto-approve --trust",
+            timeout=self.safety_limits.process_timeout,
             on_line=on_line,
         )
 
@@ -326,7 +332,27 @@ class VibeRunner(AgentRunner):
         # Build result data with available metadata
         result_data = {
             "num_turns": num_turns,
+            "status": "success" if process_result.returncode == 0 else "error",
+            "is_error": process_result.returncode != 0,
         }
+        if process_result.returncode != 0:
+            result_data["error"] = (
+                f"Vibe exited with code {process_result.returncode}"
+            )
+        if process_result.termination:
+            result_data.update(
+                {
+                    "status": "error",
+                    "is_error": True,
+                    "error": process_result.termination.message,
+                    "terminal_reason": process_result.termination.reason,
+                    "termination": process_result.termination.to_dict(),
+                    "warnings": [
+                        "Run terminated by safety guardrail: "
+                        f"{process_result.termination.message}"
+                    ],
+                }
+            )
 
         # Add token usage if we found it
         if token_usage["prompt_tokens"] > 0 or token_usage["completion_tokens"] > 0:

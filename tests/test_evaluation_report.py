@@ -143,6 +143,30 @@ class EvaluationReportTests(unittest.TestCase):
             self.assertIn("output-token limit", report)
             self.assertIn("no generated artifact files", report)
 
+    def test_report_prominently_labels_safety_termination(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata = self.metadata()
+            metadata["Tokens"].update(
+                {
+                    "terminal_reason": "doom_loop",
+                    "termination": {
+                        "message": "Repeated read/edit cycle detected."
+                    },
+                }
+            )
+
+            report_path = generate_html_report(
+                Path(temp_dir),
+                metadata,
+                "build it",
+                duration_seconds=10.0,
+                agent_name="opencode",
+            )
+            report = report_path.read_text(encoding="utf-8")
+
+            self.assertIn("Run terminated", report)
+            self.assertIn("Repeated read/edit cycle detected", report)
+
     def test_crush_result_tokens_flow_into_summary(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             work_dir = Path(temp_dir)

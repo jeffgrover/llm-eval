@@ -18,6 +18,22 @@ from runners import OpenCodeRunner
 
 
 class LocalProviderConfigTests(unittest.TestCase):
+    def test_opencode_parses_current_log_metadata(self):
+        version, provider, model = OpenCodeRunner._parse_log_metadata(
+            "message=created id=session version=1.18.10 projectID=project"
+        )
+        self.assertEqual(version, "1.18.10")
+        self.assertIsNone(provider)
+        self.assertIsNone(model)
+
+        version, provider, model = OpenCodeRunner._parse_log_metadata(
+            "message=stream providerID=openrouter modelID=upstage/solar-pro4 "
+            "session.id=session small=false agent=build"
+        )
+        self.assertIsNone(version)
+        self.assertEqual(provider, "openrouter")
+        self.assertEqual(model, "upstage/solar-pro4")
+
     def test_provider_selection_returns_immutable_configs(self):
         self.assertIs(get_local_provider(None), LM_STUDIO_PROVIDER)
         self.assertIs(get_local_provider("llama-server"), LLAMA_SERVER_PROVIDER)

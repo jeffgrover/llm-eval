@@ -3,7 +3,7 @@
 import json
 import math
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
 @dataclass
@@ -148,6 +148,29 @@ def parse_qoder_event(event: Dict) -> ParsedEvent:
     return parse_claude_event(event)
 
 
+def extract_message_tool_calls(
+    event: Dict,
+) -> List[Tuple[str, Dict[str, Any]]]:
+    """Extract Claude/Qoder-style tool blocks from an assistant event."""
+    if event.get("type") != "assistant":
+        return []
+    content = event.get("message", {}).get("content", [])
+    if not isinstance(content, list):
+        return []
+    calls = []
+    for block in content:
+        if not isinstance(block, dict) or block.get("type") != "tool_use":
+            continue
+        tool_input = block.get("input", {})
+        calls.append(
+            (
+                str(block.get("name") or "unknown"),
+                tool_input if isinstance(tool_input, dict) else {},
+            )
+        )
+    return calls
+
+
 def _qoder_content_chars(content) -> int:
     """Count model-visible characters in a Qoder message content value."""
     if isinstance(content, str):
@@ -286,8 +309,13 @@ def parse_opencode_event(event: Dict) -> ParsedEvent:
     event_type = event.get("type", "")
     if event_type == "text":
         return ParsedEvent(text=event.get("content", event.get("text", "")))
-    if event_type == "tool_call":
-        name = event.get("name", event.get("tool", "unknown"))
+    if event_type in ("tool_call", "tool_use"):
+        part = event.get("part", {})
+        name = (
+            event.get("name")
+            or event.get("tool")
+            or part.get("tool", "unknown")
+        )
         return ParsedEvent(text=f"\n[Tool: {name}]\n", tool_calls=1)
     if event_type == "step_finish":
         part = event.get("part", {})
@@ -316,6 +344,29 @@ def parse_opencode_event(event: Dict) -> ParsedEvent:
         message = message or json.dumps(event)
         return ParsedEvent(error=str(message), log_raw=True)
     return ParsedEvent(log_raw=True)
+
+
+def extract_opencode_tool_call(
+    event: Dict,
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Return a stable tool name/input pair from current or legacy events."""
+    if event.get("type") not in ("tool_call", "tool_use"):
+        return None
+    part = event.get("part", {})
+    if not isinstance(part, dict):
+        part = {}
+    state = part.get("state", {})
+    if not isinstance(state, dict):
+        state = {}
+    name = event.get("name") or event.get("tool") or part.get("tool") or "unknown"
+    tool_input = (
+        state.get("input")
+        or event.get("input")
+        or event.get("args")
+        or part.get("input")
+        or {}
+    )
+    return str(name), tool_input if isinstance(tool_input, dict) else {}
 
 
 def parse_pi_event(event: Dict) -> ParsedEvent:
