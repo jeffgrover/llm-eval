@@ -361,6 +361,7 @@ class OpenCodeRunner(AgentRunner):
             env=env,
             display_cmd=display_cmd,
             timeout=self.safety_limits.process_timeout,
+            idle_timeout=self.safety_limits.process_idle_timeout,
             on_line=on_stdout,
             on_stderr_line=on_stderr,
             merge_stderr=False,

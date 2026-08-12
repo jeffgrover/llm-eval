@@ -9,6 +9,7 @@ from runner_events import (
     codex_usage_from_obj,
     extract_codex_readable_event,
     extract_codex_session_id,
+    extract_pi_tool_call,
     find_codex_usage_objects,
     normalize_qoder_result,
     normalize_crush_session,
@@ -147,6 +148,53 @@ class RunnerEventContractTests(unittest.TestCase):
         self.assertEqual(completed.usage["input_tokens"], 20)
         self.assertEqual(completed.usage["cost_usd"], 0.03)
         self.assertTrue(parsed[3].log_raw)
+
+    def test_pi_completed_tool_call_contract(self):
+        event = {
+            "type": "message_update",
+            "assistantMessageEvent": {
+                "type": "toolcall_end",
+                "contentIndex": 2,
+                "partial": {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "thinking", "thinking": "checking"},
+                        {
+                            "type": "toolCall",
+                            "name": "read",
+                            "arguments": {"path": "index.html"},
+                        },
+                        {
+                            "type": "toolCall",
+                            "name": "bash",
+                            "arguments": {"command": "node check.js"},
+                        },
+                    ],
+                },
+            },
+        }
+
+        tool_call = extract_pi_tool_call(event)
+
+        self.assertEqual(tool_call, ("bash", {"command": "node check.js"}))
+
+    def test_pi_streamed_tool_name_uses_indexed_partial_content(self):
+        event = {
+            "type": "message_update",
+            "assistantMessageEvent": {
+                "type": "toolcall_start",
+                "contentIndex": 1,
+                "partial": {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "thinking", "thinking": "checking"},
+                        {"type": "toolCall", "name": "grep", "arguments": {}},
+                    ],
+                },
+            },
+        }
+
+        self.assertEqual(parse_pi_event(event).text, "\n[Tool: grep]\n")
 
     def test_codex_stream_contract(self):
         events = read_jsonl("codex_stream.jsonl")

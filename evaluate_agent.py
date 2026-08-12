@@ -35,6 +35,7 @@ from run_safety import (
     DEFAULT_DOOM_LOOP_MAX_CYCLE_LENGTH,
     DEFAULT_DOOM_LOOP_MIN_CALLS,
     DEFAULT_DOOM_LOOP_REPEATS,
+    DEFAULT_MAX_IDLE_SECONDS,
     DEFAULT_MAX_COST_USD,
     DEFAULT_MAX_SECONDS,
     DEFAULT_MAX_TOTAL_TOKENS,
@@ -165,6 +166,15 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help=f"Stop after this wall time; 0 disables (default: {DEFAULT_MAX_SECONDS:g})",
     )
     safety_group.add_argument(
+        "--max-idle-seconds",
+        type=float,
+        default=DEFAULT_MAX_IDLE_SECONDS,
+        help=(
+            "Stop after this many seconds without agent process output; "
+            f"0 disables (default: {DEFAULT_MAX_IDLE_SECONDS:g})"
+        ),
+    )
+    safety_group.add_argument(
         "--max-turns",
         type=int,
         default=DEFAULT_MAX_TURNS,
@@ -248,6 +258,7 @@ def main(argv: Optional[List[str]] = None):
         execute_generated_python=args.execute_generated_python,
         safety_limits=RunSafetyLimits(
             max_seconds=args.max_seconds,
+            max_idle_seconds=args.max_idle_seconds,
             max_turns=args.max_turns,
             max_total_tokens=args.max_total_tokens,
             max_cost_usd=args.max_cost_usd,

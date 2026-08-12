@@ -314,6 +314,7 @@ class VibeRunner(AgentRunner):
             env=env,
             display_cmd="vibe -p <prompt> --output streaming --auto-approve --trust",
             timeout=self.safety_limits.process_timeout,
+            idle_timeout=self.safety_limits.process_idle_timeout,
             on_line=on_line,
         )
 

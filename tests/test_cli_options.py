@@ -5,6 +5,7 @@ import unittest
 from evaluate_agent import build_argument_parser
 from run_safety import (
     DEFAULT_DOOM_LOOP_REPEATS,
+    DEFAULT_MAX_IDLE_SECONDS,
     DEFAULT_MAX_SECONDS,
     DEFAULT_MAX_TURNS,
 )
@@ -60,6 +61,7 @@ class CliOptionTests(unittest.TestCase):
         args = self.parse()
 
         self.assertEqual(args.max_seconds, DEFAULT_MAX_SECONDS)
+        self.assertEqual(args.max_idle_seconds, DEFAULT_MAX_IDLE_SECONDS)
         self.assertEqual(args.max_turns, DEFAULT_MAX_TURNS)
         self.assertEqual(args.doom_loop_repeats, DEFAULT_DOOM_LOOP_REPEATS)
 
@@ -67,6 +69,8 @@ class CliOptionTests(unittest.TestCase):
         args = self.parse(
             "--max-seconds",
             "120",
+            "--max-idle-seconds",
+            "45",
             "--max-turns",
             "50",
             "--max-total-tokens",
@@ -82,6 +86,7 @@ class CliOptionTests(unittest.TestCase):
         )
 
         self.assertEqual(args.max_seconds, 120)
+        self.assertEqual(args.max_idle_seconds, 45)
         self.assertEqual(args.max_turns, 50)
         self.assertEqual(args.max_total_tokens, 100000)
         self.assertEqual(args.max_cost_usd, 2.5)

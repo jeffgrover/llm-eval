@@ -170,6 +170,47 @@ class SafetyScoringTests(unittest.TestCase):
             self.assertLessEqual(score["total"], 35)
             self.assertIn("Doom loop detected", score["flags"])
 
+    def test_inactivity_limit_result_is_flagged_and_capped(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "index.html").write_text(
+                '<canvas></canvas><script src="person.js"></script>'
+                '<script src="elevator.js"></script>',
+                encoding="utf-8",
+            )
+            (work_dir / "person.js").write_text(
+                "class Person { walk() {} }", encoding="utf-8"
+            )
+            (work_dir / "elevator.js").write_text(
+                "class Elevator { SCAN() { this.queue = []; } }",
+                encoding="utf-8",
+            )
+            score = deterministic_score(
+                {
+                    "Path": work_dir,
+                    "HasReport": True,
+                    "Result": {"terminal_reason": "inactivity_limit"},
+                    "Metrics": {
+                        "success": False,
+                        "error": True,
+                        "terminal_reason": "inactivity_limit",
+                        "total_tokens": 100,
+                    },
+                    "Runtime": {
+                        "loaded": True,
+                        "canvas_count": 1,
+                        "nonblank_canvas": True,
+                        "animation_frames": 3,
+                        "scene_object_count": 3,
+                        "dynamic_changes": 1,
+                    },
+                    "Prompt": "elevator_prompt_v3",
+                }
+            )
+
+            self.assertLessEqual(score["total"], 50)
+            self.assertIn("Safety stop: inactivity limit", score["flags"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -369,6 +369,40 @@ def extract_opencode_tool_call(
     return str(name), tool_input if isinstance(tool_input, dict) else {}
 
 
+def _pi_streamed_tool_call(event: Dict) -> Optional[Dict[str, Any]]:
+    """Return the tool call addressed by a Pi message-update event."""
+    if event.get("type") != "message_update":
+        return None
+    update = event.get("assistantMessageEvent", {})
+    if not isinstance(update, dict):
+        return None
+
+    direct = update.get("toolCall")
+    if isinstance(direct, dict):
+        return direct
+
+    content_index = update.get("contentIndex")
+    for container in (update.get("partial"), event.get("message")):
+        if not isinstance(container, dict):
+            continue
+        content = container.get("content")
+        if not isinstance(content, list):
+            continue
+        if isinstance(content_index, int) and 0 <= content_index < len(content):
+            candidate = content[content_index]
+            if isinstance(candidate, dict):
+                candidate_type = str(candidate.get("type", ""))
+                if candidate_type.replace("_", "").lower() == "toolcall":
+                    return candidate
+        for candidate in reversed(content):
+            if not isinstance(candidate, dict):
+                continue
+            candidate_type = str(candidate.get("type", ""))
+            if candidate_type.replace("_", "").lower() == "toolcall":
+                return candidate
+    return None
+
+
 def parse_pi_event(event: Dict) -> ParsedEvent:
     event_type = event.get("type", "")
     if event_type == "message_end":
@@ -394,9 +428,33 @@ def parse_pi_event(event: Dict) -> ParsedEvent:
         update = event.get("assistantMessageEvent", {})
         if update.get("type") == "text_delta":
             return ParsedEvent(text=update.get("delta", ""))
-        if update.get("type") == "tool_call_start":
-            return ParsedEvent(text=f"\n[Tool: {update.get('name', 'unknown')}]\n")
+        if update.get("type") in ("tool_call_start", "toolcall_start"):
+            tool_call = _pi_streamed_tool_call(event) or {}
+            name = update.get("name")
+            if not name:
+                name = tool_call.get("name")
+            return ParsedEvent(text=f"\n[Tool: {name or 'unknown'}]\n")
     return ParsedEvent(log_raw=event_type == "agent_end")
+
+
+def extract_pi_tool_call(
+    event: Dict,
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Return a completed Pi tool call once its streamed arguments are stable."""
+    if event.get("type") != "message_update":
+        return None
+    update = event.get("assistantMessageEvent", {})
+    if not isinstance(update, dict) or update.get("type") not in (
+        "tool_call_end",
+        "toolcall_end",
+    ):
+        return None
+    tool_call = _pi_streamed_tool_call(event)
+    if tool_call is None:
+        return None
+    name = str(tool_call.get("name") or "unknown")
+    arguments = tool_call.get("arguments", {})
+    return name, arguments if isinstance(arguments, dict) else {}
 
 
 def codex_usage_from_obj(obj: Dict) -> Dict[str, int]:
