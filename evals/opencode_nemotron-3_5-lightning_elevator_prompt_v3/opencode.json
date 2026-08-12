@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": "allow",
+  "agent": {
+    "title": {
+      "disable": true
+    }
+  },
+  "model": "local-b70/nemotron-3.5-lightning"
+}
