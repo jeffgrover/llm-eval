@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any, Deque, Dict, List, Optional
 
 
-DEFAULT_MAX_SECONDS = 900.0
+DEFAULT_MAX_SECONDS = 3600.0
+DEFAULT_MAX_IDLE_SECONDS = 900.0
 DEFAULT_MAX_TURNS = 200
 DEFAULT_MAX_TOTAL_TOKENS = 5_000_000
 DEFAULT_MAX_COST_USD = 10.0
@@ -24,6 +25,7 @@ class RunSafetyLimits:
     """Configurable hard limits and repeating-cycle thresholds for one run."""
 
     max_seconds: float = DEFAULT_MAX_SECONDS
+    max_idle_seconds: float = DEFAULT_MAX_IDLE_SECONDS
     max_turns: int = DEFAULT_MAX_TURNS
     max_total_tokens: int = DEFAULT_MAX_TOTAL_TOKENS
     max_cost_usd: float = DEFAULT_MAX_COST_USD
@@ -35,6 +37,11 @@ class RunSafetyLimits:
     def process_timeout(self) -> Optional[float]:
         """Return the subprocess timeout, or ``None`` when disabled."""
         return self.max_seconds if self.max_seconds > 0 else None
+
+    @property
+    def process_idle_timeout(self) -> Optional[float]:
+        """Return the output-inactivity timeout, or ``None`` when disabled."""
+        return self.max_idle_seconds if self.max_idle_seconds > 0 else None
 
 
 @dataclass(frozen=True)

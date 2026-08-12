@@ -20,6 +20,12 @@ FIXTURE_PATH = (
 
 
 class RunSafetyTests(unittest.TestCase):
+    def test_process_timeouts_can_be_disabled_independently(self):
+        limits = RunSafetyLimits(max_seconds=0, max_idle_seconds=0)
+
+        self.assertIsNone(limits.process_timeout)
+        self.assertIsNone(limits.process_idle_timeout)
+
     def test_file_signature_ignores_edit_contents(self):
         first = normalize_tool_observation(
             "edit",

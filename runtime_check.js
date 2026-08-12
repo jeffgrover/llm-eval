@@ -17,6 +17,65 @@ try {
 const ROOT = process.cwd();
 const EVALS_DIR = path.join(ROOT, "evals");
 const PREVIEW_FILES = ["index.html", "elevator_sim.html", "elevator_simulation.html", "test.html"];
+const DEFAULT_RUNTIME_TIMEOUT_MS = 30000;
+
+function runtimeTimeoutMs() {
+  const configured = Number(process.env.LLM_EVAL_RUNTIME_TIMEOUT_MS || DEFAULT_RUNTIME_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_RUNTIME_TIMEOUT_MS;
+}
+
+function writeTimeoutResult(evalDir, timeoutMs) {
+  const result = {
+    checked_at: new Date().toISOString(),
+    static_errors: [],
+    static_warnings: [],
+    static_files_checked: [],
+    loaded: false,
+    console_errors: [],
+    page_errors: [`Runtime probe exceeded its ${timeoutMs}ms hard deadline.`],
+    canvas_count: 0,
+    nonblank_canvas: false,
+    animation_frames: 0,
+    scene_object_count: 0,
+    dynamic_changes: 0,
+    canvas_changed: false,
+    duration_ms: timeoutMs,
+    warnings: ["The evaluated page may be blocking the browser event loop."],
+    timed_out: true,
+  };
+  try {
+    fs.writeFileSync(
+      path.join(evalDir, "runtime_check.json"),
+      `${JSON.stringify(result, null, 2)}\n`,
+      "utf8"
+    );
+  } catch (err) {
+    console.error(`Could not write timeout result: ${err && err.message || err}`);
+  }
+}
+
+async function probeWithDeadline(browser, serverPort, evalDir, options = {}) {
+  const timeoutMs = runtimeTimeoutMs();
+  const probe = options.probe || probeEval;
+  const exit = options.exit || ((code) => process.exit(code));
+  const deadline = setTimeout(() => {
+    writeTimeoutResult(evalDir, timeoutMs);
+    console.error(
+      `${path.relative(ROOT, evalDir)}: runtime probe timed out after ${timeoutMs}ms`
+    );
+    // A page with a blocked renderer may also prevent Playwright cleanup.
+    // Exiting closes the debugging pipe and lets Chromium tear itself down.
+    exit(124);
+  }, timeoutMs);
+
+  try {
+    return await probe(browser, serverPort, evalDir);
+  } finally {
+    clearTimeout(deadline);
+  }
+}
 
 function contentType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
@@ -273,10 +332,10 @@ async function main() {
   }
   const server = await startServer();
   const port = server.address().port;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, timeout: 10000 });
   try {
     for (const evalDir of targets) {
-      const result = await probeEval(browser, port, evalDir);
+      const result = await probeWithDeadline(browser, port, evalDir);
       const outPath = path.join(evalDir, "runtime_check.json");
       fs.writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
       let status = "ok";
@@ -309,7 +368,11 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err && err.stack || err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err && err.stack || err);
+    process.exit(1);
+  });
+}
+
+module.exports = { probeWithDeadline, runtimeTimeoutMs, writeTimeoutResult };

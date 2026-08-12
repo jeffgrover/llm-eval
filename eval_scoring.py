@@ -293,6 +293,7 @@ def deterministic_score(ev: Dict) -> Dict:
         flags.append("Doom loop detected")
         caps.append((35, "doom loop terminated"))
     elif terminal_reason in {
+        "inactivity_limit",
         "time_limit",
         "turn_limit",
         "token_limit",

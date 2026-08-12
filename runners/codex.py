@@ -215,6 +215,7 @@ class CodexRunner(AgentRunner):
                 input_text=prompt_content,
                 display_cmd="codex exec --json --output-last-message CODEX_LAST_MESSAGE.TXT ...",
                 timeout=self.safety_limits.process_timeout,
+                idle_timeout=self.safety_limits.process_idle_timeout,
                 on_line=on_line,
             )
         finally:

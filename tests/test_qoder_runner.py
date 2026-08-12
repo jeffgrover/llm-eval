@@ -22,12 +22,18 @@ class FakeQoderProcess:
         self.stdout = [f"{line}\n" for line in lines]
         self.stdin = object()
         self.returncode = returncode
+        self.finished = False
+
+    def poll(self):
+        return self.returncode if self.finished else None
 
     def wait(self, timeout=None):
+        self.finished = True
         return self.returncode
 
     def kill(self):
         self.returncode = -9
+        self.finished = True
 
 
 class QoderRunnerTests(unittest.TestCase):

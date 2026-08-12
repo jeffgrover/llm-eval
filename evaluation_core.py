@@ -21,6 +21,8 @@ from typing import Callable, Dict, List, Optional, TextIO
 from evaluation_metrics import TokenUsage, TokenUsageCollector
 from evaluation_report import generate_html_report
 from run_safety import (
+    DEFAULT_MAX_IDLE_SECONDS,
+    DEFAULT_MAX_SECONDS,
     RunSafetyLimits,
     RunSafetyMonitor,
     RunSafetyTermination,
@@ -162,6 +164,70 @@ def send_stdin(process: subprocess.Popen, input_text: Optional[str]) -> None:
             pass
 
     threading.Thread(target=_write, daemon=True).start()
+
+
+def _linux_descendant_pids(root_pid: int) -> List[int]:
+    """Snapshot descendants, including children in their own process groups."""
+    if not sys.platform.startswith("linux"):
+        return []
+    descendants = []
+    pending = [root_pid]
+    seen = {root_pid}
+    while pending:
+        parent_pid = pending.pop()
+        children_path = Path(
+            f"/proc/{parent_pid}/task/{parent_pid}/children"
+        )
+        try:
+            child_pids = [
+                int(value)
+                for value in children_path.read_text(encoding="ascii").split()
+            ]
+        except (OSError, ValueError):
+            continue
+        for child_pid in child_pids:
+            if child_pid in seen:
+                continue
+            seen.add(child_pid)
+            descendants.append(child_pid)
+            pending.append(child_pid)
+    return descendants
+
+
+def stop_process_tree(process: subprocess.Popen) -> None:
+    """Force-stop a subprocess and descendants that created new process groups."""
+    if process.poll() is not None:
+        return
+
+    descendants = _linux_descendant_pids(process.pid)
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+            return
+        except (OSError, subprocess.TimeoutExpired):
+            process.kill()
+            return
+
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except (OSError, ProcessLookupError):
+        try:
+            process.kill()
+        except (OSError, ProcessLookupError):
+            pass
+
+    # Some agent tool runners call setsid(), escaping the agent's group. Kill
+    # the descendant snapshot explicitly after the root can no longer spawn.
+    for child_pid in reversed(descendants):
+        try:
+            os.kill(child_pid, signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            pass
 
 
 def safe_stdout_write(text: str) -> None:
@@ -841,7 +907,7 @@ class MetadataCollector:
 
 # --- Process Streaming ---
 
-DEFAULT_PROCESS_TIMEOUT = 900
+DEFAULT_PROCESS_TIMEOUT = DEFAULT_MAX_SECONDS
 
 
 @dataclass
@@ -861,6 +927,7 @@ def run_streaming_process(
     input_text: Optional[str] = None,
     display_cmd: Optional[str] = None,
     timeout: Optional[float] = DEFAULT_PROCESS_TIMEOUT,
+    idle_timeout: Optional[float] = DEFAULT_MAX_IDLE_SECONDS,
     on_line: Optional[Callable[[str, TextIO], None]] = None,
     on_stderr_line: Optional[Callable[[str, TextIO], None]] = None,
     merge_stderr: bool = True,
@@ -881,7 +948,9 @@ def run_streaming_process(
         env: Environment variables (defaults to ``os.environ``).
         input_text: Text piped to stdin on a background thread.
         display_cmd: Log-friendly command summary.
-        timeout: Seconds before the process is killed, or ``None`` to disable.
+        timeout: Total seconds before the process is killed, or ``None`` to disable.
+        idle_timeout: Seconds without stdout/stderr before the process is killed,
+            or ``None`` to disable. Any output resets this timer.
         on_line: Called for every stdout line with ``(line, log_file)``.
         on_stderr_line: Optional callback for stderr when it is not merged.
         merge_stderr: Merge stderr into stdout (default) or keep separate.
@@ -898,6 +967,7 @@ def run_streaming_process(
     print(f"[*] Output logging to: {chat_log_path}")
 
     timed_out = False
+    timeout_termination = None
 
     with open(chat_log_path, "w", encoding="utf-8") as log_file:
         process = subprocess.Popen(
@@ -919,29 +989,27 @@ def run_streaming_process(
         callback_errors = []
         safety_terminations: List[RunTermination] = []
         output_lock = threading.Lock()
+        activity_lock = threading.Lock()
+        started_at = time.monotonic()
+        last_activity_at = started_at
         force_closing_output = False
 
-        def stop_process_tree() -> None:
-            if process.poll() is not None:
-                return
-            try:
-                if os.name != "nt":
-                    os.killpg(process.pid, signal.SIGKILL)
-                else:
-                    process.kill()
-            except (OSError, ProcessLookupError):
-                process.kill()
+        def record_activity() -> None:
+            nonlocal last_activity_at
+            with activity_lock:
+                last_activity_at = time.monotonic()
 
         def record_callback_error(exc: BaseException) -> None:
             if isinstance(exc, RunSafetyTermination):
                 safety_terminations.append(exc.termination)
             else:
                 callback_errors.append(exc)
-            stop_process_tree()
+            stop_process_tree(process)
 
         def drain_stdout() -> None:
             try:
                 for line in process.stdout:
+                    record_activity()
                     with output_lock:
                         if on_line:
                             on_line(line, log_file)
@@ -956,6 +1024,7 @@ def run_streaming_process(
         def drain_stderr() -> None:
             try:
                 for line in process.stderr:
+                    record_activity()
                     with output_lock:
                         if on_stderr_line:
                             on_stderr_line(line, log_file)
@@ -974,11 +1043,61 @@ def run_streaming_process(
             stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
             stderr_thread.start()
 
-        try:
-            process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            stop_process_tree()
+        while process.poll() is None:
+            now = time.monotonic()
+            if timeout and timeout > 0 and now - started_at >= timeout:
+                timed_out = True
+                timeout_termination = RunTermination(
+                    reason="time_limit",
+                    message=(
+                        f"Run stopped after reaching the {timeout:g}-second "
+                        "time limit."
+                    ),
+                    evidence={
+                        "observed_seconds": now - started_at,
+                        "limit_seconds": timeout,
+                    },
+                )
+                stop_process_tree(process)
+                break
+
+            with activity_lock:
+                idle_seconds = now - last_activity_at
+            if idle_timeout and idle_timeout > 0 and idle_seconds >= idle_timeout:
+                timed_out = True
+                timeout_termination = RunTermination(
+                    reason="inactivity_limit",
+                    message=(
+                        f"Run stopped after {idle_timeout:g} seconds without "
+                        "agent process output."
+                    ),
+                    evidence={
+                        "detector": "output_inactivity",
+                        "observed_idle_seconds": idle_seconds,
+                        "limit_seconds": idle_timeout,
+                        "elapsed_seconds": now - started_at,
+                    },
+                )
+                stop_process_tree(process)
+                break
+
+            wait_seconds = 0.2
+            if timeout and timeout > 0:
+                wait_seconds = min(
+                    wait_seconds,
+                    max(timeout - (now - started_at), 0.001),
+                )
+            if idle_timeout and idle_timeout > 0:
+                wait_seconds = min(
+                    wait_seconds,
+                    max(idle_timeout - idle_seconds, 0.001),
+                )
+            try:
+                process.wait(timeout=wait_seconds)
+            except subprocess.TimeoutExpired:
+                pass
+
+        if process.poll() is None:
             process.wait()
 
         stdout_thread.join(timeout=5)
@@ -1006,13 +1125,11 @@ def run_streaming_process(
         if callback_errors:
             raise callback_errors[0]
 
-        termination = safety_terminations[0] if safety_terminations else None
-        if timed_out:
-            termination = RunTermination(
-                reason="time_limit",
-                message=f"Run stopped after reaching the {timeout:g}-second time limit.",
-                evidence={"observed_seconds": timeout, "limit_seconds": timeout},
-            )
+        termination = (
+            safety_terminations[0]
+            if safety_terminations
+            else timeout_termination
+        )
 
         if termination:
             print(f"[-] Agent run terminated: {termination.message}")
@@ -1407,6 +1524,7 @@ class AgentRunner:
             input_text=input_text,
             display_cmd=display_cmd,
             timeout=self.safety_limits.process_timeout,
+            idle_timeout=self.safety_limits.process_idle_timeout,
             on_line=lambda line, log_file: (
                 safe_stdout_write(line),
                 log_file.write(line),

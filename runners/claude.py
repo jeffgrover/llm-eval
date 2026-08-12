@@ -120,6 +120,7 @@ class ClaudeRunner(AgentRunner):
                 "--output-format stream-json"
             ),
             timeout=self.safety_limits.process_timeout,
+            idle_timeout=self.safety_limits.process_idle_timeout,
             on_line=on_line,
         )
 

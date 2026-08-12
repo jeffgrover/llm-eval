@@ -66,6 +66,7 @@ class PiWiggumRunner(PiRunner):
             "terminal_reason": "failed",
             "elapsed_seconds": 0.0,
             "checker_summaries": [],
+            "attempt_terminations": [],
         }
 
         while True:
@@ -76,9 +77,13 @@ class PiWiggumRunner(PiRunner):
 
             attempt = aggregate["attempts"] + 1
             remaining = max(1, int(PI_WIGGUM_MAX_SECONDS - elapsed))
-            attempt_timeout = min(900, remaining)
+            configured_timeout = self.safety_limits.process_timeout
+            attempt_timeout = min(configured_timeout or remaining, remaining)
             raw_filename = f"PI_WIGGUM_ATTEMPT_{attempt:03d}.JSONL"
-            print(f"[*] Pi Wiggum attempt {attempt} starting; {remaining}s remain before cap.")
+            print(
+                f"[*] Pi Wiggum attempt {attempt} starting; {remaining}s remain "
+                f"before cap; attempt limit is {attempt_timeout:g}s."
+            )
 
             attempt_result = self._run_pi_attempt(
                 prompt_content,
@@ -89,6 +94,13 @@ class PiWiggumRunner(PiRunner):
             )
             aggregate["attempts"] = attempt
             self._add_pi_attempt_metrics(aggregate, attempt_result)
+            if attempt_result.get("termination"):
+                aggregate["attempt_terminations"].append(
+                    {
+                        "attempt": attempt,
+                        **attempt_result["termination"],
+                    }
+                )
 
             checker_summary = self._run_wiggum_checkers()
             aggregate["checker_summaries"].append(checker_summary)
@@ -129,6 +141,10 @@ class PiWiggumRunner(PiRunner):
             aggregate["model_id"] = attempt_result["model_id"]
 
     def _run_wiggum_checkers(self) -> Dict:
+        for filename in ("static_check.json", "runtime_check.json"):
+            path = self.work_dir / filename
+            if path.exists():
+                path.unlink()
         static = self._run_checker(["node", "../../static_check.js", "."], "static")
         runtime = self._run_checker(["node", "../../runtime_check.js", "."], "runtime")
         logic_test = None

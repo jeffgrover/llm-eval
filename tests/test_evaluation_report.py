@@ -167,6 +167,23 @@ class EvaluationReportTests(unittest.TestCase):
             self.assertIn("Run terminated", report)
             self.assertIn("Repeated read/edit cycle detected", report)
 
+    def test_completed_wiggum_run_is_not_labeled_terminated(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata = self.metadata()
+            metadata["Tokens"]["terminal_reason"] = "completed"
+
+            report_path = generate_html_report(
+                Path(temp_dir),
+                metadata,
+                "build it",
+                duration_seconds=10.0,
+                agent_name="pi-wiggum",
+            )
+            report = report_path.read_text(encoding="utf-8")
+
+            self.assertNotIn("Run terminated", report)
+            self.assertNotIn("safety limit reached", report)
+
     def test_crush_result_tokens_flow_into_summary(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             work_dir = Path(temp_dir)
