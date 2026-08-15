@@ -39,6 +39,38 @@ class GeminiRunnerTests(unittest.TestCase):
                 command[command.index("--model") + 1],
                 "gemini-test",
             )
+            self.assertNotIn("--effort", command)
+
+    def test_gemini_slug_uses_agy_effort_qualified_model_name(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runner = self.make_runner(Path(temp_dir))
+            runner.model_name = "gemini-3.7-flash"
+
+            command = runner._build_agy_command("agy", "build it")
+
+            self.assertEqual(
+                command[command.index("--model") + 1],
+                "Gemini 3.7 Flash (High)",
+            )
+            self.assertNotIn("--effort", command)
+
+    def test_gemini_model_name_can_select_a_non_default_effort(self):
+        model_names = {
+            "gemini-3.7-flash-medium": "Gemini 3.7 Flash (Medium)",
+            "Gemini 3.7 Flash (Low)": "Gemini 3.7 Flash (Low)",
+            "Gemini 3_7 Flash High": "Gemini 3.7 Flash (High)",
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runner = self.make_runner(Path(temp_dir))
+            for model_name, expected in model_names.items():
+                with self.subTest(model_name=model_name):
+                    runner.model_name = model_name
+                    command = runner._build_agy_command("agy", "build it")
+                    self.assertEqual(
+                        command[command.index("--model") + 1], expected
+                    )
+                    self.assertNotIn("--effort", command)
 
     def test_base_runner_stores_custom_provider(self):
         with tempfile.TemporaryDirectory() as temp_dir:

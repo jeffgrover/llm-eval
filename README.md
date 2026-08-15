@@ -113,6 +113,9 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 
 ### Parameters
 -   `--model`: The LM Studio model identifier (or cloud model name when using `--non-local`).
+    For Antigravity's effort-qualified Gemini models, names such as `gemini-3.7-flash`
+    resolve to the exact `Gemini 3.7 Flash (High)` model name. Append `-medium` or
+    `-low` to select another effort-qualified model.
 -   `--agent`: One of `vibe`, `gemini`, `agy`, `antigravity`, `claude`, `codex`, `opencode`, `crush`, `pi`, `pi-wiggum`, or `qoder`.
 -   `--prompt-file`: Path to a text file containing the initial prompt for the agent.
 -   `--non-local`: (Optional) Skip LM Studio and use the agent's default cloud provider instead.

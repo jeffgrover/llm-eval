@@ -1,0 +1,28 @@
+{
+  "type": "result",
+  "timestamp": "2026-08-15T15:09:14.631444+00:00",
+  "status": "success",
+  "stats": {
+    "input_tokens": 12940,
+    "output_tokens": 48795,
+    "total_tokens": 61735,
+    "cached": 0,
+    "duration_ms": 203728,
+    "tool_calls": 28
+  },
+  "num_turns": 29,
+  "agy_version": "1.1.13",
+  "provider": "Google",
+  "model_id": "gemini-3.7-flash",
+  "artifacts": [
+    "elevator.js",
+    "elevator_logic.js",
+    "elevator_logic_test.js",
+    "index.html",
+    "person.js",
+    "runtime_check.json",
+    "sim.js",
+    "static_check.json",
+    "world.js"
+  ]
+}

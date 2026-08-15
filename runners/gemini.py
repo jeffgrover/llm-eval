@@ -1,6 +1,7 @@
 """Antigravity/Gemini CLI adapter."""
 
 import json
+import re
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -20,6 +21,22 @@ from runner_events import parse_gemini_transcript
 
 class GeminiRunner(AgentRunner):
     supports_custom_provider = True
+
+    _DEFAULT_GEMINI_EFFORT = "high"
+    _GEMINI_MODEL_PATTERN = re.compile(
+        r"^gemini[\s_-]+"
+        r"(?P<version>\d+(?:[._]\d+)+)[\s_-]+"
+        r"(?P<family>flash|pro)"
+        r"(?:[\s_-]+(?P<effort>low|medium|high))?$",
+        re.IGNORECASE,
+    )
+    _GEMINI_MODEL_WITH_PARENTHESIZED_EFFORT_PATTERN = re.compile(
+        r"^gemini[\s_-]+"
+        r"(?P<version>\d+(?:[._]\d+)+)[\s_-]+"
+        r"(?P<family>flash|pro)\s*"
+        r"\((?P<effort>low|medium|high)\)$",
+        re.IGNORECASE,
+    )
 
     _RUNNER_OUTPUT_FILES = {
         CHAT_SESSION_FILENAME,
@@ -102,6 +119,20 @@ class GeminiRunner(AgentRunner):
 
         return parse_gemini_transcript(records)
 
+    def _agy_model_selection(self) -> str:
+        """Return the exact effort-qualified model name expected by AGY."""
+        requested_model = self.model_name.strip()
+        match = self._GEMINI_MODEL_WITH_PARENTHESIZED_EFFORT_PATTERN.fullmatch(
+            requested_model
+        ) or self._GEMINI_MODEL_PATTERN.fullmatch(requested_model)
+        if not match:
+            return requested_model
+
+        version = match.group("version").replace("_", ".")
+        family = match.group("family").title()
+        effort = match.group("effort") or self._DEFAULT_GEMINI_EFFORT
+        return f"Gemini {version} {family} ({effort.title()})"
+
     def _build_agy_command(self, agy_bin: str, prompt_content: str) -> List[str]:
         """Build an isolated AGY command whose project is the evaluation workspace."""
         cmd = [
@@ -114,7 +145,7 @@ class GeminiRunner(AgentRunner):
             prompt_content,
         ]
         if self.model_name:
-            cmd.extend(["--model", self.model_name])
+            cmd.extend(["--model", self._agy_model_selection()])
         return cmd
 
     def _generated_artifacts(self) -> List[str]:
@@ -144,7 +175,7 @@ class GeminiRunner(AgentRunner):
             "--dangerously-skip-permissions --print <prompt>"
         )
         if self.model_name:
-            display_cmd += f" --model {self.model_name}"
+            display_cmd += f" --model {self._agy_model_selection()}"
         start_time = datetime.now()
         tool_call_count = 0
 
