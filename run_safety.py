@@ -10,8 +10,15 @@ from pathlib import Path
 from typing import Any, Deque, Dict, List, Optional
 
 
-DEFAULT_MAX_SECONDS = 3600.0
-DEFAULT_MAX_IDLE_SECONDS = 900.0
+DEFAULT_NON_LOCAL_MAX_SECONDS = 3600.0
+DEFAULT_LOCAL_MAX_SECONDS = 10 * 60 * 60
+# Backward-compatible generic default for callers that do not know whether a
+# run is local. The CLI resolves local/non-local defaults before constructing
+# RunSafetyLimits.
+DEFAULT_MAX_SECONDS = DEFAULT_NON_LOCAL_MAX_SECONDS
+DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS = 900.0
+DEFAULT_LOCAL_MAX_IDLE_SECONDS = 60 * 60
+DEFAULT_MAX_IDLE_SECONDS = DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS
 DEFAULT_MAX_TURNS = 200
 DEFAULT_MAX_TOTAL_TOKENS = 5_000_000
 DEFAULT_MAX_COST_USD = 10.0

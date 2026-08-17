@@ -8,7 +8,6 @@ from typing import Dict, List
 
 from evaluation_core import (
     CHAT_SESSION_FILENAME,
-    PI_WIGGUM_MAX_SECONDS,
     read_prompt_file,
     safe_stdout_write,
 )
@@ -51,6 +50,7 @@ class PiWiggumRunner(PiRunner):
 
     def _execute_wiggum_loop(self):
         start = time.monotonic()
+        wall_timeout = self.safety_limits.process_timeout
         prompt_content = read_prompt_file(self.prompt_file)
         aggregate = {
             "input_tokens": 0,
@@ -71,19 +71,28 @@ class PiWiggumRunner(PiRunner):
 
         while True:
             elapsed = time.monotonic() - start
-            if elapsed >= PI_WIGGUM_MAX_SECONDS:
+            if wall_timeout is not None and elapsed >= wall_timeout:
                 aggregate["terminal_reason"] = "time_cap_reached"
                 break
 
             attempt = aggregate["attempts"] + 1
-            remaining = max(1, int(PI_WIGGUM_MAX_SECONDS - elapsed))
-            configured_timeout = self.safety_limits.process_timeout
-            attempt_timeout = min(configured_timeout or remaining, remaining)
-            raw_filename = f"PI_WIGGUM_ATTEMPT_{attempt:03d}.JSONL"
-            print(
-                f"[*] Pi Wiggum attempt {attempt} starting; {remaining}s remain "
-                f"before cap; attempt limit is {attempt_timeout:g}s."
+            remaining = (
+                max(0.001, wall_timeout - elapsed)
+                if wall_timeout is not None
+                else None
             )
+            attempt_timeout = remaining
+            raw_filename = f"PI_WIGGUM_ATTEMPT_{attempt:03d}.JSONL"
+            if remaining is None:
+                print(
+                    f"[*] Pi Wiggum attempt {attempt} starting; "
+                    "wall-clock limit is disabled."
+                )
+            else:
+                print(
+                    f"[*] Pi Wiggum attempt {attempt} starting; "
+                    f"{remaining:g}s remain before the evaluation limit."
+                )
 
             attempt_result = self._run_pi_attempt(
                 prompt_content,
@@ -112,7 +121,10 @@ class PiWiggumRunner(PiRunner):
                 aggregate["terminal_reason"] = "completed"
                 break
 
-            if time.monotonic() - start >= PI_WIGGUM_MAX_SECONDS:
+            if (
+                wall_timeout is not None
+                and time.monotonic() - start >= wall_timeout
+            ):
                 aggregate["terminal_reason"] = "time_cap_reached"
                 break
 

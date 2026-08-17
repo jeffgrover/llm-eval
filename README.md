@@ -128,8 +128,8 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 -   `--lms-eval-batch-size`: Set LM Studio llama.cpp's prompt-evaluation batch size. Smaller values can reduce peak memory during prompt ingestion.
 -   `--lms-flash-attention`: Enable Flash Attention when LM Studio loads a compatible llama.cpp model.
 -   `--lms-cpu-kv-cache`: Keep the KV cache in system memory rather than offloading it to the GPU. On unified-memory systems this changes placement/accounting, not the total physical-memory requirement.
--   `--max-seconds`: Stop an agent run after this total wall time (default `3600`; `0` disables). For Pi Wiggum this applies to each repair attempt inside its separate four-hour cap.
--   `--max-idle-seconds`: Stop after this long without stdout or stderr from the agent process (default `900`; `0` disables). Any output resets the inactivity timer.
+-   `--max-seconds`: Stop an agent run after this total wall time (defaults: `36000` for local runs, `3600` with `--non-local`; `0` disables). An explicit value overrides either mode default. For Pi Wiggum this governs the complete evaluator-owned repair loop, and each attempt receives the time remaining in that shared limit.
+-   `--max-idle-seconds`: Stop after this long without stdout or stderr from the agent process (defaults: `3600` for local runs, `900` with `--non-local`; `0` disables). An explicit value overrides either mode default, and any output resets the inactivity timer.
 -   `--max-turns`: Stop after this many streamed assistant turns (default `200`; `0` disables).
 -   `--max-total-tokens`: Stop after this many accumulated input/output tokens when live usage is available (default `5000000`; `0` disables).
 -   `--max-cost-usd`: Stop at this reported live cost (default `$10`; `0` disables).
@@ -183,9 +183,9 @@ workspace. The result JSON records `terminal_reason`, a human-readable message,
 and detector/limit evidence; `summary.html` displays it as a prominent
 diagnostic. The dashboard treats the run as partial/failed and caps a detected
 doom loop at 35 points. Use any corresponding value of `0` to disable a limit
-for an intentional long-running experiment. Pi Wiggum uses the configured wall
-and inactivity limits for each attempt and remains governed by its separate
-evaluator-owned repair-loop cap.
+for an intentional long-running experiment. Pi Wiggum applies the configured
+wall limit to its complete evaluator-owned repair loop and the inactivity limit
+to each attempt.
 
 The script creates a uniquely named workspace in `evals/`, captures logs and
 artifacts, and writes `summary.html`. Browser opening and generated Python
@@ -267,7 +267,7 @@ returns real usage, those values automatically take precedence over the
 estimator.
 
 ### Pi Wiggum Repair Loop
-`pi-wiggum` invokes Pi non-interactively, then lets the evaluator run the static and runtime checkers. Failed checker output is fed back to Pi for another repair attempt until the checks pass or the 4-hour wall-clock cap is reached. Each attempt uses `--max-seconds` and `--max-idle-seconds`, so active long-running attempts are distinct from silent, likely stuck processes:
+`pi-wiggum` invokes Pi non-interactively, then lets the evaluator run the static and runtime checkers. Failed checker output is fed back to Pi for another repair attempt until the checks pass or the shared `--max-seconds` wall-clock limit is reached. Each attempt receives the remaining wall time and uses `--max-idle-seconds`, so active long-running attempts are distinct from silent, likely stuck processes:
 
 ```bash
 ./evaluate_agent.py --model <model-key> --agent pi-wiggum --prompt-file elevator_prompt_wiggum.txt

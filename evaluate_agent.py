@@ -35,9 +35,11 @@ from run_safety import (
     DEFAULT_DOOM_LOOP_MAX_CYCLE_LENGTH,
     DEFAULT_DOOM_LOOP_MIN_CALLS,
     DEFAULT_DOOM_LOOP_REPEATS,
-    DEFAULT_MAX_IDLE_SECONDS,
+    DEFAULT_LOCAL_MAX_IDLE_SECONDS,
+    DEFAULT_LOCAL_MAX_SECONDS,
     DEFAULT_MAX_COST_USD,
-    DEFAULT_MAX_SECONDS,
+    DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS,
+    DEFAULT_NON_LOCAL_MAX_SECONDS,
     DEFAULT_MAX_TOTAL_TOKENS,
     DEFAULT_MAX_TURNS,
     RunSafetyLimits,
@@ -85,6 +87,28 @@ CLI_AGENT_CHOICES = tuple(name for name in AGENT_RUNNERS if name != "mistral")
 
 def get_runner(agent: str) -> Optional[type[AgentRunner]]:
     return AGENT_RUNNERS.get(agent.lower())
+
+
+def resolve_max_seconds(
+    non_local: bool, configured_max_seconds: Optional[float]
+) -> float:
+    """Resolve the mode-specific wall limit unless the caller overrides it."""
+    if configured_max_seconds is not None:
+        return configured_max_seconds
+    if non_local:
+        return DEFAULT_NON_LOCAL_MAX_SECONDS
+    return DEFAULT_LOCAL_MAX_SECONDS
+
+
+def resolve_max_idle_seconds(
+    non_local: bool, configured_max_idle_seconds: Optional[float]
+) -> float:
+    """Resolve the mode-specific inactivity limit unless explicitly set."""
+    if configured_max_idle_seconds is not None:
+        return configured_max_idle_seconds
+    if non_local:
+        return DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS
+    return DEFAULT_LOCAL_MAX_IDLE_SECONDS
 
 
 # --- Main ---
@@ -162,16 +186,22 @@ def build_argument_parser() -> argparse.ArgumentParser:
     safety_group.add_argument(
         "--max-seconds",
         type=float,
-        default=DEFAULT_MAX_SECONDS,
-        help=f"Stop after this wall time; 0 disables (default: {DEFAULT_MAX_SECONDS:g})",
+        default=None,
+        help=(
+            "Stop after this wall time; 0 disables "
+            f"(defaults: local {DEFAULT_LOCAL_MAX_SECONDS:g}, "
+            f"non-local {DEFAULT_NON_LOCAL_MAX_SECONDS:g})"
+        ),
     )
     safety_group.add_argument(
         "--max-idle-seconds",
         type=float,
-        default=DEFAULT_MAX_IDLE_SECONDS,
+        default=None,
         help=(
             "Stop after this many seconds without agent process output; "
-            f"0 disables (default: {DEFAULT_MAX_IDLE_SECONDS:g})"
+            "0 disables "
+            f"(defaults: local {DEFAULT_LOCAL_MAX_IDLE_SECONDS:g}, "
+            f"non-local {DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS:g})"
         ),
     )
     safety_group.add_argument(
@@ -228,6 +258,10 @@ def build_argument_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None):
     args = build_argument_parser().parse_args(argv)
     local_provider = get_local_provider(args.provider)
+    max_seconds = resolve_max_seconds(args.non_local, args.max_seconds)
+    max_idle_seconds = resolve_max_idle_seconds(
+        args.non_local, args.max_idle_seconds
+    )
 
     runner_cls = get_runner(args.agent)
     if not runner_cls:
@@ -257,8 +291,8 @@ def main(argv: Optional[List[str]] = None):
         local_provider=local_provider,
         execute_generated_python=args.execute_generated_python,
         safety_limits=RunSafetyLimits(
-            max_seconds=args.max_seconds,
-            max_idle_seconds=args.max_idle_seconds,
+            max_seconds=max_seconds,
+            max_idle_seconds=max_idle_seconds,
             max_turns=args.max_turns,
             max_total_tokens=args.max_total_tokens,
             max_cost_usd=args.max_cost_usd,
