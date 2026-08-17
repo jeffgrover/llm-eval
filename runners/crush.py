@@ -12,8 +12,10 @@ from evaluation_core import (
     CHAT_SESSION_FILENAME,
     DEFAULT_LOCAL_CONTEXT_LIMIT,
     DEFAULT_LOCAL_OUTPUT_LIMIT,
+    LM_STUDIO_API_URL,
     SERVER_LOG_FILENAME,
     get_env_int,
+    get_lms_loaded_context_length,
     read_prompt_file,
 )
 from evaluation_metrics import CRUSH_RESULT_FILENAME, CRUSH_SESSION_FILENAME
@@ -97,8 +99,18 @@ class CrushRunner(AgentRunner):
             return
 
         context_limit = getattr(self, "local_context_limit", None) or get_env_int(
-            "LLM_EVAL_LOCAL_CONTEXT_LIMIT", DEFAULT_LOCAL_CONTEXT_LIMIT
+            "LLM_EVAL_LOCAL_CONTEXT_LIMIT", 0
         )
+        if not context_limit and self.local_provider.api_url == LM_STUDIO_API_URL:
+            # Crush declares an explicit context window per model; follow the
+            # loaded LM Studio instance when no explicit limit was requested.
+            context_limit = get_lms_loaded_context_length(self.model_name)
+            if context_limit:
+                print(
+                    "[+] Crush context window follows loaded LM Studio "
+                    f"context: {context_limit}"
+                )
+        context_limit = context_limit or DEFAULT_LOCAL_CONTEXT_LIMIT
         output_limit = get_env_int(
             "LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT
         )

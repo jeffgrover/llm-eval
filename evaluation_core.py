@@ -42,7 +42,10 @@ CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
 CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
 PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
 DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
-DEFAULT_LOCAL_OUTPUT_LIMIT = 16384
+# Reasoning models (e.g. Qwen 3.8) spend internal thinking tokens out of the
+# response budget, so 16K can be consumed entirely by reasoning before any
+# visible output or tool call is produced.
+DEFAULT_LOCAL_OUTPUT_LIMIT = 32768
 
 
 def get_omlx_api_key() -> str:
@@ -279,6 +282,34 @@ def lms_api_request(
     ) as e:
         print(f"[-] LM Studio API request failed ({method} {path}): {e}")
         return None
+
+
+def get_lms_loaded_context_length(model_key: str) -> Optional[int]:
+    """Return the context length of a loaded LM Studio instance for a model, if known."""
+    models = lms_api_request("/api/v0/models")
+    if models is None:
+        return None
+    model_list = (
+        models
+        if isinstance(models, list)
+        else models.get("data", models.get("models", []))
+    )
+    for entry in model_list:
+        model_id = entry.get("id", entry.get("path", ""))
+        if model_key not in model_id or entry.get("state", "") != "loaded":
+            continue
+        candidates = [entry, *(entry.get("loaded_instances") or [])]
+        for candidate in candidates:
+            context = candidate.get("loaded_context_length") or candidate.get(
+                "context_length"
+            )
+            if isinstance(context, int) and context > 0:
+                return context
+            config = candidate.get("config") or candidate.get("load_config") or {}
+            context = config.get("context_length")
+            if isinstance(context, int) and context > 0:
+                return context
+    return None
 
 
 def load_lms_model(
