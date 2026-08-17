@@ -13,17 +13,44 @@ from evaluation_core import (
     CHAT_SESSION_FILENAME,
     DEFAULT_LOCAL_CONTEXT_LIMIT,
     DEFAULT_LOCAL_OUTPUT_LIMIT,
+    LM_STUDIO_API_URL,
     PROJECT_ROOT,
     SERVER_LOG_FILENAME,
     get_env_int,
+    get_lms_loaded_context_length,
     is_llama_server_provider,
     read_prompt_file,
     run_streaming_process,
     safe_stdout_write,
 )
 from evaluation_metrics import OPENCODE_RESULT_FILENAME
-from run_safety import RunSafetyTermination
+from run_safety import DEFAULT_MAX_IDLE_SECONDS, DEFAULT_MAX_SECONDS, RunSafetyTermination
 from runner_events import extract_opencode_tool_call, parse_opencode_event
+
+
+# OpenCode emits no output while a tool call's arguments are streaming in, so
+# a local model decoding one large response can stay silent far longer than
+# the stock watchdog defaults (a 32,768-token response at ~7 t/s needs
+# ~78 minutes). These floors apply to local runs with default limits only.
+OPENCODE_LOCAL_IDLE_TIMEOUT = 5400.0
+OPENCODE_LOCAL_PROCESS_TIMEOUT = 14400.0
+
+
+def _adjusted_local_timeouts(safety_limits, non_local: bool):
+    """Watchdog timeouts for an OpenCode run, with local-run floors applied.
+
+    Explicit user limits (anything other than the stock defaults, including
+    0/disabled) are preserved unchanged.
+    """
+    process_timeout = safety_limits.process_timeout
+    idle_timeout = safety_limits.process_idle_timeout
+    if non_local:
+        return process_timeout, idle_timeout
+    if process_timeout == DEFAULT_MAX_SECONDS:
+        process_timeout = OPENCODE_LOCAL_PROCESS_TIMEOUT
+    if idle_timeout == DEFAULT_MAX_IDLE_SECONDS:
+        idle_timeout = OPENCODE_LOCAL_IDLE_TIMEOUT
+    return process_timeout, idle_timeout
 
 
 class OpenCodeRunner(AgentRunner):
@@ -169,13 +196,24 @@ class OpenCodeRunner(AgentRunner):
 
         if should_define_local_provider:
             # Default case: define an OpenAI-compatible local provider.
+            base_url = self.local_provider.api_url
             context_limit = getattr(self, "local_context_limit", None) or get_env_int(
-                "LLM_EVAL_LOCAL_CONTEXT_LIMIT", DEFAULT_LOCAL_CONTEXT_LIMIT
+                "LLM_EVAL_LOCAL_CONTEXT_LIMIT", 0
             )
+            if not context_limit and base_url == LM_STUDIO_API_URL:
+                # OpenCode cannot discover context limits through the
+                # OpenAI-compatible /v1/models endpoint, so follow the loaded
+                # LM Studio instance when no explicit limit was requested.
+                context_limit = get_lms_loaded_context_length(self.model_name)
+                if context_limit:
+                    print(
+                        "[+] OpenCode context limit follows loaded LM Studio "
+                        f"context: {context_limit}"
+                    )
+            context_limit = context_limit or DEFAULT_LOCAL_CONTEXT_LIMIT
             output_limit = get_env_int(
                 "LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT
             )
-            base_url = self.local_provider.api_url
             provider_id = self.local_provider.provider_id
             model_ids = self._discover_local_models()
             if self.model_name not in model_ids:
@@ -247,10 +285,12 @@ class OpenCodeRunner(AgentRunner):
         )
         prompt_content = opencode_prompt_prefix + prompt_content
 
+        # Pass the prompt via stdin: office prompts exceed Windows' 32,767
+        # character command-line limit, and opencode reads piped stdin when no
+        # positional message is given.
         cmd = [
             "opencode",
             "run",
-            prompt_content,
             "--format",
             "json",
             "--print-logs",
@@ -349,19 +389,29 @@ class OpenCodeRunner(AgentRunner):
             ):
                 error_messages.append(line.strip())
 
-        display_cmd = "opencode run <prompt> --format json --print-logs"
+        display_cmd = "opencode run <prompt> --format json --print-logs (prompt via stdin)"
         if model_ref:
             display_cmd += f" --model {model_ref}"
         else:
             display_cmd += " (using OpenCode default model)"
+        process_timeout, idle_timeout = _adjusted_local_timeouts(
+            self.safety_limits, self.non_local
+        )
+        if idle_timeout != self.safety_limits.process_idle_timeout:
+            print(
+                "[*] OpenCode local watchdog raised for silent generations: "
+                f"idle={idle_timeout:g}s, total={process_timeout:g}s "
+                "(override with --max-idle-seconds / --max-seconds)"
+            )
         process_result = run_streaming_process(
             cmd=cmd,
             work_dir=self.work_dir,
             chat_log_path=chat_log_path,
             env=env,
+            input_text=prompt_content,
             display_cmd=display_cmd,
-            timeout=self.safety_limits.process_timeout,
-            idle_timeout=self.safety_limits.process_idle_timeout,
+            timeout=process_timeout,
+            idle_timeout=idle_timeout,
             on_line=on_stdout,
             on_stderr_line=on_stderr,
             merge_stderr=False,

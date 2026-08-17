@@ -1,7 +1,51 @@
 import unittest
 from unittest.mock import call, patch
 
-from evaluation_core import load_lms_model
+from evaluation_core import get_lms_loaded_context_length, load_lms_model
+
+
+class LMStudioLoadedContextTests(unittest.TestCase):
+    @patch("evaluation_core.lms_api_request")
+    def test_loaded_context_length_read_from_loaded_instance(self, request):
+        request.return_value = {
+            "models": [
+                {
+                    "id": "other-model",
+                    "state": "loaded",
+                    "loaded_instances": [
+                        {"id": "other-model", "config": {"context_length": 8192}}
+                    ],
+                },
+                {
+                    "id": "qwen3.8-27b",
+                    "state": "loaded",
+                    "loaded_instances": [
+                        {"id": "qwen3.8-27b", "config": {"context_length": 102400}}
+                    ],
+                },
+            ]
+        }
+        self.assertEqual(get_lms_loaded_context_length("qwen3.8-27b"), 102400)
+
+    @patch("evaluation_core.lms_api_request")
+    def test_loaded_context_length_ignores_unloaded_models(self, request):
+        request.return_value = {
+            "models": [
+                {
+                    "id": "qwen3.8-27b",
+                    "state": "unloaded",
+                    "loaded_instances": [
+                        {"id": "qwen3.8-27b", "config": {"context_length": 102400}}
+                    ],
+                }
+            ]
+        }
+        self.assertIsNone(get_lms_loaded_context_length("qwen3.8-27b"))
+
+    @patch("evaluation_core.lms_api_request")
+    def test_loaded_context_length_none_when_api_unreachable(self, request):
+        request.return_value = None
+        self.assertIsNone(get_lms_loaded_context_length("qwen3.8-27b"))
 
 
 class LMStudioModelLoadingTests(unittest.TestCase):
