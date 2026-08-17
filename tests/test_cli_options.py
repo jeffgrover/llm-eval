@@ -2,11 +2,17 @@ import contextlib
 import io
 import unittest
 
-from evaluate_agent import build_argument_parser
+from evaluate_agent import (
+    build_argument_parser,
+    resolve_max_idle_seconds,
+    resolve_max_seconds,
+)
 from run_safety import (
     DEFAULT_DOOM_LOOP_REPEATS,
-    DEFAULT_MAX_IDLE_SECONDS,
-    DEFAULT_MAX_SECONDS,
+    DEFAULT_LOCAL_MAX_IDLE_SECONDS,
+    DEFAULT_LOCAL_MAX_SECONDS,
+    DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS,
+    DEFAULT_NON_LOCAL_MAX_SECONDS,
     DEFAULT_MAX_TURNS,
 )
 
@@ -60,8 +66,31 @@ class CliOptionTests(unittest.TestCase):
     def test_run_safety_defaults(self):
         args = self.parse()
 
-        self.assertEqual(args.max_seconds, DEFAULT_MAX_SECONDS)
-        self.assertEqual(args.max_idle_seconds, DEFAULT_MAX_IDLE_SECONDS)
+        self.assertIsNone(args.max_seconds)
+        self.assertEqual(
+            resolve_max_seconds(args.non_local, args.max_seconds),
+            DEFAULT_LOCAL_MAX_SECONDS,
+        )
+        non_local_args = self.parse("--non-local")
+        self.assertEqual(
+            resolve_max_seconds(
+                non_local_args.non_local,
+                non_local_args.max_seconds,
+            ),
+            DEFAULT_NON_LOCAL_MAX_SECONDS,
+        )
+        self.assertIsNone(args.max_idle_seconds)
+        self.assertEqual(
+            resolve_max_idle_seconds(args.non_local, args.max_idle_seconds),
+            DEFAULT_LOCAL_MAX_IDLE_SECONDS,
+        )
+        self.assertEqual(
+            resolve_max_idle_seconds(
+                non_local_args.non_local,
+                non_local_args.max_idle_seconds,
+            ),
+            DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS,
+        )
         self.assertEqual(args.max_turns, DEFAULT_MAX_TURNS)
         self.assertEqual(args.doom_loop_repeats, DEFAULT_DOOM_LOOP_REPEATS)
 
@@ -86,7 +115,15 @@ class CliOptionTests(unittest.TestCase):
         )
 
         self.assertEqual(args.max_seconds, 120)
+        self.assertEqual(
+            resolve_max_seconds(args.non_local, args.max_seconds),
+            120,
+        )
         self.assertEqual(args.max_idle_seconds, 45)
+        self.assertEqual(
+            resolve_max_idle_seconds(args.non_local, args.max_idle_seconds),
+            45,
+        )
         self.assertEqual(args.max_turns, 50)
         self.assertEqual(args.max_total_tokens, 100000)
         self.assertEqual(args.max_cost_usd, 2.5)

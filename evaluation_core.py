@@ -40,7 +40,6 @@ SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
 CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
 CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
-PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
 DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
 # Reasoning models (e.g. Qwen 3.8) spend internal thinking tokens out of the
 # response budget, so 16K can be consumed entirely by reasoning before any

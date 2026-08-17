@@ -120,8 +120,97 @@ class PiWiggumTests(unittest.TestCase):
                 runner._execute_wiggum_loop()
 
             self.assertEqual(
-                run_attempt.call_args.kwargs["timeout_seconds"],
-                DEFAULT_MAX_SECONDS,
+                round(run_attempt.call_args.kwargs["timeout_seconds"]),
+                round(DEFAULT_MAX_SECONDS),
+            )
+
+    def test_local_ten_hour_limit_governs_entire_wiggum_loop(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            prompt_path = work_dir / "office_prompt_wiggum.txt"
+            prompt_path.write_text("build it", encoding="utf-8")
+            runner = PiWiggumRunner(
+                "pi-wiggum",
+                "test-model",
+                prompt_path,
+                headless=True,
+                non_local=False,
+                safety_limits=RunSafetyLimits(max_seconds=10 * 60 * 60),
+            )
+            runner.work_dir = work_dir
+            attempt_result = {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cache_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "cost_usd": 0.0,
+                "num_turns": 0,
+                "returncode": 0,
+            }
+
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                mock.patch.object(
+                    runner,
+                    "_run_pi_attempt",
+                    return_value=attempt_result,
+                ) as run_attempt,
+                mock.patch.object(
+                    runner,
+                    "_run_wiggum_checkers",
+                    return_value={"passed": True},
+                ),
+            ):
+                runner._execute_wiggum_loop()
+
+            self.assertEqual(
+                round(run_attempt.call_args.kwargs["timeout_seconds"]),
+                10 * 60 * 60,
+            )
+
+    def test_disabled_wall_limit_is_forwarded_to_wiggum_attempt(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            prompt_path = work_dir / "elevator_prompt_wiggum.txt"
+            prompt_path.write_text("build it", encoding="utf-8")
+            runner = PiWiggumRunner(
+                "pi-wiggum",
+                "test-model",
+                prompt_path,
+                headless=True,
+                non_local=False,
+                safety_limits=RunSafetyLimits(max_seconds=0),
+            )
+            runner.work_dir = work_dir
+            attempt_result = {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cache_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "cost_usd": 0.0,
+                "num_turns": 0,
+                "returncode": 0,
+            }
+
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                mock.patch.object(
+                    runner,
+                    "_run_pi_attempt",
+                    return_value=attempt_result,
+                ) as run_attempt,
+                mock.patch.object(
+                    runner,
+                    "_run_wiggum_checkers",
+                    return_value={"passed": True},
+                ),
+            ):
+                runner._execute_wiggum_loop()
+
+            self.assertIsNone(
+                run_attempt.call_args.kwargs["timeout_seconds"]
             )
 
 
