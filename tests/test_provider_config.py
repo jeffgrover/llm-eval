@@ -14,7 +14,7 @@ from evaluation_core import (
     OMLX_PROVIDER,
     get_local_provider,
 )
-from runners import OpenCodeRunner
+from runners import OpenCodeRunner, PiRunner
 from runners.opencode import (
     OPENCODE_LOCAL_IDLE_TIMEOUT,
     OPENCODE_LOCAL_PROCESS_TIMEOUT,
@@ -24,6 +24,36 @@ from run_safety import RunSafetyLimits
 
 
 class LocalProviderConfigTests(unittest.TestCase):
+    def test_pi_custom_model_advertises_large_output_limit(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            home = Path(temp_dir)
+            runner = PiRunner(
+                "pi",
+                "qwen3.8-27b-think",
+                Path("prompt.txt"),
+                headless=True,
+                non_local=False,
+                custom_provider="llama-server",
+                local_provider=LLAMA_SERVER_PROVIDER,
+            )
+
+            with (
+                patch("runners.pi.Path.home", return_value=home),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                runner.configure_agent()
+                config = json.loads(
+                    (home / ".pi" / "agent" / "models.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                model = config["providers"]["llama-server"]["models"][0]
+                self.assertEqual(model["contextWindow"], 131072)
+                self.assertEqual(model["maxTokens"], 32768)
+                runner._restore_pi_models_json()
+
+            self.assertFalse((home / ".pi" / "agent" / "models.json").exists())
+
     def test_opencode_parses_current_log_metadata(self):
         version, provider, model = OpenCodeRunner._parse_log_metadata(
             "message=created id=session version=1.18.10 projectID=project"

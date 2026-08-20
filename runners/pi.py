@@ -49,7 +49,16 @@ class PiRunner(AgentRunner):
                         "supportsDeveloperRole": False,
                         "supportsReasoningEffort": False,
                     },
-                    "models": [{"id": self.model_name}],
+                    # Pi's built-in default for an unannotated custom model is
+                    # 16,384 output tokens.  That is too small for large
+                    # agentic file writes (notably Qwen3.8's office prompt),
+                    # so advertise the profile context and a generous
+                    # per-response output cap.
+                    "models": [{
+                        "id": self.model_name,
+                        "contextWindow": 131072,
+                        "maxTokens": 32768,
+                    }],
                 }
             }
         }
