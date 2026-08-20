@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-08-02T20:36:47.200Z",
+  "checked_at": "2026-08-08T09:40:58.903Z",
   "files_checked": [
-    "person.js",
-    "world.js",
-    "elevator_logic.js",
-    "elevator.js",
-    "sim.js"
+    "evals/qoder_GLM-5_2_office_prompt_v3/person.js",
+    "evals/qoder_GLM-5_2_office_prompt_v3/world.js",
+    "evals/qoder_GLM-5_2_office_prompt_v3/elevator_logic.js",
+    "evals/qoder_GLM-5_2_office_prompt_v3/elevator.js",
+    "evals/qoder_GLM-5_2_office_prompt_v3/sim.js"
   ],
   "static_errors": [],
   "static_warnings": []

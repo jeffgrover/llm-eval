@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-08-08T09:40:57.612Z",
+  "files_checked": [
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/world.js",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/elevator_logic.js",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/elevator.js",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/sim.js"
+  ],
+  "static_errors": [
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:64:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:73:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:63:13 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:65:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:66:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:67:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:68:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:69:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:74:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:76:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:77:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:78:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:79:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:81:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:82:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:83:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:84:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/person.js:85:9 'userData' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/world.js:15:13 'current' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/world.js:15:40 'path' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/world.js:20:49 'current' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/world.js:36:13 'current' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/sim.js:196:17 'sim' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/sim.js:196:21 'Clock' is not defined",
+    "evals/opencode_gemma-4-31b-qat_office_prompt_v3/sim.js:495:23 'simLclock' is not defined"
+  ],
+  "static_warnings": []
+}
