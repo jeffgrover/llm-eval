@@ -1,6 +1,7 @@
 """Antigravity/Gemini CLI adapter."""
 
 import json
+import re
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -11,6 +12,7 @@ from evaluation_core import (
     AgentRunner,
     CHAT_SESSION_FILENAME,
     SERVER_LOG_FILENAME,
+    run_streaming_process,
     read_prompt_file,
     safe_stdout_write,
 )
@@ -19,6 +21,22 @@ from runner_events import parse_gemini_transcript
 
 class GeminiRunner(AgentRunner):
     supports_custom_provider = True
+
+    _DEFAULT_GEMINI_EFFORT = "high"
+    _GEMINI_MODEL_PATTERN = re.compile(
+        r"^gemini[\s_-]+"
+        r"(?P<version>\d+(?:[._]\d+)+)[\s_-]+"
+        r"(?P<family>flash|pro)"
+        r"(?:[\s_-]+(?P<effort>low|medium|high))?$",
+        re.IGNORECASE,
+    )
+    _GEMINI_MODEL_WITH_PARENTHESIZED_EFFORT_PATTERN = re.compile(
+        r"^gemini[\s_-]+"
+        r"(?P<version>\d+(?:[._]\d+)+)[\s_-]+"
+        r"(?P<family>flash|pro)\s*"
+        r"\((?P<effort>low|medium|high)\)$",
+        re.IGNORECASE,
+    )
 
     _RUNNER_OUTPUT_FILES = {
         CHAT_SESSION_FILENAME,
@@ -101,6 +119,20 @@ class GeminiRunner(AgentRunner):
 
         return parse_gemini_transcript(records)
 
+    def _agy_model_selection(self) -> str:
+        """Return the exact effort-qualified model name expected by AGY."""
+        requested_model = self.model_name.strip()
+        match = self._GEMINI_MODEL_WITH_PARENTHESIZED_EFFORT_PATTERN.fullmatch(
+            requested_model
+        ) or self._GEMINI_MODEL_PATTERN.fullmatch(requested_model)
+        if not match:
+            return requested_model
+
+        version = match.group("version").replace("_", ".")
+        family = match.group("family").title()
+        effort = match.group("effort") or self._DEFAULT_GEMINI_EFFORT
+        return f"Gemini {version} {family} ({effort.title()})"
+
     def _build_agy_command(self, agy_bin: str, prompt_content: str) -> List[str]:
         """Build an isolated AGY command whose project is the evaluation workspace."""
         cmd = [
@@ -113,7 +145,7 @@ class GeminiRunner(AgentRunner):
             prompt_content,
         ]
         if self.model_name:
-            cmd.extend(["--model", self.model_name])
+            cmd.extend(["--model", self._agy_model_selection()])
         return cmd
 
     def _generated_artifacts(self) -> List[str]:
@@ -143,56 +175,50 @@ class GeminiRunner(AgentRunner):
             "--dangerously-skip-permissions --print <prompt>"
         )
         if self.model_name:
-            display_cmd += f" --model {self.model_name}"
-        print(f"[*] Executing: {display_cmd}")
-        print(f"[*] Output logging to: {chat_log_path}")
-
+            display_cmd += f" --model {self._agy_model_selection()}"
         start_time = datetime.now()
         tool_call_count = 0
 
-        with open(chat_log_path, "w", encoding="utf-8") as log_file:
-            process = subprocess.Popen(
-                cmd,
-                cwd=self.work_dir,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
+        def on_line(line: str, log_file) -> None:
+            nonlocal tool_call_count
+            safe_stdout_write(line)
+            log_file.write(line)
+            log_file.flush()
+            if "[Tool:" in line or "tool_call" in line:
+                tool_call_count += 1
+
+        result = run_streaming_process(
+            cmd=cmd,
+            work_dir=self.work_dir,
+            chat_log_path=chat_log_path,
+            env=env,
+            display_cmd=display_cmd,
+            timeout=self.safety_limits.process_timeout,
+            idle_timeout=self.safety_limits.process_idle_timeout,
+            on_line=on_line,
+            report_completion=False,
+        )
+
+        generated_artifacts = self._generated_artifacts()
+        if result.termination:
+            pass
+        elif result.returncode == 0 and generated_artifacts:
+            print("[+] Agent finished successfully.")
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
+                log_file.write("\n[SUCCESS] Process exited cleanly.\n")
+        elif result.returncode == 0:
+            artifact_error = (
+                "AGY exited cleanly but produced no root-level artifacts in "
+                f"{self.work_dir.resolve()}."
             )
-
-            for line in process.stdout:
-                safe_stdout_write(line)
-                log_file.write(line)
-                log_file.flush()
-                if "[Tool:" in line or "tool_call" in line:
-                    tool_call_count += 1
-
-            try:
-                process.wait(timeout=900)
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()
-                process.wait()
-
-            generated_artifacts = self._generated_artifacts()
-            if process.returncode == 0 and generated_artifacts:
-                print(f"[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
-            elif process.returncode == 0:
-                artifact_error = (
-                    "AGY exited cleanly but produced no root-level artifacts in "
-                    f"{self.work_dir.resolve()}."
-                )
-                print(f"[-] {artifact_error}")
+            print(f"[-] {artifact_error}")
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
                 log_file.write(f"\n[ERROR] {artifact_error}\n")
-            else:
-                print(f"[-] Agent finished with error code {process.returncode}")
+        else:
+            print(f"[-] Agent finished with error code {result.returncode}")
+            with open(chat_log_path, "a", encoding="utf-8") as log_file:
                 log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                    f"\n[ERROR] Process exited with code {result.returncode}\n"
                 )
 
         end_time = datetime.now()
@@ -209,7 +235,11 @@ class GeminiRunner(AgentRunner):
         transcript_stats = self._get_agy_transcript_stats(self.work_dir, start_time)
 
         provider_name = self.custom_provider.title() if self.custom_provider else "Google"
-        run_succeeded = process.returncode == 0 and bool(generated_artifacts)
+        run_succeeded = (
+            result.returncode == 0
+            and bool(generated_artifacts)
+            and not result.termination
+        )
 
         result_data = {
             "type": "result",
@@ -229,10 +259,22 @@ class GeminiRunner(AgentRunner):
             "model_id": self.model_name,
             "artifacts": generated_artifacts,
         }
-        if process.returncode == 0 and not generated_artifacts:
+        if result.returncode == 0 and not generated_artifacts:
             result_data["error"] = (
                 "AGY exited successfully but did not create any root-level "
                 f"artifacts in {self.work_dir.resolve()}."
+            )
+        if result.termination:
+            result_data.update(
+                {
+                    "error": result.termination.message,
+                    "terminal_reason": result.termination.reason,
+                    "termination": result.termination.to_dict(),
+                    "warnings": [
+                        "Run terminated by safety guardrail: "
+                        f"{result.termination.message}"
+                    ],
+                }
             )
 
         with open(result_json_path, "w", encoding="utf-8") as f:

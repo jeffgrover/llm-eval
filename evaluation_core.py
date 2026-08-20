@@ -1,6 +1,7 @@
 """Shared evaluator lifecycle, metadata, and local-server support."""
 
 import os
+import signal
 import subprocess
 import threading
 import time
@@ -15,10 +16,18 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional, TextIO
 
 from evaluation_metrics import TokenUsage, TokenUsageCollector
 from evaluation_report import generate_html_report
+from run_safety import (
+    DEFAULT_MAX_IDLE_SECONDS,
+    DEFAULT_MAX_SECONDS,
+    RunSafetyLimits,
+    RunSafetyMonitor,
+    RunSafetyTermination,
+    RunTermination,
+)
 
 # --- Configuration & Constants ---
 LM_STUDIO_API_URL = "http://localhost:1234/v1"
@@ -31,9 +40,11 @@ SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
 CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
 CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
-PI_WIGGUM_MAX_SECONDS = 4 * 60 * 60
 DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
-DEFAULT_LOCAL_OUTPUT_LIMIT = 4096
+# Reasoning models (e.g. Qwen 3.8) spend internal thinking tokens out of the
+# response budget, so 16K can be consumed entirely by reasoning before any
+# visible output or tool call is produced.
+DEFAULT_LOCAL_OUTPUT_LIMIT = 32768
 
 
 def get_omlx_api_key() -> str:
@@ -157,6 +168,70 @@ def send_stdin(process: subprocess.Popen, input_text: Optional[str]) -> None:
     threading.Thread(target=_write, daemon=True).start()
 
 
+def _linux_descendant_pids(root_pid: int) -> List[int]:
+    """Snapshot descendants, including children in their own process groups."""
+    if not sys.platform.startswith("linux"):
+        return []
+    descendants = []
+    pending = [root_pid]
+    seen = {root_pid}
+    while pending:
+        parent_pid = pending.pop()
+        children_path = Path(
+            f"/proc/{parent_pid}/task/{parent_pid}/children"
+        )
+        try:
+            child_pids = [
+                int(value)
+                for value in children_path.read_text(encoding="ascii").split()
+            ]
+        except (OSError, ValueError):
+            continue
+        for child_pid in child_pids:
+            if child_pid in seen:
+                continue
+            seen.add(child_pid)
+            descendants.append(child_pid)
+            pending.append(child_pid)
+    return descendants
+
+
+def stop_process_tree(process: subprocess.Popen) -> None:
+    """Force-stop a subprocess and descendants that created new process groups."""
+    if process.poll() is not None:
+        return
+
+    descendants = _linux_descendant_pids(process.pid)
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+            return
+        except (OSError, subprocess.TimeoutExpired):
+            process.kill()
+            return
+
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except (OSError, ProcessLookupError):
+        try:
+            process.kill()
+        except (OSError, ProcessLookupError):
+            pass
+
+    # Some agent tool runners call setsid(), escaping the agent's group. Kill
+    # the descendant snapshot explicitly after the root can no longer spawn.
+    for child_pid in reversed(descendants):
+        try:
+            os.kill(child_pid, signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            pass
+
+
 def safe_stdout_write(text: str) -> None:
     """Write text to the console even when Windows uses a legacy code page."""
     try:
@@ -208,8 +283,53 @@ def lms_api_request(
         return None
 
 
-def load_lms_model(model_key: str) -> bool:
+def get_lms_loaded_context_length(model_key: str) -> Optional[int]:
+    """Return the context length of a loaded LM Studio instance for a model, if known."""
+    models = lms_api_request("/api/v0/models")
+    if models is None:
+        return None
+    model_list = (
+        models
+        if isinstance(models, list)
+        else models.get("data", models.get("models", []))
+    )
+    for entry in model_list:
+        model_id = entry.get("id", entry.get("path", ""))
+        if model_key not in model_id or entry.get("state", "") != "loaded":
+            continue
+        candidates = [entry, *(entry.get("loaded_instances") or [])]
+        for candidate in candidates:
+            context = candidate.get("loaded_context_length") or candidate.get(
+                "context_length"
+            )
+            if isinstance(context, int) and context > 0:
+                return context
+            config = candidate.get("config") or candidate.get("load_config") or {}
+            context = config.get("context_length")
+            if isinstance(context, int) and context > 0:
+                return context
+    return None
+
+
+def load_lms_model(
+    model_key: str,
+    *,
+    context_length: Optional[int] = None,
+    eval_batch_size: Optional[int] = None,
+    flash_attention: bool = False,
+    cpu_kv_cache: bool = False,
+) -> bool:
     """Loads a model into LM Studio, preferring the REST API over the CLI."""
+    load_config = {}
+    if context_length is not None:
+        load_config["context_length"] = context_length
+    if eval_batch_size is not None:
+        load_config["eval_batch_size"] = eval_batch_size
+    if flash_attention:
+        load_config["flash_attention"] = True
+    if cpu_kv_cache:
+        load_config["offload_kv_cache_to_gpu"] = False
+
     # Try REST API first
     models = lms_api_request("/api/v0/models")
     if models is not None:
@@ -228,10 +348,17 @@ def load_lms_model(model_key: str) -> bool:
             state = m.get("state", "")
             if model_key in model_id:
                 if state == "loaded":
-                    target_loaded = True
-                    print(
-                        f"[+] Model '{model_key}' is already loaded — skipping reload."
-                    )
+                    if load_config:
+                        others_loaded.append(m)
+                        print(
+                            f"[*] Reloading model '{model_key}' to apply explicit "
+                            "LM Studio load settings."
+                        )
+                    else:
+                        target_loaded = True
+                        print(
+                            f"[+] Model '{model_key}' is already loaded — skipping reload."
+                        )
             elif state == "loaded":
                 others_loaded.append(m)
 
@@ -241,18 +368,25 @@ def load_lms_model(model_key: str) -> bool:
             instance_id = other.get("instance_id", other_id)
             print(f"[*] Unloading other model: {other_id}")
             lms_api_request(
-                "/api/v1/models/unload", method="POST", data={"model": instance_id}
+                "/api/v1/models/unload",
+                method="POST",
+                data={"instance_id": instance_id},
             )
 
         if target_loaded:
             return True  # Already loaded, nothing to do
 
         print(f"[*] Loading model '{model_key}' via REST API...")
+        load_request = {"model": model_key, **load_config}
+        if load_config:
+            load_request["echo_load_config"] = True
         result = lms_api_request(
-            "/api/v1/models/load", method="POST", data={"model": model_key}, timeout=120
+            "/api/v1/models/load", method="POST", data=load_request, timeout=120
         )
         if result is not None:
             print(f"[+] Model '{model_key}' loaded successfully via REST API.")
+            if result.get("load_config"):
+                print(f"[+] Applied LM Studio load config: {result['load_config']}")
             return True
         print("[-] REST API load failed. Falling back to CLI...")
 
@@ -801,6 +935,253 @@ class MetadataCollector:
         return info
 
 
+# --- Process Streaming ---
+
+DEFAULT_PROCESS_TIMEOUT = DEFAULT_MAX_SECONDS
+
+
+@dataclass
+class ProcessResult:
+    """Outcome of a streamed agent subprocess."""
+
+    returncode: int
+    timed_out: bool = False
+    termination: Optional[RunTermination] = None
+
+
+def run_streaming_process(
+    cmd: List[str],
+    work_dir: Path,
+    chat_log_path: Path,
+    env: Optional[Dict[str, str]] = None,
+    input_text: Optional[str] = None,
+    display_cmd: Optional[str] = None,
+    timeout: Optional[float] = DEFAULT_PROCESS_TIMEOUT,
+    idle_timeout: Optional[float] = DEFAULT_MAX_IDLE_SECONDS,
+    on_line: Optional[Callable[[str, TextIO], None]] = None,
+    on_stderr_line: Optional[Callable[[str, TextIO], None]] = None,
+    merge_stderr: bool = True,
+    cwd: Optional[Path] = None,
+    shell: bool = False,
+    report_completion: bool = True,
+) -> ProcessResult:
+    """Run a subprocess, stream stdout to both console and a log file.
+
+    Encapsulates the common Popen → stdin → line iteration → timeout → exit
+    lifecycle shared by every runner adapter.  Each adapter supplies an
+    ``on_line(line, log_file)`` callback for per-line event parsing.
+
+    Args:
+        cmd: Command and arguments.
+        work_dir: Working directory for the child process.
+        chat_log_path: Path to write the human-readable chat transcript.
+        env: Environment variables (defaults to ``os.environ``).
+        input_text: Text piped to stdin on a background thread.
+        display_cmd: Log-friendly command summary.
+        timeout: Total seconds before the process is killed, or ``None`` to disable.
+        idle_timeout: Seconds without stdout/stderr before the process is killed,
+            or ``None`` to disable. Any output resets this timer.
+        on_line: Called for every stdout line with ``(line, log_file)``.
+        on_stderr_line: Optional callback for stderr when it is not merged.
+        merge_stderr: Merge stderr into stdout (default) or keep separate.
+        cwd: Override working directory (defaults to ``work_dir``).
+        shell: Use shell execution (needed for .cmd wrappers on Windows).
+        report_completion: Print and log the exit status in this helper. Callers
+            with additional success criteria can disable this and report their
+            final status after validating those criteria.
+    """
+    if env is None:
+        env = os.environ.copy()
+
+    print(f"[*] Executing: {display_cmd or format_display_cmd(cmd)}")
+    print(f"[*] Output logging to: {chat_log_path}")
+
+    timed_out = False
+    timeout_termination = None
+
+    with open(chat_log_path, "w", encoding="utf-8") as log_file:
+        process = subprocess.Popen(
+            cmd,
+            cwd=cwd or work_dir,
+            env=env,
+            stdin=subprocess.PIPE if input_text is not None else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            shell=shell,
+            start_new_session=os.name != "nt",
+        )
+        send_stdin(process, input_text)
+
+        callback_errors = []
+        safety_terminations: List[RunTermination] = []
+        output_lock = threading.Lock()
+        activity_lock = threading.Lock()
+        started_at = time.monotonic()
+        last_activity_at = started_at
+        force_closing_output = False
+
+        def record_activity() -> None:
+            nonlocal last_activity_at
+            with activity_lock:
+                last_activity_at = time.monotonic()
+
+        def record_callback_error(exc: BaseException) -> None:
+            if isinstance(exc, RunSafetyTermination):
+                safety_terminations.append(exc.termination)
+            else:
+                callback_errors.append(exc)
+            stop_process_tree(process)
+
+        def drain_stdout() -> None:
+            try:
+                for line in process.stdout:
+                    record_activity()
+                    with output_lock:
+                        if on_line:
+                            on_line(line, log_file)
+                        else:
+                            safe_stdout_write(line)
+                            log_file.write(line)
+                            log_file.flush()
+            except BaseException as exc:
+                if not force_closing_output:
+                    record_callback_error(exc)
+
+        def drain_stderr() -> None:
+            try:
+                for line in process.stderr:
+                    record_activity()
+                    with output_lock:
+                        if on_stderr_line:
+                            on_stderr_line(line, log_file)
+                        else:
+                            safe_stdout_write(line)
+                            log_file.write(line)
+                            log_file.flush()
+            except BaseException as exc:
+                if not force_closing_output:
+                    record_callback_error(exc)
+
+        stdout_thread = threading.Thread(target=drain_stdout, daemon=True)
+        stdout_thread.start()
+        stderr_thread = None
+        if not merge_stderr:
+            stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
+            stderr_thread.start()
+
+        while process.poll() is None:
+            now = time.monotonic()
+            if timeout and timeout > 0 and now - started_at >= timeout:
+                timed_out = True
+                timeout_termination = RunTermination(
+                    reason="time_limit",
+                    message=(
+                        f"Run stopped after reaching the {timeout:g}-second "
+                        "time limit."
+                    ),
+                    evidence={
+                        "observed_seconds": now - started_at,
+                        "limit_seconds": timeout,
+                    },
+                )
+                stop_process_tree(process)
+                break
+
+            with activity_lock:
+                idle_seconds = now - last_activity_at
+            if idle_timeout and idle_timeout > 0 and idle_seconds >= idle_timeout:
+                timed_out = True
+                timeout_termination = RunTermination(
+                    reason="inactivity_limit",
+                    message=(
+                        f"Run stopped after {idle_timeout:g} seconds without "
+                        "agent process output."
+                    ),
+                    evidence={
+                        "detector": "output_inactivity",
+                        "observed_idle_seconds": idle_seconds,
+                        "limit_seconds": idle_timeout,
+                        "elapsed_seconds": now - started_at,
+                    },
+                )
+                stop_process_tree(process)
+                break
+
+            wait_seconds = 0.2
+            if timeout and timeout > 0:
+                wait_seconds = min(
+                    wait_seconds,
+                    max(timeout - (now - started_at), 0.001),
+                )
+            if idle_timeout and idle_timeout > 0:
+                wait_seconds = min(
+                    wait_seconds,
+                    max(idle_timeout - idle_seconds, 0.001),
+                )
+            try:
+                process.wait(timeout=wait_seconds)
+            except subprocess.TimeoutExpired:
+                pass
+
+        if process.poll() is None:
+            process.wait()
+
+        stdout_thread.join(timeout=5)
+        if stderr_thread:
+            stderr_thread.join(timeout=5)
+        live_threads = [
+            thread
+            for thread in (stdout_thread, stderr_thread)
+            if thread is not None and thread.is_alive()
+        ]
+        if live_threads:
+            force_closing_output = True
+            if process.stdout:
+                process.stdout.close()
+            if process.stderr and process.stderr is not process.stdout:
+                process.stderr.close()
+            for thread in live_threads:
+                thread.join(timeout=1)
+
+        for stream in (process.stdout, getattr(process, "stderr", None)):
+            close = getattr(stream, "close", None)
+            if close:
+                close()
+
+        if callback_errors:
+            raise callback_errors[0]
+
+        termination = (
+            safety_terminations[0]
+            if safety_terminations
+            else timeout_termination
+        )
+
+        if termination:
+            print(f"[-] Agent run terminated: {termination.message}")
+            log_file.write(f"\n[TERMINATED] {termination.message}\n")
+
+        if report_completion and not termination:
+            if process.returncode == 0:
+                print("[+] Agent finished successfully.")
+                log_file.write("\n[SUCCESS] Process exited cleanly.\n")
+            else:
+                print(f"[-] Agent finished with error code {process.returncode}")
+                log_file.write(
+                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                )
+
+    return ProcessResult(
+        returncode=process.returncode,
+        timed_out=timed_out,
+        termination=termination,
+    )
+
+
 # --- Agent Runners ---
 
 
@@ -819,6 +1200,7 @@ class AgentRunner:
         custom_provider: Optional[str] = None,
         local_provider: Optional[LocalProviderConfig] = None,
         execute_generated_python: bool = False,
+        safety_limits: Optional[RunSafetyLimits] = None,
     ):
         self.agent_name = agent_name
         self.model_name = model_name
@@ -830,6 +1212,7 @@ class AgentRunner:
         self.local_provider = local_provider or LM_STUDIO_PROVIDER
         self.lms_cli_available = self.local_provider.supports_lms_cli
         self.execute_generated_python = execute_generated_python
+        self.safety_limits = safety_limits or RunSafetyLimits()
 
         # Binary to name mapping
         self.binary_map = {
@@ -852,6 +1235,7 @@ class AgentRunner:
         self.workspace_overwrite_confirmed = False
 
         self.log_process: Optional[subprocess.Popen] = None
+        self.last_process_result: Optional[ProcessResult] = None
 
     def confirm_workspace_overwrite(self):
         """Prompts before replacing an existing evaluation directory."""
@@ -1146,61 +1530,36 @@ class AgentRunner:
         """Runs the actual agent command."""
         raise NotImplementedError
 
+    def create_safety_monitor(self) -> RunSafetyMonitor:
+        """Return a fresh monitor scoped to this evaluation workspace."""
+        return RunSafetyMonitor(self.safety_limits, self.work_dir)
+
     def _run_process(
         self,
         cmd: List[str],
         env: Optional[Dict[str, str]] = None,
         input_text: Optional[str] = None,
         display_cmd: Optional[str] = None,
-    ):
-        """Runs the process and streams output to file and stdout."""
-        if env is None:
-            env = self.get_env_vars()
+    ) -> int:
+        """Run the process and stream output to file and stdout.
 
-        chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
-
-        print(f"[*] Executing: {display_cmd or format_display_cmd(cmd)}")
-        print(f"[*] Output logging to: {chat_log_path}")
-
-        with open(chat_log_path, "w", encoding="utf-8") as log_file:
-            # We want to capture both stdout and stderr
-            # And also print to the console?
-            # Subprocess.PIPE might buffer, but let's try.
-
-            # Start process in the work dir
-            process = subprocess.Popen(
-                cmd,
-                cwd=self.work_dir,
-                env=env,
-                stdin=subprocess.PIPE if input_text is not None else None,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,  # Merge stderr into stdout
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,  # Line buffered
-            )
-            send_stdin(process, input_text)
-
-            # Stream output
-            for line in process.stdout:
-                safe_stdout_write(line)
-                log_file.write(line)
-                log_file.flush()
-
-            try:
-                process.wait(timeout=900)  # Wait with a timeout
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()  # Terminate the process
-                process.wait()  # Wait for it to actually terminate
-
-            if process.returncode != 0:
-                print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
-                )
-            else:
-                print(f"[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+        Delegates to :func:`run_streaming_process` for the common lifecycle.
+        Returns the process exit code for backward compatibility.
+        """
+        result = run_streaming_process(
+            cmd=cmd,
+            work_dir=self.work_dir,
+            chat_log_path=self.work_dir / CHAT_SESSION_FILENAME,
+            env=env or self.get_env_vars(),
+            input_text=input_text,
+            display_cmd=display_cmd,
+            timeout=self.safety_limits.process_timeout,
+            idle_timeout=self.safety_limits.process_idle_timeout,
+            on_line=lambda line, log_file: (
+                safe_stdout_write(line),
+                log_file.write(line),
+                log_file.flush(),
+            ),
+        )
+        self.last_process_result = result
+        return result.returncode

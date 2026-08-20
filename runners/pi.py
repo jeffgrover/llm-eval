@@ -1,6 +1,7 @@
 """Pi Coding Agent adapter."""
 
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -16,9 +17,10 @@ from evaluation_core import (
     read_prompt_file,
     safe_stdout_write,
     send_stdin,
+    stop_process_tree,
 )
 from evaluation_metrics import PI_RESULT_FILENAME, PI_WIGGUM_RESULT_FILENAME
-from runner_events import parse_pi_event
+from runner_events import extract_pi_tool_call, parse_pi_event
 
 class PiRunner(AgentRunner):
     supports_custom_provider = True
@@ -47,7 +49,16 @@ class PiRunner(AgentRunner):
                         "supportsDeveloperRole": False,
                         "supportsReasoningEffort": False,
                     },
-                    "models": [{"id": self.model_name}],
+                    # Pi's built-in default for an unannotated custom model is
+                    # 16,384 output tokens.  That is too small for large
+                    # agentic file writes (notably Qwen3.8's office prompt),
+                    # so advertise the profile context and a generous
+                    # per-response output cap.
+                    "models": [{
+                        "id": self.model_name,
+                        "contextWindow": 131072,
+                        "maxTokens": 32768,
+                    }],
                 }
             }
         }
@@ -110,7 +121,12 @@ class PiRunner(AgentRunner):
         prompt_content = read_prompt_file(self.prompt_file)
         result_data = self._run_pi_attempt(prompt_content, "PI_EVENTS.JSONL")
 
-        if result_data["input_tokens"] > 0 or result_data["output_tokens"] > 0:
+        if (
+            result_data["input_tokens"] > 0
+            or result_data["output_tokens"] > 0
+            or result_data.get("termination")
+            or result_data.get("returncode") != 0
+        ):
             result_json_path = self.work_dir / PI_RESULT_FILENAME
             with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(self._pi_result_metrics(result_data), f, indent=2)
@@ -145,7 +161,7 @@ class PiRunner(AgentRunner):
         raw_jsonl_filename: str,
         append_chat: bool = False,
         attempt_number: Optional[int] = None,
-        timeout_seconds: int = 900,
+        timeout_seconds: Optional[float] = None,
     ) -> Dict:
         cmd = self._build_pi_command()
         env = self.get_env_vars()
@@ -168,6 +184,14 @@ class PiRunner(AgentRunner):
         pi_provider = None
         pi_model = None
         timed_out = False
+        termination = None
+        safety_monitor = self.create_safety_monitor()
+        effective_timeout = (
+            self.safety_limits.process_timeout
+            if timeout_seconds is None
+            else timeout_seconds
+        )
+        effective_idle_timeout = self.safety_limits.process_idle_timeout
 
         chat_mode = "a" if append_chat else "w"
         with open(chat_log_path, chat_mode, encoding="utf-8") as log_file, open(
@@ -190,6 +214,7 @@ class PiRunner(AgentRunner):
                 errors="replace",
                 bufsize=1,
                 shell=(sys.platform == "win32"),  # pi is a .cmd on Windows
+                start_new_session=os.name != "nt",
             )
             line_queue: queue.Queue[Optional[str]] = queue.Queue()
 
@@ -203,15 +228,68 @@ class PiRunner(AgentRunner):
             threading.Thread(target=_read_stdout, daemon=True).start()
             send_stdin(process, prompt_content)
 
-            deadline = time.monotonic() + timeout_seconds
+            started_at = time.monotonic()
+            last_activity_at = started_at
+            deadline = (
+                started_at + effective_timeout
+                if effective_timeout and effective_timeout > 0
+                else None
+            )
+
+            def terminate_attempt(reason, message, evidence):
+                nonlocal termination, timed_out
+                if termination is not None:
+                    return
+                timed_out = reason in ("time_limit", "inactivity_limit")
+                termination = {
+                    "reason": reason,
+                    "message": message,
+                    "evidence": evidence,
+                }
+                print(f"[-] Agent run terminated: {message}")
+                log_file.write(f"\n[TERMINATED] {message}\n")
+                log_file.flush()
+                stop_process_tree(process)
+
             stdout_done = False
             while not stdout_done:
-                if process.poll() is None and time.monotonic() >= deadline:
-                    timed_out = True
-                    print(f"[-] Agent process timed out after {timeout_seconds} seconds.")
-                    log_file.write(f"\n[ERROR] Process timed out after {timeout_seconds} seconds.\n")
-                    log_file.flush()
-                    process.kill()
+                now = time.monotonic()
+                if (
+                    deadline is not None
+                    and process.poll() is None
+                    and now >= deadline
+                ):
+                    terminate_attempt(
+                        "time_limit",
+                        (
+                            "Run stopped after reaching the "
+                            f"{effective_timeout:g}-second time limit."
+                        ),
+                        {
+                            "limit_seconds": effective_timeout,
+                            "observed_seconds": now - started_at,
+                        },
+                    )
+                elif (
+                    effective_idle_timeout
+                    and effective_idle_timeout > 0
+                    and process.poll() is None
+                    and now - last_activity_at >= effective_idle_timeout
+                ):
+                    idle_seconds = now - last_activity_at
+                    terminate_attempt(
+                        "inactivity_limit",
+                        (
+                            f"Run stopped after {effective_idle_timeout:g} seconds "
+                            "without agent process output."
+                        ),
+                        {
+                            "detector": "output_inactivity",
+                            "observed_idle_seconds": idle_seconds,
+                            "limit_seconds": effective_idle_timeout,
+                            "elapsed_seconds": now - started_at,
+                        },
+                    )
 
                 try:
                     line = line_queue.get(timeout=0.2)
@@ -222,6 +300,7 @@ class PiRunner(AgentRunner):
                     stdout_done = True
                     continue
 
+                last_activity_at = time.monotonic()
                 raw_file.write(line)
                 raw_file.flush()
                 stripped = line.strip()
@@ -242,9 +321,25 @@ class PiRunner(AgentRunner):
                         total_cost += parsed.usage.get("cost_usd", 0)
                     if parsed.turn_completed:
                         num_turns += 1
+                        safety_termination = safety_monitor.observe_turn(parsed.usage)
+                        if safety_termination and termination is None:
+                            terminate_attempt(
+                                safety_termination.reason,
+                                safety_termination.message,
+                                safety_termination.evidence,
+                            )
                         if pi_provider is None:
                             pi_provider = parsed.provider_id
                             pi_model = parsed.model_id
+                    tool_call = extract_pi_tool_call(event)
+                    if tool_call:
+                        safety_termination = safety_monitor.observe_tool(*tool_call)
+                        if safety_termination and termination is None:
+                            terminate_attempt(
+                                safety_termination.reason,
+                                safety_termination.message,
+                                safety_termination.evidence,
+                            )
                     if parsed.log_raw:
                         log_file.write(line)
                         log_file.flush()
@@ -261,10 +356,15 @@ class PiRunner(AgentRunner):
                 timed_out = True
                 print(f"[-] Agent process did not exit after timeout kill.")
                 log_file.write(f"\n[ERROR] Process did not exit after timeout kill.\n")
-                process.kill()
+                stop_process_tree(process)
                 process.wait()
 
-            if process.returncode == 0:
+            for stream in (process.stdout, getattr(process, "stderr", None)):
+                close = getattr(stream, "close", None)
+                if close:
+                    close()
+
+            if process.returncode == 0 and not termination:
                 print(f"\n[+] Agent finished successfully.")
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
             else:
@@ -285,6 +385,7 @@ class PiRunner(AgentRunner):
             "model_id": pi_model,
             "returncode": process.returncode,
             "timed_out": timed_out,
+            "termination": termination,
             "raw_jsonl": raw_jsonl_filename,
         }
 
@@ -302,4 +403,29 @@ class PiRunner(AgentRunner):
             metrics["provider_id"] = result_data["provider_id"]
         if result_data.get("model_id"):
             metrics["model_id"] = result_data["model_id"]
+        if result_data.get("termination"):
+            termination = result_data["termination"]
+            metrics.update(
+                {
+                    "status": "error",
+                    "is_error": True,
+                    "error": termination["message"],
+                    "terminal_reason": termination["reason"],
+                    "termination": termination,
+                    "warnings": [
+                        "Run terminated by safety guardrail: "
+                        f"{termination['message']}"
+                    ],
+                }
+            )
+        elif result_data.get("returncode") != 0:
+            metrics.update(
+                {
+                    "status": "error",
+                    "is_error": True,
+                    "error": f"Pi exited with code {result_data['returncode']}",
+                }
+            )
+        else:
+            metrics.update({"status": "success", "is_error": False})
         return metrics

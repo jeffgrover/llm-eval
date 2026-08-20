@@ -3,7 +3,7 @@
 import json
 import math
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
 @dataclass
@@ -18,6 +18,75 @@ class ParsedEvent:
     error: Optional[str] = None
     result: Optional[Dict] = None
     log_raw: bool = False
+    tool_calls: int = 0
+    finish_reason: Optional[str] = None
+
+
+def normalize_crush_session(
+    session: Dict,
+    process_returncode: int = 0,
+    crush_version: Optional[str] = None,
+) -> Dict:
+    """Normalize `crush session last --json` into evaluator metrics."""
+    meta = session.get("meta", {})
+    messages = session.get("messages", [])
+    if not isinstance(meta, dict):
+        meta = {}
+    if not isinstance(messages, list):
+        messages = []
+
+    assistant_messages = [
+        message
+        for message in messages
+        if isinstance(message, dict) and message.get("role") == "assistant"
+    ]
+    tool_calls = 0
+    finish_reasons: List[str] = []
+    provider_id = None
+    model_id = None
+    for message in assistant_messages:
+        provider_id = message.get("provider") or provider_id
+        model_id = message.get("model") or model_id
+        parts = message.get("parts", [])
+        if not isinstance(parts, list):
+            continue
+        for part in parts:
+            if not isinstance(part, dict):
+                continue
+            part_type = part.get("type")
+            if part_type in ("tool", "tool_call", "tool_use"):
+                tool_calls += 1
+            if part_type == "finish" and part.get("reason"):
+                finish_reasons.append(str(part["reason"]))
+
+    input_tokens = meta.get("prompt_tokens", 0) or 0
+    output_tokens = meta.get("completion_tokens", 0) or 0
+    total_tokens = meta.get("total_tokens", 0) or input_tokens + output_tokens
+    is_error = process_returncode != 0 or "error" in finish_reasons
+    result = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "cost_usd": meta.get("cost", 0) or 0,
+        "num_turns": len(assistant_messages),
+        "tool_calls": tool_calls,
+        "finish_reasons": finish_reasons,
+        "session_id": meta.get("uuid") or meta.get("id"),
+        "provider_id": provider_id,
+        "model_id": model_id,
+        "status": "error" if is_error else "success",
+        "is_error": is_error,
+        "process_returncode": process_returncode,
+    }
+    if crush_version:
+        result["crush_version"] = crush_version
+    if is_error:
+        result["error"] = (
+            "Crush session finished with an error"
+            if "error" in finish_reasons
+            else f"Crush exited with code {process_returncode}"
+        )
+    return result
 
 
 def parse_gemini_transcript(records: Iterable[Dict]) -> Dict[str, int]:
@@ -77,6 +146,29 @@ def parse_claude_event(event: Dict) -> ParsedEvent:
 def parse_qoder_event(event: Dict) -> ParsedEvent:
     """Qoder CLI uses the same stream-json schema as Claude Code."""
     return parse_claude_event(event)
+
+
+def extract_message_tool_calls(
+    event: Dict,
+) -> List[Tuple[str, Dict[str, Any]]]:
+    """Extract Claude/Qoder-style tool blocks from an assistant event."""
+    if event.get("type") != "assistant":
+        return []
+    content = event.get("message", {}).get("content", [])
+    if not isinstance(content, list):
+        return []
+    calls = []
+    for block in content:
+        if not isinstance(block, dict) or block.get("type") != "tool_use":
+            continue
+        tool_input = block.get("input", {})
+        calls.append(
+            (
+                str(block.get("name") or "unknown"),
+                tool_input if isinstance(tool_input, dict) else {},
+            )
+        )
+    return calls
 
 
 def _qoder_content_chars(content) -> int:
@@ -217,9 +309,14 @@ def parse_opencode_event(event: Dict) -> ParsedEvent:
     event_type = event.get("type", "")
     if event_type == "text":
         return ParsedEvent(text=event.get("content", event.get("text", "")))
-    if event_type == "tool_call":
-        name = event.get("name", event.get("tool", "unknown"))
-        return ParsedEvent(text=f"\n[Tool: {name}]\n")
+    if event_type in ("tool_call", "tool_use"):
+        part = event.get("part", {})
+        name = (
+            event.get("name")
+            or event.get("tool")
+            or part.get("tool", "unknown")
+        )
+        return ParsedEvent(text=f"\n[Tool: {name}]\n", tool_calls=1)
     if event_type == "step_finish":
         part = event.get("part", {})
         tokens = part.get("tokens", {})
@@ -235,6 +332,7 @@ def parse_opencode_event(event: Dict) -> ParsedEvent:
             },
             turn_completed=True,
             log_raw=True,
+            finish_reason=part.get("reason"),
         )
     if event_type == "error":
         error = event.get("error", {})
@@ -246,6 +344,63 @@ def parse_opencode_event(event: Dict) -> ParsedEvent:
         message = message or json.dumps(event)
         return ParsedEvent(error=str(message), log_raw=True)
     return ParsedEvent(log_raw=True)
+
+
+def extract_opencode_tool_call(
+    event: Dict,
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Return a stable tool name/input pair from current or legacy events."""
+    if event.get("type") not in ("tool_call", "tool_use"):
+        return None
+    part = event.get("part", {})
+    if not isinstance(part, dict):
+        part = {}
+    state = part.get("state", {})
+    if not isinstance(state, dict):
+        state = {}
+    name = event.get("name") or event.get("tool") or part.get("tool") or "unknown"
+    tool_input = (
+        state.get("input")
+        or event.get("input")
+        or event.get("args")
+        or part.get("input")
+        or {}
+    )
+    return str(name), tool_input if isinstance(tool_input, dict) else {}
+
+
+def _pi_streamed_tool_call(event: Dict) -> Optional[Dict[str, Any]]:
+    """Return the tool call addressed by a Pi message-update event."""
+    if event.get("type") != "message_update":
+        return None
+    update = event.get("assistantMessageEvent", {})
+    if not isinstance(update, dict):
+        return None
+
+    direct = update.get("toolCall")
+    if isinstance(direct, dict):
+        return direct
+
+    content_index = update.get("contentIndex")
+    for container in (update.get("partial"), event.get("message")):
+        if not isinstance(container, dict):
+            continue
+        content = container.get("content")
+        if not isinstance(content, list):
+            continue
+        if isinstance(content_index, int) and 0 <= content_index < len(content):
+            candidate = content[content_index]
+            if isinstance(candidate, dict):
+                candidate_type = str(candidate.get("type", ""))
+                if candidate_type.replace("_", "").lower() == "toolcall":
+                    return candidate
+        for candidate in reversed(content):
+            if not isinstance(candidate, dict):
+                continue
+            candidate_type = str(candidate.get("type", ""))
+            if candidate_type.replace("_", "").lower() == "toolcall":
+                return candidate
+    return None
 
 
 def parse_pi_event(event: Dict) -> ParsedEvent:
@@ -273,9 +428,33 @@ def parse_pi_event(event: Dict) -> ParsedEvent:
         update = event.get("assistantMessageEvent", {})
         if update.get("type") == "text_delta":
             return ParsedEvent(text=update.get("delta", ""))
-        if update.get("type") == "tool_call_start":
-            return ParsedEvent(text=f"\n[Tool: {update.get('name', 'unknown')}]\n")
+        if update.get("type") in ("tool_call_start", "toolcall_start"):
+            tool_call = _pi_streamed_tool_call(event) or {}
+            name = update.get("name")
+            if not name:
+                name = tool_call.get("name")
+            return ParsedEvent(text=f"\n[Tool: {name or 'unknown'}]\n")
     return ParsedEvent(log_raw=event_type == "agent_end")
+
+
+def extract_pi_tool_call(
+    event: Dict,
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Return a completed Pi tool call once its streamed arguments are stable."""
+    if event.get("type") != "message_update":
+        return None
+    update = event.get("assistantMessageEvent", {})
+    if not isinstance(update, dict) or update.get("type") not in (
+        "tool_call_end",
+        "toolcall_end",
+    ):
+        return None
+    tool_call = _pi_streamed_tool_call(event)
+    if tool_call is None:
+        return None
+    name = str(tool_call.get("name") or "unknown")
+    arguments = tool_call.get("arguments", {})
+    return name, arguments if isinstance(arguments, dict) else {}
 
 
 def codex_usage_from_obj(obj: Dict) -> Dict[str, int]:

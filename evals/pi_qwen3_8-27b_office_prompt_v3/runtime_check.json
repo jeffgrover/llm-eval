@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-08-17T10:37:30.975Z",
+  "url": "http://127.0.0.1:45363/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "person.js",
+    "world.js",
+    "elevator_logic.js",
+    "elevator.js",
+    "sim.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 116,
+  "scene_object_count": 3329,
+  "dynamic_changes": 3369,
+  "canvas_changed": false,
+  "duration_ms": 6141,
+  "warnings": []
+}

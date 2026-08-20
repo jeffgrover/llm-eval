@@ -1,0 +1,17 @@
+The 3D office building simulation has been implemented and verified.
+
+### Implemented Files
+- [`index.html`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/index.html): HTML shell loading Three.js 0.147.0, OrbitControls, and simulation scripts in sequence.
+- [`person.js`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/person.js): Modular person mesh factory with hierarchical leg/arm pivots and [`animatePersonWalking`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/person.js#L141-L197) supporting forward leg positioning for seated postures.
+- [`world.js`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/world.js): 6-floor building with open 3-unit entrance on floor 0, sidewalk pathing (`outside` &rarr; `front_door_threshold` &rarr; `entrance` &rarr; `lobby_center`), 4 private offices per upper floor, conference rooms with 4 oriented chairs, lounges, lobby cafe, call panels, and [`bfsPath`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/world.js#L21-L59) navigation graph.
+- [`elevator_logic.js`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/elevator_logic.js): Pure elevator scheduler and state machine ([`ElevatorLogic`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/elevator_logic.js#L18-L342)) with SCAN direction handling, destination priority over same-floor hall calls, anti-starvation guards, and capacity controls.
+- [`elevator.js`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/elevator.js): Three.js elevator car visual adapter with animated sliding doors, glowing destination buttons, and in-car + floor indicators.
+- [`sim.js`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/sim.js): Master simulation engine with simulated clock, 9-keyframe day/night lighting, worker & visitor schedules, action compiler, soft crowd separation repulsion, and interactive HUD with speed and occupancy controls.
+- [`elevator_logic_test.js`](file:///Users/jeffgrover/Code/llm-eval/evals/agy_gemini-3_7-flash_office_prompt_v3/elevator_logic_test.js): Deterministic unit test suite testing all 7 elevator scenarios.
+
+### Validation Results
+1. **Static Validation**: `node ../../static_check.js .` &rarr; Passed with 0 errors.
+2. **Runtime Validation**: `node ../../runtime_check.js .` &rarr; Passed with non-blank canvas rendering, active animation frames, and verified object updates.
+3. **Elevator Logic Tests**: `node elevator_logic_test.js` &rarr; 7/7 tests passed.
+
+[SUCCESS] Process exited cleanly.

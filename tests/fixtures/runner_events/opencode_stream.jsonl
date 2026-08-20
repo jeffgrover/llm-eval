@@ -1,4 +1,4 @@
 {"type":"text","content":"Working"}
-{"type":"tool_call","name":"write"}
-{"type":"step_finish","part":{"tokens":{"input":12,"output":5,"reasoning":2,"cache":{"read":3,"write":1}},"cost":0.02}}
+{"type":"tool_use","part":{"type":"tool","tool":"write","callID":"call_1","state":{"status":"completed"}}}
+{"type":"step_finish","part":{"reason":"stop","tokens":{"input":12,"output":5,"reasoning":2,"cache":{"read":3,"write":1}},"cost":0.02}}
 {"type":"error","error":{"data":{"message":"provider failed"}}}

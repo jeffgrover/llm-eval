@@ -5,6 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import generate_index
+import eval_scanner
+from eval_scoring import deterministic_score
 
 
 class ArtifactRetentionTests(unittest.TestCase):
@@ -37,6 +39,7 @@ class ArtifactRetentionTests(unittest.TestCase):
             )
             self.assertEqual(shortened[0][3], 10)
             self.assertEqual(shortened_again, [])
+
 
     def test_small_non_wiggum_artifacts_are_not_shortened(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -93,6 +96,120 @@ class ArtifactRetentionTests(unittest.TestCase):
             )
             self.assertEqual(shortened[0][3], 290)
             self.assertEqual(shortened_again, [])
+
+
+class EvaluationDiscoveryTests(unittest.TestCase):
+    def test_scan_ignores_empty_and_server_log_only_directories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evals_dir = Path(tmpdir) / "evals"
+            (evals_dir / "pi_empty_elevator_prompt").mkdir(parents=True)
+            log_only = evals_dir / "vibe_log-only_elevator_prompt"
+            log_only.mkdir()
+            (log_only / "SERVER.LOG").write_text("server output", encoding="utf-8")
+
+            with patch.object(eval_scanner, "EVALS_DIR", evals_dir):
+                evaluations = generate_index.scan_evaluations()
+
+            self.assertEqual(evaluations, [])
+
+    def test_scan_keeps_partial_run_with_any_non_server_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evals_dir = Path(tmpdir) / "evals"
+            partial = evals_dir / "opencode_partial_elevator_prompt"
+            nested = partial / "src"
+            nested.mkdir(parents=True)
+            (partial / "SERVER.LOG").write_text("server output", encoding="utf-8")
+            (nested / "person.js").write_text("// partial", encoding="utf-8")
+
+            with patch.object(eval_scanner, "EVALS_DIR", evals_dir):
+                evaluations = generate_index.scan_evaluations()
+
+            self.assertEqual(len(evaluations), 1)
+            self.assertEqual(evaluations[0]["Path"], partial)
+
+
+class SafetyScoringTests(unittest.TestCase):
+    def test_doom_loop_result_is_flagged_and_capped(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "index.html").write_text(
+                '<canvas></canvas><script src="person.js"></script>'
+                '<script src="elevator.js"></script>',
+                encoding="utf-8",
+            )
+            (work_dir / "person.js").write_text(
+                "class Person { walk() {} }", encoding="utf-8"
+            )
+            (work_dir / "elevator.js").write_text(
+                "class Elevator { SCAN() { this.queue = []; } }",
+                encoding="utf-8",
+            )
+            score = deterministic_score(
+                {
+                    "Path": work_dir,
+                    "HasReport": True,
+                    "Result": {"terminal_reason": "doom_loop"},
+                    "Metrics": {
+                        "success": False,
+                        "error": True,
+                        "terminal_reason": "doom_loop",
+                        "total_tokens": 100,
+                    },
+                    "Runtime": {
+                        "loaded": True,
+                        "canvas_count": 1,
+                        "nonblank_canvas": True,
+                        "animation_frames": 3,
+                        "scene_object_count": 3,
+                        "dynamic_changes": 1,
+                    },
+                    "Prompt": "elevator_prompt_v3",
+                }
+            )
+
+            self.assertLessEqual(score["total"], 35)
+            self.assertIn("Doom loop detected", score["flags"])
+
+    def test_inactivity_limit_result_is_flagged_and_capped(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "index.html").write_text(
+                '<canvas></canvas><script src="person.js"></script>'
+                '<script src="elevator.js"></script>',
+                encoding="utf-8",
+            )
+            (work_dir / "person.js").write_text(
+                "class Person { walk() {} }", encoding="utf-8"
+            )
+            (work_dir / "elevator.js").write_text(
+                "class Elevator { SCAN() { this.queue = []; } }",
+                encoding="utf-8",
+            )
+            score = deterministic_score(
+                {
+                    "Path": work_dir,
+                    "HasReport": True,
+                    "Result": {"terminal_reason": "inactivity_limit"},
+                    "Metrics": {
+                        "success": False,
+                        "error": True,
+                        "terminal_reason": "inactivity_limit",
+                        "total_tokens": 100,
+                    },
+                    "Runtime": {
+                        "loaded": True,
+                        "canvas_count": 1,
+                        "nonblank_canvas": True,
+                        "animation_frames": 3,
+                        "scene_object_count": 3,
+                        "dynamic_changes": 1,
+                    },
+                    "Prompt": "elevator_prompt_v3",
+                }
+            )
+
+            self.assertLessEqual(score["total"], 50)
+            self.assertIn("Safety stop: inactivity limit", score["flags"])
 
 
 if __name__ == "__main__":

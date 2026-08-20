@@ -9,8 +9,10 @@ from runner_events import (
     codex_usage_from_obj,
     extract_codex_readable_event,
     extract_codex_session_id,
+    extract_pi_tool_call,
     find_codex_usage_objects,
     normalize_qoder_result,
+    normalize_crush_session,
     parse_claude_event,
     parse_gemini_transcript,
     parse_opencode_event,
@@ -118,10 +120,18 @@ class RunnerEventContractTests(unittest.TestCase):
 
         self.assertEqual(parsed[0].text, "Working")
         self.assertEqual(parsed[1].text, "\n[Tool: write]\n")
+        self.assertEqual(parsed[1].tool_calls, 1)
         self.assertEqual(usage["input_tokens"], 12)
         self.assertEqual(usage["cache_read_tokens"], 3)
         self.assertEqual(usage["cost_usd"], 0.02)
+        self.assertEqual(parsed[2].finish_reason, "stop")
         self.assertEqual(parsed[3].error, "provider failed")
+
+    def test_opencode_legacy_tool_call_contract(self):
+        parsed = parse_opencode_event({"type": "tool_call", "name": "write"})
+
+        self.assertEqual(parsed.text, "\n[Tool: write]\n")
+        self.assertEqual(parsed.tool_calls, 1)
 
     def test_pi_stream_contract(self):
         parsed = [
@@ -138,6 +148,53 @@ class RunnerEventContractTests(unittest.TestCase):
         self.assertEqual(completed.usage["input_tokens"], 20)
         self.assertEqual(completed.usage["cost_usd"], 0.03)
         self.assertTrue(parsed[3].log_raw)
+
+    def test_pi_completed_tool_call_contract(self):
+        event = {
+            "type": "message_update",
+            "assistantMessageEvent": {
+                "type": "toolcall_end",
+                "contentIndex": 2,
+                "partial": {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "thinking", "thinking": "checking"},
+                        {
+                            "type": "toolCall",
+                            "name": "read",
+                            "arguments": {"path": "index.html"},
+                        },
+                        {
+                            "type": "toolCall",
+                            "name": "bash",
+                            "arguments": {"command": "node check.js"},
+                        },
+                    ],
+                },
+            },
+        }
+
+        tool_call = extract_pi_tool_call(event)
+
+        self.assertEqual(tool_call, ("bash", {"command": "node check.js"}))
+
+    def test_pi_streamed_tool_name_uses_indexed_partial_content(self):
+        event = {
+            "type": "message_update",
+            "assistantMessageEvent": {
+                "type": "toolcall_start",
+                "contentIndex": 1,
+                "partial": {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "thinking", "thinking": "checking"},
+                        {"type": "toolCall", "name": "grep", "arguments": {}},
+                    ],
+                },
+            },
+        }
+
+        self.assertEqual(parse_pi_event(event).text, "\n[Tool: grep]\n")
 
     def test_codex_stream_contract(self):
         events = read_jsonl("codex_stream.jsonl")
@@ -171,15 +228,47 @@ class RunnerEventContractTests(unittest.TestCase):
                 headless=True,
                 non_local=True,
             )
+            runner.work_dir = Path(temp_dir)
 
-            with mock.patch.object(runner, "_run_process") as run_process:
+            with (
+                mock.patch.object(runner, "_run_process", return_value=0) as run_process,
+                mock.patch.object(runner, "_read_last_session", return_value={}),
+                mock.patch.object(runner, "_crush_version", return_value="v0.87.0"),
+            ):
                 runner.execute_agent()
 
-            run_process.assert_called_once_with(
-                fixture["argv"],
-                input_text="build it",
-                display_cmd=fixture["display"],
+            call = run_process.call_args
+            argv = call.args[0]
+            self.assertEqual(argv[0], runner.agent_binary)
+            self.assertEqual(argv[1:5], fixture["argv_tail_prefix"])
+            self.assertEqual(argv[5], "--data-dir")
+            self.assertTrue(argv[6])
+            self.assertEqual(call.kwargs["input_text"], "build it")
+            self.assertEqual(
+                call.kwargs["display_cmd"],
+                "crush run --quiet --model test-model "
+                "--data-dir <isolated> < prompt",
             )
+
+    def test_crush_session_contract(self):
+        session = json.loads(
+            (FIXTURE_DIR / "crush_session.json").read_text(encoding="utf-8")
+        )
+
+        result = normalize_crush_session(
+            session, process_returncode=0, crush_version="v0.87.0"
+        )
+
+        self.assertEqual(result["input_tokens"], 120)
+        self.assertEqual(result["output_tokens"], 30)
+        self.assertEqual(result["total_tokens"], 150)
+        self.assertEqual(result["cost_usd"], 0.0125)
+        self.assertEqual(result["num_turns"], 2)
+        self.assertEqual(result["tool_calls"], 1)
+        self.assertEqual(result["finish_reasons"], ["tool_use", "stop"])
+        self.assertEqual(result["provider_id"], "lmstudio")
+        self.assertEqual(result["model_id"], "test-model")
+        self.assertFalse(result["is_error"])
 
 
 if __name__ == "__main__":

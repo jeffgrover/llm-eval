@@ -11,10 +11,12 @@ from typing import Dict, Optional
 from evaluation_core import (
     AgentRunner,
     CHAT_SESSION_FILENAME,
+    run_streaming_process,
     read_prompt_file,
     safe_stdout_write,
 )
 from evaluation_metrics import VIBE_RESULT_FILENAME
+from run_safety import RunSafetyTermination
 from runner_events import parse_vibe_event
 
 class VibeRunner(AgentRunner):
@@ -275,65 +277,46 @@ class VibeRunner(AgentRunner):
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         result_json_path = self.work_dir / VIBE_RESULT_FILENAME
 
-        print(f"[*] Executing: vibe -p <prompt> --output streaming --auto-approve --trust")
-        print(f"[*] Output logging to: {chat_log_path}")
-
         # Track message info for result JSON
         vibe_version = None
         num_turns = 0
         start_time = datetime.now()  # Track when we started the run
+        safety_monitor = self.create_safety_monitor()
 
-        with open(chat_log_path, "w", encoding="utf-8") as log_file:
-            process = subprocess.Popen(
-                cmd,
-                cwd=self.work_dir,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-            )
-
-            for line in process.stdout:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-
-                try:
-                    event = json.loads(stripped)
-                    parsed = parse_vibe_event(event)
-                    if parsed.text:
-                        safe_stdout_write(parsed.text)
-                    if parsed.log_raw:
-                        log_file.write(line)
-                        log_file.flush()
-                    if parsed.turn_completed:
-                        num_turns += 1
-
-                except json.JSONDecodeError:
-                    # Non-JSON line, pass through as-is
-                    safe_stdout_write(line)
+        def on_line(line: str, log_file) -> None:
+            nonlocal num_turns
+            stripped = line.strip()
+            if not stripped:
+                return
+            try:
+                event = json.loads(stripped)
+                parsed = parse_vibe_event(event)
+                if parsed.text:
+                    safe_stdout_write(parsed.text)
+                if parsed.log_raw:
                     log_file.write(line)
                     log_file.flush()
+                if parsed.turn_completed:
+                    num_turns += 1
+                    termination = safety_monitor.observe_turn({})
+                    if termination:
+                        raise RunSafetyTermination(termination)
+            except json.JSONDecodeError:
+                # Non-JSON line, pass through as-is
+                safe_stdout_write(line)
+                log_file.write(line)
+                log_file.flush()
 
-            try:
-                process.wait(timeout=900)
-            except subprocess.TimeoutExpired:
-                print(f"[-] Agent process timed out after 900 seconds.")
-                log_file.write(f"\n[ERROR] Process timed out after 900 seconds.\n")
-                process.kill()
-                process.wait()
-
-            if process.returncode == 0:
-                print(f"[+] Agent finished successfully.")
-                log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
-            else:
-                print(f"[-] Agent finished with error code {process.returncode}")
-                log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
-                )
+        process_result = run_streaming_process(
+            cmd=cmd,
+            work_dir=self.work_dir,
+            chat_log_path=chat_log_path,
+            env=env,
+            display_cmd="vibe -p <prompt> --output streaming --auto-approve --trust",
+            timeout=self.safety_limits.process_timeout,
+            idle_timeout=self.safety_limits.process_idle_timeout,
+            on_line=on_line,
+        )
 
         # Try to get vibe version
         try:
@@ -350,7 +333,27 @@ class VibeRunner(AgentRunner):
         # Build result data with available metadata
         result_data = {
             "num_turns": num_turns,
+            "status": "success" if process_result.returncode == 0 else "error",
+            "is_error": process_result.returncode != 0,
         }
+        if process_result.returncode != 0:
+            result_data["error"] = (
+                f"Vibe exited with code {process_result.returncode}"
+            )
+        if process_result.termination:
+            result_data.update(
+                {
+                    "status": "error",
+                    "is_error": True,
+                    "error": process_result.termination.message,
+                    "terminal_reason": process_result.termination.reason,
+                    "termination": process_result.termination.to_dict(),
+                    "warnings": [
+                        "Run terminated by safety guardrail: "
+                        f"{process_result.termination.message}"
+                    ],
+                }
+            )
 
         # Add token usage if we found it
         if token_usage["prompt_tokens"] > 0 or token_usage["completion_tokens"] > 0:

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Small Office Building Simulation - A Workday in Real Time</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #20242a;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Three.js core (classic script build) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.147.0/three.min.js"></script>
+    <!-- OrbitControls from the examples/js (non-module) distribution -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Simulation modules (classic scripts exposing window globals) -->
+    <script src="./person.js"></script>
+    <script src="./world.js"></script>
+    <script src="./elevator_logic.js"></script>
+    <script src="./elevator.js"></script>
+    <script src="./sim.js"></script>
+</body>
+</html>

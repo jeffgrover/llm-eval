@@ -1,0 +1,98 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": "allow",
+  "agent": {
+    "title": {
+      "disable": true
+    }
+  },
+  "model": "llama-server/qwen3.8-27b-think",
+  "provider": {
+    "llama-server": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama-server (local)",
+      "options": {
+        "baseURL": "http://localhost:8080/v1"
+      },
+      "models": {
+        "agents-a1": {
+          "name": "agents-a1",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "gemma-4-31b-qat": {
+          "name": "gemma-4-31b-qat",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "gemma-4-e4b": {
+          "name": "gemma-4-e4b",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "glm-4.7-flash": {
+          "name": "glm-4.7-flash",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "muse-glimmer-30b": {
+          "name": "muse-glimmer-30b",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "nemotron-3.5-lightning": {
+          "name": "nemotron-3.5-lightning",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "nemotron-3.5-lightning-mtp": {
+          "name": "nemotron-3.5-lightning-mtp",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "qwen3.6-35b-a3b": {
+          "name": "qwen3.6-35b-a3b",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "qwen3.8-27b": {
+          "name": "qwen3.8-27b",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "qwen3.8-27b-mtp": {
+          "name": "qwen3.8-27b-mtp",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "qwen3.8-27b-think": {
+          "name": "qwen3.8-27b-think",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        }
+      }
+    }
+  }
+}
