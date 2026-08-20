@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-07-25T22:21:42.065Z",
+  "checked_at": "2026-08-08T09:40:58.119Z",
   "files_checked": [
-    "person.js",
-    "elevator.js"
+    "evals/pi-wiggum_agents-a1_elevator_prompt_v3/person.js",
+    "evals/pi-wiggum_agents-a1_elevator_prompt_v3/elevator.js"
   ],
   "static_errors": [],
   "static_warnings": []

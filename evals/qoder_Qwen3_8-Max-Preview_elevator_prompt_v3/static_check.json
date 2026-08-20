@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-08-02T16:33:53.588Z",
+  "checked_at": "2026-08-08T09:40:59.051Z",
   "files_checked": [
-    "person.js",
-    "elevator.js"
+    "evals/qoder_Qwen3_8-Max-Preview_elevator_prompt_v3/person.js",
+    "evals/qoder_Qwen3_8-Max-Preview_elevator_prompt_v3/elevator.js"
   ],
   "static_errors": [],
   "static_warnings": []

@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-07-02T06:40:32.220Z",
+  "checked_at": "2026-08-08T09:40:58.484Z",
   "files_checked": [
-    "person.js",
-    "elevator.js"
+    "evals/pi_qwen3_6-35b-a3b_elevator_prompt_v3/person.js",
+    "evals/pi_qwen3_6-35b-a3b_elevator_prompt_v3/elevator.js"
   ],
   "static_errors": [],
   "static_warnings": []

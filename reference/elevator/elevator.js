@@ -37,6 +37,7 @@ const STEP_DELAY_MS = 300;      // pause between animation steps
 // ---------------------------------------------------------------------------
 let scene, camera, renderer, controls;
 let elevatorCar;                // THREE.Group — assigned in init()
+let floor = 0;                 // current floor index
 const people = [];              // person groups, one per occupied floor
 let emptyFloor = 0;             // the single unoccupied floor
 let speedMultiplier = 1;        // 1x..20x, driven by the UI slider

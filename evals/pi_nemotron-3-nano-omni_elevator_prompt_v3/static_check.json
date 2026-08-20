@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-07-03T20:09:14.300Z",
+  "checked_at": "2026-08-08T09:40:58.441Z",
   "files_checked": [
-    "person.js",
-    "elevator.js"
+    "evals/pi_nemotron-3-nano-omni_elevator_prompt_v3/person.js",
+    "evals/pi_nemotron-3-nano-omni_elevator_prompt_v3/elevator.js"
   ],
   "static_errors": [],
   "static_warnings": []

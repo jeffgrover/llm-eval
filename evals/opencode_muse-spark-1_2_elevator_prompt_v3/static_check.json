@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-08-08T04:17:33.499Z",
+  "checked_at": "2026-08-08T09:40:57.832Z",
   "files_checked": [
-    "person.js",
-    "elevator.js"
+    "evals/opencode_muse-spark-1_2_elevator_prompt_v3/person.js",
+    "evals/opencode_muse-spark-1_2_elevator_prompt_v3/elevator.js"
   ],
   "static_errors": [],
   "static_warnings": []

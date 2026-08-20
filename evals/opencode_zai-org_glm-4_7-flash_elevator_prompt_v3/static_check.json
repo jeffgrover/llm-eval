@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-06-29T17:38:01.080Z",
+  "checked_at": "2026-08-08T09:40:57.975Z",
   "files_checked": [
-    "person.js",
-    "elevator.js"
+    "evals/opencode_zai-org_glm-4_7-flash_elevator_prompt_v3/person.js",
+    "evals/opencode_zai-org_glm-4_7-flash_elevator_prompt_v3/elevator.js"
   ],
   "static_errors": [],
   "static_warnings": []

@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-07-29T03:13:23.005Z",
+  "checked_at": "2026-08-08T09:40:57.507Z",
   "files_checked": [
-    "person.js",
-    "elevator.js"
+    "evals/opencode_agents-a1_elevator_prompt_v3/person.js",
+    "evals/opencode_agents-a1_elevator_prompt_v3/elevator.js"
   ],
   "static_errors": [],
   "static_warnings": []

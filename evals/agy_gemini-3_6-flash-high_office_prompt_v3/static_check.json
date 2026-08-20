@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-07-24T04:09:37.472Z",
+  "checked_at": "2026-08-08T09:40:56.520Z",
   "files_checked": [
-    "person.js",
-    "world.js",
-    "elevator_logic.js",
-    "elevator.js",
-    "sim.js"
+    "evals/agy_gemini-3_6-flash-high_office_prompt_v3/person.js",
+    "evals/agy_gemini-3_6-flash-high_office_prompt_v3/world.js",
+    "evals/agy_gemini-3_6-flash-high_office_prompt_v3/elevator_logic.js",
+    "evals/agy_gemini-3_6-flash-high_office_prompt_v3/elevator.js",
+    "evals/agy_gemini-3_6-flash-high_office_prompt_v3/sim.js"
   ],
   "static_errors": [],
   "static_warnings": []
