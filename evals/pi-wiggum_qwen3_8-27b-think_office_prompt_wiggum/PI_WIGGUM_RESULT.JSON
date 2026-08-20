@@ -1,0 +1,44 @@
+{
+  "input_tokens": 161872,
+  "output_tokens": 109356,
+  "total_tokens": 271228,
+  "cache_read_tokens": 4613895,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 60,
+  "attempts": 1,
+  "passed": true,
+  "status": "success",
+  "terminal_reason": "completed",
+  "elapsed_seconds": 6317.143,
+  "checker_summaries": [
+    {
+      "passed": true,
+      "static": {
+        "returncode": 0,
+        "output": ": ok, static check written\n"
+      },
+      "runtime": {
+        "returncode": 0,
+        "output": ": ok, R probe written\n  metrics: loaded=true canvas=1 nonblank=true frames=160 objects=1794 changes=1326\n"
+      },
+      "logic_test": {
+        "returncode": 0,
+        "output": "PASS  lobby rush: full car leaves floor 0 despite re-pressed UP calls\nPASS  passenger destinations outrank same-floor hall calls\nPASS  repeated callUp(0) cannot starve riders' destinations\nPASS  down call below does not reverse an upward car with work above\nPASS  doors hold for pending boarders, then MAX_DOOR_OPEN_S cap closes them\nPASS  rider 0\u21925: destination survives the WAIT/ENTER/PRESS/WAIT handshake\nPASS  reset() clears phantom state\n\n==============================\n7/7 tests passed  \u2014  ALL PASS\n==============================\n"
+      },
+      "missing_files": [],
+      "static_errors": [],
+      "console_errors": [],
+      "page_errors": [],
+      "loaded": true,
+      "nonblank_canvas": true,
+      "animation_frames": 160,
+      "scene_object_count": 1794,
+      "dynamic_changes": 1326
+    }
+  ],
+  "attempt_terminations": [],
+  "provider_id": "llama-server",
+  "model_id": "qwen3.8-27b-think",
+  "duration_ms": 6317143
+}
