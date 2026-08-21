@@ -126,6 +126,11 @@ class OpenCodeRunner(AgentRunner):
 
         return None
 
+    def get_env_vars(self) -> Dict[str, str]:
+        env = super().get_env_vars()
+        env.setdefault("OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX", "131072")
+        return env
+
     def get_model_extra_info(self) -> Dict[str, str]:
         result_path = self.work_dir / OPENCODE_RESULT_FILENAME
         if not result_path.exists():
