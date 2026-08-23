@@ -15,6 +15,7 @@ A benchmarking framework for evaluating agentic CLI tools (Codex, Gemini CLI, Mi
 - `evals/` - Output directory; each run creates `{agent}_{model}_{prompt}/` with artifacts + `summary.html`
 - `reference/` - Known-good prompt implementations and preview images shown at the top of the dashboard
 - `scripts/` - Evaluator-side one-off utilities (cheating-audit transcript scanners, model reload helpers, transcript digests, browser probes); not part of the harness
+- `docs/` - Evaluator-side investigation artifacts (model tuning reports, captured LM Studio config/API dumps); not part of the harness
 - Prompt files (`*.txt`, `*.md`) at repo root define the coding tasks given to agents
 
 ## Key Patterns
