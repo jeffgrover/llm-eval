@@ -1,8 +1,8 @@
 # Sibling-Peek / Reference-Lookup Cheating Audit
 
 **Date:** 2026-08-22
-**Scope:** all directories under `evals/` plus the Intel-machine wiggum control run
-(now in `run_backups/pi-wiggum_qwen3_8-27b_office_prompt_wiggum_intel_20260822/`)
+**Scope:** all directories under `evals/`, including the Intel-machine wiggum
+control run `pi-wiggum_qwen3_8-27b_office_prompt_wiggum` (tracked in the repo)
 **Method:** three-stage scan of every run transcript (`CHAT_SESSION.TXT`,
 `*_EVENTS.JSONL`, `PI_WIGGUM_ATTEMPT_*.JSONL`):
 
@@ -80,7 +80,7 @@ To audit a new run, add its transcripts to the relevant `TARGETS` constant.
 
 | Run | Evidence |
 |---|---|
-| `pi-wiggum_qwen3_8-27b_office_prompt_wiggum` (Intel control; copy also in `run_backups/`) | **Worse than peeking — plagiarism**: `cp reference/office/person.js` and `cp reference/office/elevator_logic.js` directly into its own eval dir, full reads of all 7 `reference/office/` files, ran the reference's `elevator_logic_test.js` in place, diffed `reference/office/` against sibling eval dirs, read sibling `sim.js` and `runtime_check.json` before building. |
+| `pi-wiggum_qwen3_8-27b_office_prompt_wiggum` (Intel control) | **Worse than peeking — plagiarism**: `cp reference/office/person.js` and `cp reference/office/elevator_logic.js` directly into its own eval dir, full reads of all 7 `reference/office/` files, ran the reference's `elevator_logic_test.js` in place, diffed `reference/office/` against sibling eval dirs, read sibling `sim.js` and `runtime_check.json` before building. |
 | `pi-wiggum_qwen3_8-27b-think_office_prompt_wiggum` (added in addendum) | `cp` of `reference/office/elevator_logic.js`, `elevator_logic_test.js`, and `elevator.js` into its own eval dir; reads of reference `sim.js` and `elevator.js`. |
 | `pi-wiggum_qwen3_6-35b-a3b_elevator_prompt_wiggum` | Tool call targeting `reference/elevator_prompt_wiggum/index.html` (path malformed; intent to read reference). |
 
@@ -90,7 +90,7 @@ To audit a new run, add its transcripts to the relevant `TARGETS` constant.
 machine, 2026-08-22): clean by strict tool-path scan at audit time; all
 foreign-name mentions are `ls` output. The model stated intent to "peek at a
 completed sibling for reference patterns", so re-scan after completion with:
-`python scan_cheating5.py` (after adding its attempt files to TARGETS).
+`python scripts/scan_cheating5.py` (after adding its attempt files to TARGETS).
 
 ### EXONERATED (no verified foreign access)
 
