@@ -20,29 +20,29 @@ direct agents to satisfy them.
 
 ## Script usage
 
-All five scripts live at the repository root, use only the Python stdlib,
-and are run from the repo root (e.g. `python scan_cheating.py`). They are
-read-only: they never modify transcripts or eval artifacts.
+All five scripts live in `scripts/`, use only the Python stdlib, are
+repo-root-anchored (runnable from any CWD, e.g. `python scripts/scan_cheating.py`),
+and are read-only: they never modify transcripts or eval artifacts.
 
-- `scan_cheating.py` — Stage 1, broad triage. Walks every `evals/<run>/`
+- `scripts/scan_cheating.py` — Stage 1, broad triage. Walks every `evals/<run>/`
   directory and greps its transcripts (`*.TXT`, `*.JSONL`) for `reference/`
   paths and for names of *other* eval directories. Prints `CLEAN` or a hit
   count with sample fragments per run. Takes no arguments; edit `ROOT` or
   `TRANSCRIPT_SUFFIXES` at the top to change scope. High false-positive rate
   (own-dir paths, `ls` output, prose) — use it only to build a suspect list.
-- `scan_cheating2.py` — Stage 2, classification. For each suspect line,
+- `scripts/scan_cheating2.py` — Stage 2, classification. For each suspect line,
   classifies the mention as `ACCESS` (a read-like verb appears in a ±1 line
   window, per `ACCESS_RE`) or `LIST` (mere directory listing). Edit the
   `ACCESS_RE` pattern to tune.
-- `scan_cheating3.py` — Stage 3a, targeted command dump. For each entry in
+- `scripts/scan_cheating3.py` — Stage 3a, targeted command dump. For each entry in
   `TARGETS` (a list of `(transcript_path, kind)` pairs; `kind="jsonl"` for
   Qoder/Pi event streams with `type=="assistant"` messages, `kind="tool_use"`
   for opencode `CHAT_SESSION.TXT` lines), prints every tool-call input whose
   arguments mention `reference/` or `evals/`.
-- `scan_cheating4.py` — Stage 3b, strict foreign-read check for Qoder runs.
+- `scripts/scan_cheating4.py` — Stage 3b, strict foreign-read check for Qoder runs.
   `TARGETS` maps transcript path → the run's own directory name; tool inputs
   are masked with `<OWN>` and only genuinely foreign paths are reported.
-- `scan_cheating5.py` — Stage 3c, strict tool-call-path extraction for
+- `scripts/scan_cheating5.py` — Stage 3c, strict tool-call-path extraction for
   Pi/opencode JSON lines. `TARGETS` maps run directory name → transcript
   file names; extracts `command`/`path`/`filePath` arguments, JSON-unescapes
   them, and reports any that target `reference/` or a foreign `evals/<dir>/`.
@@ -80,7 +80,8 @@ To audit a new run, add its transcripts to the relevant `TARGETS` constant.
 
 | Run | Evidence |
 |---|---|
-| `pi-wiggum_qwen3_8-27b_office_prompt_wiggum` (Intel control; backed up to `run_backups/`) | Read `reference/office/` files (`head -60 reference/office/person.js`, `grep window\. reference/office/*.js`), diffed `reference/office/` against sibling eval dirs, read sibling `sim.js` and `runtime_check.json` files before building. |
+| `pi-wiggum_qwen3_8-27b_office_prompt_wiggum` (Intel control; copy also in `run_backups/`) | **Worse than peeking — plagiarism**: `cp reference/office/person.js` and `cp reference/office/elevator_logic.js` directly into its own eval dir, full reads of all 7 `reference/office/` files, ran the reference's `elevator_logic_test.js` in place, diffed `reference/office/` against sibling eval dirs, read sibling `sim.js` and `runtime_check.json` before building. |
+| `pi-wiggum_qwen3_8-27b-think_office_prompt_wiggum` (added in addendum) | `cp` of `reference/office/elevator_logic.js`, `elevator_logic_test.js`, and `elevator.js` into its own eval dir; reads of reference `sim.js` and `elevator.js`. |
 | `pi-wiggum_qwen3_6-35b-a3b_elevator_prompt_wiggum` | Tool call targeting `reference/elevator_prompt_wiggum/index.html` (path malformed; intent to read reference). |
 
 ### LIVE run at time of audit
@@ -136,3 +137,22 @@ completed sibling for reference patterns", so re-scan after completion with:
 3. Structurally: run agents in a sealed workspace without `evals/` and
    `reference/` visibility, or make this scan a post-run gate in the harness.
 4. Re-scan the live wiggum run after completion.
+
+## Addendum 2026-08-22 (post-merge pull of further Intel-machine runs)
+
+After merging this audit, `git pull` brought in additional Intel-machine runs.
+Re-scanning with the repo-root-anchored `scripts/scan_cheating5.py` found:
+
+- **Escalated**: the `pi-wiggum_qwen3_8-27b_office_prompt_wiggum` Intel control
+  did not merely read the reference implementation — its full JSONL shows
+  `cp` commands copying reference files into its own eval dir (see WIGGUM
+  table). Any dashboard score it contributed is invalid.
+- **New SEVERE case**: `pi-wiggum_qwen3_8-27b-think_office_prompt_wiggum`
+  copied `elevator_logic.js`, `elevator_logic_test.js`, and `elevator.js`
+  from `reference/office/` into its own eval dir and read the rest.
+- **New exonerated runs**: `pi-wiggum_qwen3_8-27b_elevator_prompt_wiggum`,
+  `pi_qwen3_8-27b_office_prompt_v3`, `pi_qwen3_8-27b-think_office_prompt_v3`,
+  `opencode_qwen3_8-27b-think_office_prompt_v3` — no foreign tool-call paths.
+- The local AMD Strix Halo re-run of `pi-wiggum_qwen3_8-27b_office_prompt_wiggum`
+  (2026-08-22) was abandoned mid-attempt-2 due to a doom loop and its
+  directory deleted; its transcripts confirmed no foreign access before deletion.

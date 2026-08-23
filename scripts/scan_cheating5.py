@@ -6,11 +6,18 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 CMD_RE = re.compile(r'"command"\s*:\s*"((?:[^"\\]|\\.)*)"')
 PATH_RE = re.compile(r'"(?:path|filePath|file_path)"\s*:\s*"((?:[^"\\]|\\.)*)"')
 
 TARGETS = {
-    "pi-wiggum_qwen3_8-27b_office_prompt_wiggum": ["PI_WIGGUM_ATTEMPT_001.JSONL"],
+    "pi-wiggum_qwen3_8-27b_office_prompt_wiggum": ["PI_WIGGUM_ATTEMPT_001.JSONL", "PI_WIGGUM_ATTEMPT_002.JSONL"],
+    "pi-wiggum_qwen3_8-27b-think_office_prompt_wiggum": ["PI_WIGGUM_ATTEMPT_001.JSONL", "PI_WIGGUM_ATTEMPT_002.JSONL"],
+    "pi-wiggum_qwen3_8-27b_elevator_prompt_wiggum": ["PI_WIGGUM_ATTEMPT_001.JSONL", "PI_WIGGUM_ATTEMPT_002.JSONL"],
+    "pi_qwen3_8-27b_office_prompt_v3": ["PI_EVENTS.JSONL"],
+    "pi_qwen3_8-27b-think_office_prompt_v3": ["PI_EVENTS.JSONL"],
+    "opencode_qwen3_8-27b-think_office_prompt_v3": ["CHAT_SESSION.TXT"],
     "pi_deepreinforce-ai_ornith-1_0-35b_elevator_prompt_v3": ["PI_EVENTS.JSONL"],
     "pi_qwen3_6-35b-a3b_elevator_prompt_v3": ["PI_EVENTS.JSONL", "CHAT_SESSION.TXT"],
     "pi-wiggum_agents-a1_elevator_prompt_v3": ["PI_WIGGUM_ATTEMPT_001.JSONL"],
@@ -25,7 +32,7 @@ for own, fnames in TARGETS.items():
     print(f"\n##### {own}")
     hits = []
     for fname in fnames:
-        p = Path("evals") / own / fname
+        p = REPO_ROOT / "evals" / own / fname
         if not p.exists():
             continue
         data = p.read_text(encoding="utf-8", errors="replace")

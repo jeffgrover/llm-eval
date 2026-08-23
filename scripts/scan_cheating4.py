@@ -1,8 +1,11 @@
 """One-off: strict peek check — qoder runs, excluding own-dir paths."""
 import json
 import sys
+from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 TARGETS = [
     (r"evals\qoder_MiniMax-M3_office_prompt_v3\QODER_EVENTS.JSONL", "qoder_MiniMax-M3_office_prompt_v3"),
@@ -13,7 +16,7 @@ TARGETS = [
 for path, own in TARGETS:
     print(f"\n##### {own}")
     found = 0
-    for ln in open(path, encoding="utf-8", errors="replace"):
+    for ln in (REPO_ROOT / path).open(encoding="utf-8", errors="replace"):
         if not ln.startswith("{"):
             continue
         try:
