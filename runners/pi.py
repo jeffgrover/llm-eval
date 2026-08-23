@@ -30,12 +30,19 @@ class PiRunner(AgentRunner):
         if self.non_local:
             return
 
-        self.models_json_path = Path.home() / ".pi" / "agent" / "models.json"
+        agent_config_dir = Path.home() / ".pi" / "agent"
+        self.models_json_path = agent_config_dir / "models.json"
+        self.settings_json_path = agent_config_dir / "settings.json"
         self._original_models_json = None
+        self._original_settings_json = None
 
         # Back up existing models.json if present
         if self.models_json_path.exists():
             self._original_models_json = self.models_json_path.read_text(
+                encoding="utf-8"
+            )
+        if self.settings_json_path.exists():
+            self._original_settings_json = self.settings_json_path.read_text(
                 encoding="utf-8"
             )
 
@@ -66,13 +73,25 @@ class PiRunner(AgentRunner):
         self.models_json_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.models_json_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
+        settings = (
+            json.loads(self._original_settings_json)
+            if self._original_settings_json is not None
+            else {}
+        )
+        # Pi defaults HTTP streams to a five-minute timeout. Slow local models
+        # can exceed that while continuously emitting a large file-write tool
+        # call, leaving the call truncated and its artifact missing.
+        settings["httpIdleTimeoutMs"] = 0
+        with open(self.settings_json_path, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2)
         print(
             f"[+] Wrote Pi models.json for {self.local_provider.display_name}: "
             f"{self.models_json_path}"
         )
+        print("[+] Disabled Pi's HTTP stream timeout for the local evaluation.")
 
     def _restore_pi_models_json(self):
-        """Restore original models.json after the run."""
+        """Restore original Pi configuration after the run."""
         if not hasattr(self, "models_json_path"):
             return
         if self._original_models_json is not None:
@@ -83,6 +102,14 @@ class PiRunner(AgentRunner):
         elif self.models_json_path.exists():
             self.models_json_path.unlink()
             print(f"[*] Removed temporary Pi models.json")
+        if self._original_settings_json is not None:
+            self.settings_json_path.write_text(
+                self._original_settings_json, encoding="utf-8"
+            )
+            print("[*] Restored original Pi settings.json")
+        elif self.settings_json_path.exists():
+            self.settings_json_path.unlink()
+            print("[*] Removed temporary Pi settings.json")
 
     @contextmanager
     def agent_configuration(self):

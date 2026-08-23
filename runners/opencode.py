@@ -299,6 +299,9 @@ class OpenCodeRunner(AgentRunner):
             "--format",
             "json",
             "--print-logs",
+            "--pure",
+            "--title",
+            f"{self.model_name} {self.prompt_file.stem}",
             "--dir",
             str(self.work_dir.resolve()),
         ]

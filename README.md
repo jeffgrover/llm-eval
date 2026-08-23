@@ -220,8 +220,11 @@ models to work without maintaining a hard-coded OpenCode model list.
 OpenCode normally starts background title generation alongside the main build
 request. The evaluator disables that title agent for unattended runs to avoid a
 second concurrent inference request and its additional prompt/KV memory
-pressure. The generated `opencode.json`, readable transcript, normalized usage,
-and detected provider/model are retained in the run directory.
+pressure. It also invokes `opencode run` with `--pure` and assigns a stable title
+from the requested model and prompt filename, keeping unrelated project plugins
+and automatically generated session titles out of the evaluation. The generated
+`opencode.json`, readable transcript, normalized usage, and detected
+provider/model are retained in the run directory.
 
 In non-local mode, pass a complete OpenCode model reference such as
 `provider/model`, or use a bare model name already declared in the user's global
@@ -274,6 +277,14 @@ estimator.
 ```
 
 Runs are saved under `evals/pi-wiggum_<model>_<prompt>/` with combined `CHAT_SESSION.TXT`, raw per-attempt `PI_WIGGUM_ATTEMPT_###.JSONL`, and aggregate metrics/status in `PI_WIGGUM_RESULT.JSON`.
+
+For local `pi` and `pi-wiggum` runs, the evaluator temporarily writes the
+selected provider to `~/.pi/agent/models.json` and sets
+`httpIdleTimeoutMs` to `0` in `~/.pi/agent/settings.json`. This prevents Pi's
+default five-minute HTTP stream timeout from truncating a continuously
+generated large tool call. Both files are restored byte-for-byte after the run,
+including when agent execution fails; temporary files are removed when no
+original configuration existed.
 
 ---
 
