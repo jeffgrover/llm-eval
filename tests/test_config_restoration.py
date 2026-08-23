@@ -1,5 +1,6 @@
 import contextlib
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,9 +55,12 @@ class AgentConfigRestorationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             home = Path(temp_dir)
             models_path = home / ".pi" / "agent" / "models.json"
+            settings_path = models_path.parent / "settings.json"
             models_path.parent.mkdir(parents=True)
             original = '{"providers":{"existing":{}}}\n'
+            original_settings = '{"theme":"dark"}\n'
             models_path.write_text(original, encoding="utf-8")
+            settings_path.write_text(original_settings, encoding="utf-8")
             runner = PiRunner(
                 "pi",
                 "target-model",
@@ -75,14 +79,22 @@ class AgentConfigRestorationTests(unittest.TestCase):
                             models_path.read_text(encoding="utf-8"),
                             original,
                         )
+                        settings = json.loads(
+                            settings_path.read_text(encoding="utf-8")
+                        )
+                        self.assertEqual(settings["httpIdleTimeoutMs"], 0)
                         raise RuntimeError("agent failed")
 
             self.assertEqual(models_path.read_text(encoding="utf-8"), original)
+            self.assertEqual(
+                settings_path.read_text(encoding="utf-8"), original_settings
+            )
 
     def test_pi_removes_temporary_models_file_when_none_existed(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             home = Path(temp_dir)
             models_path = home / ".pi" / "agent" / "models.json"
+            settings_path = models_path.parent / "settings.json"
             runner = PiRunner(
                 "pi",
                 "target-model",
@@ -97,8 +109,10 @@ class AgentConfigRestorationTests(unittest.TestCase):
             ):
                 with runner.agent_configuration():
                     self.assertTrue(models_path.exists())
+                    self.assertTrue(settings_path.exists())
 
             self.assertFalse(models_path.exists())
+            self.assertFalse(settings_path.exists())
 
 
 if __name__ == "__main__":

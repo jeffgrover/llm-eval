@@ -16,6 +16,11 @@ If checker feedback is provided in a later attempt, edit the existing files to
 fix that feedback and continue. Do not stop because a check failed; iterate from
 the feedback. Do not ask the human for decisions.
 
+The evaluator owns all validation. Do not inspect, read, edit, search for, or
+run `static_check.js` or `runtime_check.js`. Do not inspect other evaluation
+directories or use their artifacts as examples. Work only on the three output
+files in the current directory, then exit so the evaluator can run its checks.
+
 ===============================================================================
 OUTPUT CONTRACT
 ===============================================================================
@@ -329,8 +334,7 @@ Before reporting done, verify all items:
 - `elevatorCar` is assigned before door properties are written
 - `person.js` defines global `createPerson()` and populates `userData`
 - reparenting uses `.attach()` for boarding and exiting
-- `node ../../static_check.js .` reports no errors
-- `node ../../runtime_check.js .` reports no startup, canvas, animation, or
-  browser page errors
+- leave validation to the evaluator-owned checker loop
 
-Only report completion when the generated simulation satisfies these criteria.
+After creating or repairing the three files, exit promptly. The evaluator will
+provide exact checker feedback in a new attempt if anything remains broken.

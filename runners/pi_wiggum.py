@@ -298,25 +298,12 @@ class PiWiggumRunner(PiRunner):
                 "- `node elevator_logic_test.js` passes",
                 "- the simulation still reads as an office day with workers, visitors, world geometry, elevator logic, and UI",
             ]
-            check_commands = [
-                "node elevator_logic_test.js",
-                "node ../../static_check.js .",
-                "node ../../runtime_check.js .",
-            ]
         elif kind == "elevator":
             scenario = "elevator simulation"
             extra_criteria = ["- the elevator simulation continues running in the browser"]
-            check_commands = [
-                "node ../../static_check.js .",
-                "node ../../runtime_check.js .",
-            ]
         else:
             scenario = "browser simulation"
             extra_criteria = ["- the simulation continues running in the browser"]
-            check_commands = [
-                "node ../../static_check.js .",
-                "node ../../runtime_check.js .",
-            ]
 
         criteria = "\n".join([
             "- zero static checker errors",
@@ -327,11 +314,11 @@ class PiWiggumRunner(PiRunner):
             "- visible motion / dynamic changes observed",
             *extra_criteria,
         ])
-        commands = "\n".join(check_commands)
-
         return f"""The approved {scenario} implementation did not pass evaluator-owned checks after attempt {attempt}.
 
 Edit the existing files and create any missing required files from the original prompt: {files}. Do not replace this task with a different prompt's artifact, do not ask the human for decisions, and do not stop until the checks pass.
+
+The evaluator owns validation. Do not inspect, read, edit, search for, or run evaluator checker scripts. Do not inspect other evaluation directories. Work only on the required files in the current directory, use the feedback below, then exit promptly so the evaluator can check the repair.
 
 Required success criteria:
 {criteria}
@@ -339,11 +326,6 @@ Required success criteria:
 Checker feedback to fix:
 
 {checker_text}
-
-After editing, run:
-{commands}
-
-If any checker still reports failure, fix the files and rerun the checks before reporting completion.
 """
 
     def _write_wiggum_result(self, aggregate: Dict, start: float):
