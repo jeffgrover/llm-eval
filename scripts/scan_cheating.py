@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-ROOT = Path("evals")
+ROOT = Path(__file__).resolve().parents[1] / "evals"
 TRANSCRIPT_SUFFIXES = (".TXT", ".JSONL")
 
 eval_dirs = sorted(d for d in ROOT.iterdir() if d.is_dir())

@@ -27,6 +27,14 @@ DEFAULT_DOOM_LOOP_MAX_CYCLE_LENGTH = 4
 DEFAULT_DOOM_LOOP_MIN_CALLS = 24
 
 
+def _format_metric(value: float) -> str:
+    """Render whole numbers with digit separators (5,013,682) and keep
+    fractional values compact (0.5) instead of scientific notation."""
+    if float(value).is_integer():
+        return f"{int(value):,}"
+    return f"{value:g}"
+
+
 @dataclass(frozen=True)
 class RunSafetyLimits:
     """Configurable hard limits and repeating-cycle thresholds for one run."""
@@ -241,7 +249,10 @@ class RunSafetyMonitor:
             if limit > 0 and observed >= limit:
                 self.termination = RunTermination(
                     reason=reason,
-                    message=f"Run stopped after reaching {observed:g} {label} (limit {limit:g}).",
+                    message=(
+                        f"Run stopped after reaching {_format_metric(observed)} "
+                        f"{label} (limit {_format_metric(limit)})."
+                    ),
                     evidence={"observed": observed, "limit": limit, "metric": label},
                 )
                 return self.termination

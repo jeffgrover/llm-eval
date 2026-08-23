@@ -2,8 +2,11 @@
 import json
 import re
 import sys
+from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 TARGETS = [
     (r"evals\opencode_moonshotai_kimi-k3_office_prompt_v3\CHAT_SESSION.TXT", "tool_use"),
@@ -18,7 +21,7 @@ PATTERN = re.compile(r"(reference[/\\]|evals[/\\])")
 for path, kind in TARGETS:
     print(f"\n########## {path}")
     try:
-        data = open(path, encoding="utf-8", errors="replace").read()
+        data = (REPO_ROOT / path).read_text(encoding="utf-8", errors="replace")
     except Exception as exc:
         print("  unreadable:", exc)
         continue

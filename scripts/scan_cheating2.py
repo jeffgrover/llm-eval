@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-ROOT = Path("evals")
+ROOT = Path(__file__).resolve().parents[1] / "evals"
 TRANSCRIPT_SUFFIXES = (".TXT", ".JSONL")
 ACCESS_RE = re.compile(
     r"(\bcat\b|\bhead\b|\btail\b|\bsed\b|\bless\b|\bmore\b|\bgrep\b|\bdiff\b|\bcp\b|\bmv\b|\brm\b|read_file|\"read\"|\"edit\"|\"write\"|\"glob\"|Get-Content|Select-String)",

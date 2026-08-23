@@ -1,0 +1,15 @@
+{
+ "id": "qwen3.8-27b",
+ "object": "model",
+ "type": "vlm",
+ "publisher": "unsloth",
+ "arch": "qwen35",
+ "compatibility_type": "gguf",
+ "quantization": "Q6_K_XL",
+ "state": "loaded",
+ "max_context_length": 262144,
+ "loaded_context_length": 102400,
+ "capabilities": [
+  "tool_use"
+ ]
+}

@@ -1,0 +1,56 @@
+{
+  "preset": "",
+  "operation": {
+    "fields": [
+      {
+        "key": "llm.prediction.reasoning.budgetTokens",
+        "value": {
+          "checked": true,
+          "value": 8192
+        }
+      },
+      {
+        "key": "llm.prediction.presencePenalty",
+        "value": 0
+      }
+    ]
+  },
+  "load": {
+    "fields": [
+      {
+        "key": "llm.load.contextLength",
+        "value": 131072
+      },
+      {
+        "key": "llm.load.llama.keepModelInMemory",
+        "value": false
+      },
+      {
+        "key": "llm.load.llama.tryMmap",
+        "value": false
+      },
+      {
+        "key": "llm.load.llama.kCacheQuantizationType",
+        "value": {
+          "checked": false,
+          "value": "q8_0"
+        }
+      },
+      {
+        "key": "llm.load.llama.vCacheQuantizationType",
+        "value": {
+          "checked": false,
+          "value": "q8_0"
+        }
+      },
+      {
+        "key": "llm.load.llama.flashAttention",
+        "value": true
+      },
+      {
+        "key": "llm.load.numParallelSessions",
+        "value": 1
+      }
+    ]
+  }
+}
