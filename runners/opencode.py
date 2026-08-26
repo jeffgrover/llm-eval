@@ -18,7 +18,6 @@ from evaluation_core import (
     SERVER_LOG_FILENAME,
     get_env_int,
     get_lms_loaded_context_length,
-    is_llama_server_provider,
     read_prompt_file,
     run_streaming_process,
     safe_stdout_write,
@@ -191,7 +190,11 @@ class OpenCodeRunner(AgentRunner):
         should_define_local_provider = (
             not self.non_local
             and (
-                is_llama_server_provider(self.custom_provider)
+                (
+                    bool(self.custom_provider)
+                    and self.custom_provider.lower().strip()
+                    == self.local_provider.provider_id
+                )
                 or (
                     not self.custom_provider
                     and self._resolve_global_provider_for_model(self.model_name) is None
@@ -237,7 +240,10 @@ class OpenCodeRunner(AgentRunner):
                 provider_id: {
                     "npm": "@ai-sdk/openai-compatible",
                     "name": self.local_provider.display_name,
-                    "options": {"baseURL": base_url},
+                    "options": {
+                        "baseURL": base_url,
+                        "apiKey": "{env:OPENAI_API_KEY}",
+                    },
                     "models": models,
                 }
             }
