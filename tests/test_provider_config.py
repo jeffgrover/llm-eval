@@ -122,6 +122,34 @@ class LocalProviderConfigTests(unittest.TestCase):
             )
             self.assertEqual(provider["name"], LLAMA_SERVER_PROVIDER.display_name)
 
+    @patch.object(OpenCodeRunner, "_discover_local_models")
+    def test_opencode_config_defines_explicit_omlx_provider(self, discover_models):
+        discover_models.return_value = ["Qwen3.8-27B-MLX-4bit"]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runner = OpenCodeRunner(
+                "opencode",
+                "Qwen3.8-27B-MLX-4bit",
+                Path("prompt.txt"),
+                headless=True,
+                non_local=False,
+                custom_provider="omlx",
+                local_provider=OMLX_PROVIDER,
+            )
+            runner.work_dir = Path(temp_dir)
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                runner.configure_agent()
+
+            config = json.loads(
+                (runner.work_dir / "opencode.json").read_text(encoding="utf-8")
+            )
+            provider = config["provider"]["omlx"]
+            self.assertEqual(config["model"], "omlx/Qwen3.8-27B-MLX-4bit")
+            self.assertEqual(provider["options"]["baseURL"], OMLX_PROVIDER.api_url)
+            self.assertEqual(provider["options"]["apiKey"], "{env:OPENAI_API_KEY}")
+            self.assertNotEqual(provider["options"]["apiKey"], OMLX_PROVIDER.api_key)
+            self.assertIn("Qwen3.8-27B-MLX-4bit", provider["models"])
+
     def test_opencode_uses_explicit_lm_studio_context_limit(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             runner = OpenCodeRunner(
