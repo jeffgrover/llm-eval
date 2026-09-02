@@ -430,7 +430,10 @@ def parse_pi_event(event: Dict) -> ParsedEvent:
             return ParsedEvent(text=update.get("delta", ""))
         if update.get("type") in ("tool_call_start", "toolcall_start"):
             tool_call = _pi_streamed_tool_call(event) or {}
-            name = update.get("name")
+            # Pi v0.52 emits the name directly as ``toolName`` on
+            # toolcall_start events. Older streams used ``name`` or included
+            # the call in partial/message content, so retain those fallbacks.
+            name = update.get("name") or update.get("toolName")
             if not name:
                 name = tool_call.get("name")
             return ParsedEvent(text=f"\n[Tool: {name or 'unknown'}]\n")

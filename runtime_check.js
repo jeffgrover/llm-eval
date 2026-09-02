@@ -295,6 +295,7 @@ async function probeEval(browser, serverPort, evalDir) {
   const frames = Number(runtimeStats.frames || 0);
   const objectCount = Number(runtimeStats.objectCount || 0);
   const objectChanges = Number(runtimeStats.objectChanges || 0);
+  const canvasChanged = Boolean(first.checksum && second.checksum && first.checksum !== second.checksum);
 
   if (first.error || second.error) warnings.push(`Canvas sampling issue: ${first.error || second.error}`);
 
@@ -312,8 +313,8 @@ async function probeEval(browser, serverPort, evalDir) {
     nonblank_canvas: Boolean(first.nonblank_canvas || second.nonblank_canvas),
     animation_frames: frames,
     scene_object_count: objectCount,
-    dynamic_changes: objectChanges,
-    canvas_changed: Boolean(first.checksum && second.checksum && first.checksum !== second.checksum),
+    dynamic_changes: objectChanges || (canvasChanged ? 1 : 0),
+    canvas_changed: canvasChanged,
     duration_ms: Date.now() - started,
     warnings,
   };

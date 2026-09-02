@@ -411,6 +411,32 @@ function jsFilesForEval(evalDir) {
     .map((name) => path.join(evalDir, name));
 }
 
+function inlineClassicScriptsForEval(evalDir) {
+  const previewNames = ["index.html", "elevator_sim.html", "elevator_simulation.html", "test.html"];
+  const scripts = [];
+  for (const previewName of previewNames) {
+    const previewPath = path.join(evalDir, previewName);
+    if (!fs.existsSync(previewPath)) continue;
+    const html = fs.readFileSync(previewPath, "utf8");
+    const scriptRe = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+    let match;
+    let number = 0;
+    while ((match = scriptRe.exec(html))) {
+      number += 1;
+      const attrs = match[1] || "";
+      if (/\bsrc\s*=/i.test(attrs) || /\btype\s*=\s*["']module["']/i.test(attrs)) continue;
+      const source = match[2] || "";
+      if (!source.trim()) continue;
+      scripts.push({
+        label: `${path.relative(ROOT, previewPath)}:inline-script-${number}`,
+        source,
+      });
+    }
+    break;
+  }
+  return scripts;
+}
+
 function readIfExists(filePath) {
   if (!fs.existsSync(filePath)) return "";
   return fs.readFileSync(filePath, "utf8");
@@ -561,6 +587,7 @@ function checkElevatorContract(evalDir) {
 
 function staticCheckEval(evalDir) {
   const jsFiles = jsFilesForEval(evalDir);
+  const inlineScripts = inlineClassicScriptsForEval(evalDir);
   const syntaxErrors = [];
   for (const filePath of jsFiles) {
     const result = spawnSync(process.execPath, ["--check", filePath], { encoding: "utf8" });
@@ -578,6 +605,14 @@ function staticCheckEval(evalDir) {
       const usefulLines = syntaxLineIndex >= 0 ? lines.slice(0, syntaxLineIndex + 1) : lines.slice(0, 4);
       const message = usefulLines.join(" | ");
       syntaxErrors.push(message || `${relFile}: syntax check failed`);
+    }
+  }
+  for (const script of inlineScripts) {
+    try {
+      new Function(script.source);
+    } catch (err) {
+      const detail = err && err.message ? err.message : String(err);
+      syntaxErrors.push(`${script.label}: ${detail}`);
     }
   }
 
@@ -600,7 +635,10 @@ function staticCheckEval(evalDir) {
   const staticErrors = [...syntaxErrors, ...duplicateErrors, ...referenceErrors, ...contractErrors];
   return {
     checked_at: new Date().toISOString(),
-    files_checked: jsFiles.map((filePath) => path.relative(ROOT, filePath)),
+    files_checked: [
+      ...jsFiles.map((filePath) => path.relative(ROOT, filePath)),
+      ...inlineScripts.map((script) => script.label),
+    ],
     static_errors: Array.from(new Set(staticErrors)).slice(0, 30),
     static_warnings: [],
   };

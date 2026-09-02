@@ -14,6 +14,11 @@ from typing import Dict, List, Optional
 from evaluation_core import (
     AgentRunner,
     CHAT_SESSION_FILENAME,
+    DEFAULT_LOCAL_CONTEXT_LIMIT,
+    DEFAULT_LOCAL_OUTPUT_LIMIT,
+    LM_STUDIO_API_URL,
+    get_env_int,
+    get_lms_loaded_context_length,
     read_prompt_file,
     safe_stdout_write,
     send_stdin,
@@ -46,6 +51,25 @@ class PiRunner(AgentRunner):
                 encoding="utf-8"
             )
 
+        context_limit = getattr(self, "local_context_limit", None) or get_env_int(
+            "LLM_EVAL_LOCAL_CONTEXT_LIMIT", 0
+        )
+        if not context_limit and self.local_provider.api_url == LM_STUDIO_API_URL:
+            context_limit = get_lms_loaded_context_length(self.model_name)
+            if context_limit:
+                print(
+                    "[+] Pi context window follows loaded LM Studio context: "
+                    f"{context_limit}"
+                )
+        context_limit = context_limit or DEFAULT_LOCAL_CONTEXT_LIMIT
+        configured_output_limit = get_env_int(
+            "LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT
+        )
+        # Leave room for the prompt and tool results. Advertising a 32K output
+        # budget against a 48K server context lets reasoning consume the entire
+        # remaining context and truncates file-write arguments mid-JSON.
+        output_limit = min(configured_output_limit, max(4096, context_limit // 3))
+
         config = {
             "providers": {
                 self.custom_provider or self.local_provider.provider_id: {
@@ -56,15 +80,14 @@ class PiRunner(AgentRunner):
                         "supportsDeveloperRole": False,
                         "supportsReasoningEffort": False,
                     },
-                    # Pi's built-in default for an unannotated custom model is
-                    # 16,384 output tokens.  That is too small for large
-                    # agentic file writes (notably Qwen3.8's office prompt),
-                    # so advertise the profile context and a generous
-                    # per-response output cap.
                     "models": [{
                         "id": self.model_name,
-                        "contextWindow": 131072,
-                        "maxTokens": 32768,
+                        "contextWindow": context_limit,
+                        "maxTokens": output_limit,
+                        "reasoning": True,
+                        "compat": {
+                            "supportsReasoningEffort": True,
+                        },
                     }],
                 }
             }
@@ -135,6 +158,8 @@ class PiRunner(AgentRunner):
                 extra["Provider"] = data["provider_id"].title()
             if data.get("model_id"):
                 extra["Model ID"] = data["model_id"]
+            if data.get("thinking_level"):
+                extra["Thinking Level"] = data["thinking_level"].title()
             return extra
         except Exception:
             return {}
@@ -161,6 +186,10 @@ class PiRunner(AgentRunner):
 
     def _build_pi_command(self) -> List[str]:
         cmd = ["pi", "--mode", "json", "--print", "--no-session"]
+
+        thinking_level = getattr(self, "thinking_level", None)
+        if thinking_level:
+            cmd += ["--thinking", thinking_level]
 
         if self.non_local:
             # Cloud mode: parse "provider/model" to split provider and model,
@@ -426,6 +455,9 @@ class PiRunner(AgentRunner):
             "cost_usd": result_data.get("cost_usd", 0.0),
             "num_turns": result_data.get("num_turns", 0),
         }
+        thinking_level = getattr(self, "thinking_level", None)
+        if thinking_level:
+            metrics["thinking_level"] = thinking_level
         if result_data.get("provider_id"):
             metrics["provider_id"] = result_data["provider_id"]
         if result_data.get("model_id"):

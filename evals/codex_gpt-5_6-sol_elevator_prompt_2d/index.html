@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Five-Story Elevator</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      display: grid;
+      min-height: 100vh;
+      place-items: center;
+      padding: 32px 20px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #17313a;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.95), transparent 32rem),
+        linear-gradient(145deg, #d7e6e5, #aec9c7);
+    }
+    main {
+      width: min-content;
+      padding: 26px;
+      text-align: center;
+      background: rgba(250, 252, 249, 0.9);
+      border: 1px solid rgba(41, 78, 84, 0.14);
+      border-radius: 24px;
+      box-shadow: 0 24px 65px rgba(25, 57, 63, 0.2);
+      backdrop-filter: blur(10px);
+    }
+    .eyebrow {
+      margin: 0 0 5px;
+      color: #5d777a;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0 0 20px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.9rem, 5vw, 2.65rem);
+      font-weight: 600;
+      letter-spacing: -0.035em;
+    }
+    canvas {
+      display: block;
+      width: min(640px, calc(100vw - 92px));
+      height: auto;
+      background: #eef4f1;
+      border: 1px solid rgba(27, 55, 62, 0.16);
+      border-radius: 16px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65), 0 10px 28px rgba(32, 65, 70, 0.13);
+    }
+    output {
+      display: inline-block;
+      min-width: min(420px, 100%);
+      margin-top: 18px;
+      padding: 11px 18px;
+      overflow: hidden;
+      color: #ecf8f3;
+      background: #183f45;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      box-shadow: 0 7px 18px rgba(22, 58, 64, 0.2);
+      font-size: 0.82rem;
+      font-weight: 750;
+      letter-spacing: 0.025em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Live building system</p>
+    <h1>Five-Story Elevator</h1>
+    <canvas id="building" width="640" height="600" aria-label="Cutaway view of a five-story building"></canvas>
+    <output id="status">Car at Floor 1</output>
+  </main>
+  <script>
+    const canvas = document.getElementById('building');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('status');
+    const STEP = 1 / 60;
+    const GROUND_FLOOR = 1;
+    const TOP_FLOOR = 5;
+    const FLOOR_COUNT = TOP_FLOOR - GROUND_FLOOR + 1;
+    const FLOOR_HEIGHT = 100;
+    const BUILDING = { x: 90, y: 50, width: 460, height: 500 };
+    const SHAFT = { x: 350, y: 50, width: 130, height: 500 };
+    const CAR = { x: 365, width: 100, height: 80 };
+    const slabY = (floor) => BUILDING.y + BUILDING.height - (floor - 1) * FLOOR_HEIGHT;
+    const carY = () => slabY(state.carFloor) - CAR.height;
+    const carCenterX = CAR.x + CAR.width / 2;
+    const testMode = new URLSearchParams(location.search).get('test') === '1';
+    let randomSeed = 0x5eed1234;
+
+    function random() {
+      if (!testMode) return Math.random();
+      randomSeed = (1664525 * randomSeed + 1013904223) >>> 0;
+      return randomSeed / 0x100000000;
+    }
+
+    function randomItem(items) {
+      return items[Math.floor(random() * items.length)];
+    }
+
+    const phases = [
+      { type: 'dispatching', name: 'Dispatching' },
+      { type: 'opening-pickup', name: 'Opening for pickup', duration: 0.8 },
+      { type: 'boarding', name: 'Passenger boarding', duration: 1.3 },
+      { type: 'closing-pickup', name: 'Closing for departure', duration: 0.8 },
+      { type: 'riding', name: 'Passenger riding', duration: 1 },
+      { type: 'opening-dropoff', name: 'Opening at destination', duration: 0.8 },
+      { type: 'exiting', name: 'Passenger exiting', duration: 1.3 },
+      { type: 'pause', name: 'Passenger arrived', duration: 0.8 },
+      { type: 'closing-dropoff', name: 'Closing after arrival', duration: 0.8 }
+    ];
+    const initialEmptyFloor = GROUND_FLOOR + Math.floor(random() * FLOOR_COUNT);
+    const people = [];
+    const personColors = ['#275d8c', '#b24c3f', '#29745d', '#7651a8', '#b56b19'];
+    for (let floor = GROUND_FLOOR; floor <= TOP_FLOOR; floor += 1) {
+      if (floor !== initialEmptyFloor) {
+        people.push({
+          id: people.length,
+          floor,
+          x: SHAFT.x - 40,
+          color: personColors[people.length % personColors.length]
+        });
+      }
+    }
+    const state = {
+      phase: 0,
+      elapsed: 0,
+      carFloor: initialEmptyFloor,
+      emptyFloor: initialEmptyFloor,
+      pickupFloor: 0,
+      dropoffFloor: initialEmptyFloor,
+      dispatchFrom: initialEmptyFloor,
+      dropX: SHAFT.x + SHAFT.width + 30,
+      active: null,
+      completedTrips: 0
+    };
+
+    function chooseNextPassenger() {
+      state.active = randomItem(people.filter((person) => person.floor !== state.emptyFloor));
+      state.pickupFloor = state.active.floor;
+      state.dropoffFloor = state.emptyFloor;
+      state.dispatchFrom = state.carFloor;
+      state.dropX = state.active.x < carCenterX ? SHAFT.x + SHAFT.width + 30 : SHAFT.x - 40;
+    }
+
+    chooseNextPassenger();
+
+    function phaseDuration(phase = phases[state.phase]) {
+      if (phase.type === 'dispatching') {
+        return Math.max(0.8, Math.abs(state.pickupFloor - state.dispatchFrom) * 0.8);
+      }
+      if (phase.type === 'riding') {
+        return Math.max(0.8, Math.abs(state.dropoffFloor - state.pickupFloor) * 0.8);
+      }
+      return phase.duration;
+    }
+
+    function phaseProgress() {
+      return Math.min(1, state.elapsed / phaseDuration());
+    }
+
+    function updateCarPosition() {
+      const phase = phases[state.phase];
+      const progress = phaseProgress();
+      if (phase.type === 'dispatching') {
+        state.carFloor = state.dispatchFrom + (state.pickupFloor - state.dispatchFrom) * progress;
+      } else if (phase.type === 'riding') {
+        state.carFloor = state.pickupFloor + (state.dropoffFloor - state.pickupFloor) * progress;
+      } else if (['opening-pickup', 'boarding', 'closing-pickup'].includes(phase.type)) {
+        state.carFloor = state.pickupFloor;
+      } else {
+        state.carFloor = state.dropoffFloor;
+      }
+    }
+
+    function completeTrip() {
+      state.active.floor = state.dropoffFloor;
+      state.active.x = state.dropX;
+      state.emptyFloor = state.pickupFloor;
+      state.completedTrips += 1;
+      chooseNextPassenger();
+    }
+
+    function advance(dt) {
+      let remaining = dt;
+      while (remaining > 0) {
+        const duration = phaseDuration();
+        const portion = Math.min(remaining, duration - state.elapsed);
+        state.elapsed += portion;
+        remaining -= portion;
+        updateCarPosition();
+        if (state.elapsed >= duration - 0.000001) {
+          state.elapsed = 0;
+          state.phase += 1;
+          if (state.phase === phases.length) {
+            state.phase = 0;
+            completeTrip();
+          }
+        }
+      }
+    }
+
+    function doorOpenAmount() {
+      const phase = phases[state.phase];
+      const progress = phaseProgress();
+      if (phase.type.startsWith('opening')) return progress;
+      if (phase.type.startsWith('closing')) return 1 - progress;
+      if (phase.type === 'boarding' || phase.type === 'exiting' || phase.type === 'pause') return 1;
+      return 0;
+    }
+
+    function passengerPosition() {
+      const phase = phases[state.phase];
+      const progress = phaseProgress();
+      if (['dispatching', 'opening-pickup'].includes(phase.type)) {
+        return { x: state.active.x, feetY: slabY(state.pickupFloor) };
+      }
+      if (phase.type === 'boarding') {
+        return {
+          x: state.active.x + (carCenterX - state.active.x) * progress,
+          feetY: slabY(state.pickupFloor)
+        };
+      }
+      if (['closing-pickup', 'riding', 'opening-dropoff'].includes(phase.type)) {
+        return { x: carCenterX, feetY: slabY(state.carFloor) };
+      }
+      if (phase.type === 'exiting') {
+        return {
+          x: carCenterX + (state.dropX - carCenterX) * progress,
+          feetY: slabY(state.dropoffFloor)
+        };
+      }
+      return { x: state.dropX, feetY: slabY(state.dropoffFloor) };
+    }
+
+    function drawPassenger(x, feetY, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, feetY - 39, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(x, feetY - 31);
+      ctx.lineTo(x, feetY - 11);
+      ctx.moveTo(x, feetY - 23);
+      ctx.lineTo(x - 8, feetY - 16);
+      ctx.moveTo(x, feetY - 11);
+      ctx.lineTo(x - 7, feetY);
+      ctx.moveTo(x, feetY - 11);
+      ctx.lineTo(x + 7, feetY);
+      ctx.strokeStyle = color;
+      ctx.stroke();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const backdrop = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      backdrop.addColorStop(0, '#d9e9e7');
+      backdrop.addColorStop(1, '#f1eee5');
+      ctx.fillStyle = backdrop;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#f7f2e8';
+      ctx.fillRect(BUILDING.x, BUILDING.y, BUILDING.width, BUILDING.height);
+      ctx.strokeStyle = '#24434a';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(BUILDING.x, BUILDING.y, BUILDING.width, BUILDING.height);
+
+      ctx.fillStyle = '#47616a';
+      ctx.fillRect(SHAFT.x, SHAFT.y, SHAFT.width, SHAFT.height);
+      ctx.strokeRect(SHAFT.x, SHAFT.y, SHAFT.width, SHAFT.height);
+
+      for (let floor = GROUND_FLOOR; floor <= TOP_FLOOR; floor += 1) {
+        const y = slabY(floor);
+        ctx.beginPath();
+        ctx.moveTo(BUILDING.x, y);
+        ctx.lineTo(SHAFT.x, y);
+        ctx.moveTo(SHAFT.x + SHAFT.width, y);
+        ctx.lineTo(BUILDING.x + BUILDING.width, y);
+        ctx.stroke();
+        ctx.fillStyle = '#24434a';
+        ctx.font = '600 17px ui-sans-serif, system-ui, sans-serif';
+        ctx.fillText(`Floor ${floor}`, 112, y - FLOOR_HEIGHT / 2 + 6);
+      }
+
+      const carTop = carY();
+      ctx.fillStyle = '#e5ad4f';
+      ctx.fillRect(CAR.x, carTop, CAR.width, CAR.height);
+      ctx.strokeRect(CAR.x, carTop, CAR.width, CAR.height);
+
+      for (const person of people) {
+        if (person !== state.active) drawPassenger(person.x, slabY(person.floor), person.color);
+      }
+      const passenger = passengerPosition();
+      drawPassenger(passenger.x, passenger.feetY, state.active.color);
+
+      const opening = doorOpenAmount() * 35;
+      ctx.fillStyle = '#263b43';
+      ctx.fillRect(CAR.x + 2, carTop + 2, 48 - opening, CAR.height - 4);
+      ctx.fillRect(CAR.x + 50 + opening, carTop + 2, 48 - opening, CAR.height - 4);
+
+      const phase = phases[state.phase];
+      status.textContent = `${phase.name} · Floor ${Math.round(state.carFloor)} · ${state.pickupFloor} → ${state.dropoffFloor}`;
+    }
+
+    let previous = 0;
+    let accumulator = 0;
+    function frame(timestamp) {
+      if (!previous) previous = timestamp;
+      accumulator += Math.min(0.1, (timestamp - previous) / 1000);
+      previous = timestamp;
+      while (accumulator >= STEP) {
+        advance(STEP);
+        accumulator -= STEP;
+      }
+      draw();
+      requestAnimationFrame(frame);
+    }
+    if (testMode) {
+      while (state.completedTrips < 3) advance(STEP);
+      draw();
+      status.textContent = 'ELEVATOR_SMOKE_PASS';
+    } else {
+      draw();
+      requestAnimationFrame(frame);
+    }
+  </script>
+</body>
+</html>

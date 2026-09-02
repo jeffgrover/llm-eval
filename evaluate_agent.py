@@ -182,6 +182,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Keep LM Studio's KV cache in system memory instead of GPU memory",
     )
+    parser.add_argument(
+        "--thinking-level",
+        choices=("off", "minimal", "low", "medium", "high", "xhigh", "max"),
+        help="Reasoning/thinking level for agents that support it (for example Pi)",
+    )
     safety_group = parser.add_argument_group("runaway-agent safeguards")
     safety_group.add_argument(
         "--max-seconds",
@@ -302,6 +307,7 @@ def main(argv: Optional[List[str]] = None):
         ),
     )
     runner.local_context_limit = args.lms_context_length
+    runner.thinking_level = args.thinking_level
 
     runner.confirm_workspace_overwrite()
 

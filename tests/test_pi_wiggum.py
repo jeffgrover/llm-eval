@@ -11,6 +11,21 @@ from runners import PiRunner, PiWiggumRunner
 
 
 class PiRunnerTests(unittest.TestCase):
+    def test_pi_command_passes_explicit_thinking_level(self):
+        runner = PiRunner(
+            "pi",
+            "test-model",
+            Path("prompt.txt"),
+            headless=True,
+            non_local=False,
+        )
+        runner.thinking_level = "medium"
+
+        command = runner._build_pi_command()
+
+        self.assertIn("--thinking", command)
+        self.assertEqual(command[command.index("--thinking") + 1], "medium")
+
     def test_attempt_stops_after_output_inactivity(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             work_dir = Path(temp_dir)
@@ -51,6 +66,37 @@ class PiRunnerTests(unittest.TestCase):
 
 
 class PiWiggumTests(unittest.TestCase):
+    def test_zero_artifact_repair_prompt_forces_small_immediate_writes(self):
+        runner = PiWiggumRunner(
+            "pi-wiggum",
+            "test-model",
+            Path("office_prompt_wiggum.md"),
+            headless=True,
+            non_local=True,
+        )
+        missing = runner._wiggum_required_files()
+        summary = {
+            "passed": False,
+            "missing_files": missing,
+            "static": {"returncode": 0, "output": ""},
+            "runtime": {"returncode": 1, "output": ""},
+            "logic_test": {"returncode": 1, "output": ""},
+            "static_errors": [],
+            "console_errors": [],
+            "page_errors": [],
+            "loaded": False,
+            "nonblank_canvas": False,
+            "animation_frames": 0,
+            "scene_object_count": 0,
+            "dynamic_changes": 0,
+        }
+
+        prompt = runner._build_repair_prompt(summary, 1)
+
+        self.assertIn("zero-artifact bootstrap attempt", prompt)
+        self.assertIn("one file per tool call", prompt)
+        self.assertIn("Do not read the original prompt", prompt)
+
     def test_checker_run_discards_stale_result_files(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             work_dir = Path(temp_dir)

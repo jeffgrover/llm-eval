@@ -15,6 +15,8 @@ from evaluation_metrics import PI_WIGGUM_RESULT_FILENAME
 from .pi import PiRunner
 
 class PiWiggumRunner(PiRunner):
+    MAX_STAGNANT_ATTEMPTS = 2
+
     def _wiggum_prompt_kind(self) -> str:
         prompt_stem = self.prompt_file.stem
         if prompt_stem.startswith("office_prompt"):
@@ -68,6 +70,10 @@ class PiWiggumRunner(PiRunner):
             "checker_summaries": [],
             "attempt_terminations": [],
         }
+        if getattr(self, "thinking_level", None):
+            aggregate["thinking_level"] = self.thinking_level
+        previous_missing_files = None
+        stagnant_attempts = 0
 
         while True:
             elapsed = time.monotonic() - start
@@ -119,6 +125,21 @@ class PiWiggumRunner(PiRunner):
                 aggregate["passed"] = True
                 aggregate["status"] = "success"
                 aggregate["terminal_reason"] = "completed"
+                break
+
+            missing_files = tuple(checker_summary.get("missing_files", []))
+            if missing_files and missing_files == previous_missing_files:
+                stagnant_attempts += 1
+            else:
+                stagnant_attempts = 1 if missing_files else 0
+            previous_missing_files = missing_files
+            if stagnant_attempts >= self.MAX_STAGNANT_ATTEMPTS:
+                aggregate["status"] = "failed"
+                aggregate["terminal_reason"] = "no_artifact_progress"
+                aggregate["warnings"] = [
+                    "Wiggum stopped after repeated attempts created none of "
+                    "the missing required artifacts."
+                ]
                 break
 
             if (
@@ -314,7 +335,14 @@ class PiWiggumRunner(PiRunner):
             "- visible motion / dynamic changes observed",
             *extra_criteria,
         ])
+        bootstrap = ""
+        if set(summary.get("missing_files", [])) == set(self._wiggum_required_files()):
+            bootstrap = f"""
+This is a zero-artifact bootstrap attempt. Do not read the original prompt, repository instructions, logs, result files, or checker files again. Do not spend time redesigning the solution. Immediately create the required files in the current directory, one file per tool call. Keep every individual tool call comfortably below the response limit. Start with a small working browser baseline and elevator test, then enrich it only after all {len(self._wiggum_required_files())} files exist. Avoid a single giant write and avoid narrating code before writing it.
+"""
+
         return f"""The approved {scenario} implementation did not pass evaluator-owned checks after attempt {attempt}.
+{bootstrap}
 
 Edit the existing files and create any missing required files from the original prompt: {files}. Do not replace this task with a different prompt's artifact, do not ask the human for decisions, and do not stop until the checks pass.
 

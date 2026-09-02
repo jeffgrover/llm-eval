@@ -196,6 +196,19 @@ class RunnerEventContractTests(unittest.TestCase):
 
         self.assertEqual(parse_pi_event(event).text, "\n[Tool: grep]\n")
 
+    def test_pi_streamed_tool_name_uses_direct_tool_name(self):
+        event = {
+            "type": "message_update",
+            "assistantMessageEvent": {
+                "type": "toolcall_start",
+                "contentIndex": 1,
+                "id": "call-1",
+                "toolName": "bash",
+            },
+        }
+
+        self.assertEqual(parse_pi_event(event).text, "\n[Tool: bash]\n")
+
     def test_codex_stream_contract(self):
         events = read_jsonl("codex_stream.jsonl")
 

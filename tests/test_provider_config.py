@@ -24,7 +24,8 @@ from run_safety import RunSafetyLimits
 
 
 class LocalProviderConfigTests(unittest.TestCase):
-    def test_pi_custom_model_advertises_large_output_limit(self):
+    @patch("runners.pi.get_lms_loaded_context_length", return_value=48128)
+    def test_pi_custom_model_follows_loaded_context_with_output_headroom(self, _loaded):
         with tempfile.TemporaryDirectory() as temp_dir:
             home = Path(temp_dir)
             runner = PiRunner(
@@ -33,8 +34,7 @@ class LocalProviderConfigTests(unittest.TestCase):
                 Path("prompt.txt"),
                 headless=True,
                 non_local=False,
-                custom_provider="llama-server",
-                local_provider=LLAMA_SERVER_PROVIDER,
+                local_provider=LM_STUDIO_PROVIDER,
             )
 
             with (
@@ -47,9 +47,11 @@ class LocalProviderConfigTests(unittest.TestCase):
                         encoding="utf-8"
                     )
                 )
-                model = config["providers"]["llama-server"]["models"][0]
-                self.assertEqual(model["contextWindow"], 131072)
-                self.assertEqual(model["maxTokens"], 32768)
+                model = config["providers"]["lmstudio"]["models"][0]
+                self.assertEqual(model["contextWindow"], 48128)
+                self.assertEqual(model["maxTokens"], 16042)
+                self.assertTrue(model["reasoning"])
+                self.assertTrue(model["compat"]["supportsReasoningEffort"])
                 runner._restore_pi_models_json()
 
             self.assertFalse((home / ".pi" / "agent" / "models.json").exists())
