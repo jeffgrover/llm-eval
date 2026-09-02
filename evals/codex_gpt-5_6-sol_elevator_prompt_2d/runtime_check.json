@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-09-02T04:57:51.204Z",
+  "url": "http://127.0.0.1:45103/evals/codex_gpt-5_6-sol_elevator_prompt_2d/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/codex_gpt-5_6-sol_elevator_prompt_2d/index.html:inline-script-1"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 274,
+  "scene_object_count": 0,
+  "dynamic_changes": 1,
+  "canvas_changed": true,
+  "duration_ms": 5751,
+  "warnings": []
+}

@@ -51,8 +51,14 @@ def browser_js_source(files: Dict[str, str]) -> str:
 # --- Prompt classification ---
 
 
+def is_elevator_2d_prompt(prompt: str) -> bool:
+    """Return whether *prompt* is the self-contained canvas elevator task."""
+    return prompt == "elevator_prompt_2d"
+
+
 def is_elevator_prompt(prompt: str) -> bool:
-    return prompt.startswith("elevator_prompt")
+    """Return whether *prompt* is a Three.js elevator task."""
+    return prompt.startswith("elevator_prompt") and not is_elevator_2d_prompt(prompt)
 
 
 def is_office_prompt(prompt: str) -> bool:
@@ -63,6 +69,8 @@ def required_files_for_prompt(prompt: str) -> List[str]:
     """Return the expected artifact filenames for a given prompt type."""
     if is_office_prompt(prompt):
         return ["index.html", "person.js", "world.js", "elevator.js", "sim.js"]
+    if is_elevator_2d_prompt(prompt):
+        return ["index.html"]
     if is_elevator_prompt(prompt):
         return ["index.html", "person.js", "elevator.js"]
     return []
@@ -207,6 +215,88 @@ def score_elevator(work_dir: Path, files: Dict[str, str], evidence: List[str]) -
     return sum(categories.values()), categories
 
 
+def score_elevator_2d(work_dir: Path, files: Dict[str, str], evidence: List[str]) -> Tuple[int, Dict[str, int]]:
+    """Score the self-contained 2D elevator task on its actual contract."""
+    index = files.get("index.html", "")
+    all_code = "\n".join(files.values())
+    categories = {"files": 0, "implementation": 0}
+
+    categories["files"] += points(bool(index), 8, "self-contained index.html present", evidence)
+    categories["implementation"] += points(
+        "<canvas" in index and "<script" in index,
+        3,
+        "canvas simulation shell present",
+        evidence,
+    )
+    categories["implementation"] += points(
+        bool(index) and not contains_any(index, (r"<script[^>]+\bsrc\s*=",)),
+        2,
+        "self-contained script",
+        evidence,
+    )
+    categories["implementation"] += points(
+        contains_any(
+            all_code,
+            (
+                r"\bFLOORS\s*=\s*5\b",
+                r"\bFLOOR_COUNT\s*=\s*5\b",
+                r"\bTOP_FLOOR\s*=\s*5\b[\s\S]*\bGROUND_FLOOR\s*=\s*1\b",
+                r"\bGROUND_FLOOR\s*=\s*1\b[\s\S]*\bTOP_FLOOR\s*=\s*5\b",
+            ),
+        ),
+        3,
+        "five-floor building signal",
+        evidence,
+    )
+    categories["implementation"] += points(
+        contains_any(all_code, (r"\b(?:floorY|slabY)\b",))
+        and contains_any(all_code, (r"\b(?:f|floor)\s*-\s*1\b",)),
+        4,
+        "one-based floor-coordinate signal",
+        evidence,
+    )
+    categories["implementation"] += points(
+        "requestAnimationFrame" in all_code,
+        5,
+        "animation loop signal",
+        evidence,
+    )
+    categories["implementation"] += points(
+        "test=1" in all_code and "ELEVATOR_SMOKE_PASS" in all_code,
+        4,
+        "bounded smoke-mode signal",
+        evidence,
+    )
+    categories["implementation"] += points(
+        "Math.random" in all_code and contains_any(all_code, (r"emptyFloor", r"empty\s*floor")),
+        4,
+        "random empty-floor dispatch signal",
+        evidence,
+    )
+    categories["implementation"] += points(
+        contains_any(all_code, (r"occupancy", r"people\s*\[", r"people\.filter"))
+        and "emptyFloor" in all_code
+        and contains_any(all_code, (r"startTrip", r"chooseNextPassenger")),
+        3,
+        "waiting-passenger dispatch state signal",
+        evidence,
+    )
+    categories["implementation"] += points(
+        "completeTrip" in all_code
+        and contains_any(all_code, (r"startTrip", r"chooseNextPassenger")),
+        4,
+        "repeating-trip signal",
+        evidence,
+    )
+    categories["implementation"] += points(
+        "enter" in all_code and "exit" in all_code and "move" in all_code,
+        3,
+        "passenger movement phase signal",
+        evidence,
+    )
+    return sum(categories.values()), categories
+
+
 def score_office(work_dir: Path, files: Dict[str, str], evidence: List[str]) -> Tuple[int, Dict[str, int]]:
     """Score office-prompt implementation quality."""
     index = files.get("index.html", "")
@@ -278,6 +368,8 @@ def deterministic_score(ev: Dict) -> Dict:
 
     if is_office_prompt(prompt):
         quality, detail_categories = score_office(work_dir, files, evidence)
+    elif is_elevator_2d_prompt(prompt):
+        quality, detail_categories = score_elevator_2d(work_dir, files, evidence)
     elif is_elevator_prompt(prompt):
         quality, detail_categories = score_elevator(work_dir, files, evidence)
     else:

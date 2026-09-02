@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import generate_index
 import eval_scanner
-from eval_scoring import deterministic_score
+from eval_scoring import deterministic_score, is_elevator_2d_prompt, required_files_for_prompt
 
 
 class ArtifactRetentionTests(unittest.TestCase):
@@ -210,6 +210,59 @@ class SafetyScoringTests(unittest.TestCase):
 
             self.assertLessEqual(score["total"], 50)
             self.assertIn("Safety stop: inactivity limit", score["flags"])
+
+
+class Elevator2DScoringTests(unittest.TestCase):
+    def test_2d_elevator_uses_its_own_artifact_contract_and_score(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "index.html").write_text(
+                """<canvas></canvas><script>
+                const GROUND_FLOOR = 1;
+                const TOP_FLOOR = 5;
+                const FLOOR_COUNT = TOP_FLOOR - GROUND_FLOOR + 1;
+                const slabY = floor => 520 - (floor - 1) * 90;
+                const test = location.search.includes('test=1');
+                const marker = 'ELEVATOR_SMOKE_PASS';
+                let emptyFloor = 1 + Math.floor(Math.random() * FLOOR_COUNT);
+                const people = [{ floor: 2 }];
+                function chooseNextPassenger() { return people.filter(p => p.floor !== emptyFloor); }
+                function completeTrip() { chooseNextPassenger(); }
+                function tick() { requestAnimationFrame(tick); }
+                const phases = ['enter', 'move', 'exit'];
+                tick();
+                </script>""",
+                encoding="utf-8",
+            )
+            score = deterministic_score(
+                {
+                    "Path": work_dir,
+                    "HasReport": True,
+                    "Result": {"status": "success"},
+                    "Metrics": {
+                        "success": True,
+                        "error": False,
+                        "total_tokens": 100,
+                        "num_turns": 1,
+                    },
+                    "Runtime": {
+                        "loaded": True,
+                        "canvas_count": 1,
+                        "nonblank_canvas": True,
+                        "animation_frames": 3,
+                        "scene_object_count": 0,
+                        "dynamic_changes": 1,
+                        "canvas_changed": True,
+                    },
+                    "Prompt": "elevator_prompt_2d",
+                }
+            )
+
+            self.assertTrue(is_elevator_2d_prompt("elevator_prompt_2d"))
+            self.assertEqual(required_files_for_prompt("elevator_prompt_2d"), ["index.html"])
+            self.assertGreaterEqual(score["total"], 85)
+            self.assertIn("self-contained index.html present", score["evidence"])
+            self.assertNotIn("Missing: person.js, elevator.js", score["flags"])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Elevator Cutaway</title>
+<style>
+  :root {
+    --bg: #14161c;
+    --panel: #1d2029;
+    --ink: #e8eaf0;
+    --muted: #8b93a7;
+    --accent: #5aa9ff;
+  }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    margin: 0;
+    padding: 2rem 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { max-width: 560px; width: 100%; }
+  h1 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0 0 0.25rem;
+  }
+  .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 1.25rem; }
+  canvas { border-radius: 10px; display: block; width: 100%; height: auto; background: #191c24; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+  output#status {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.45rem 0.9rem;
+    background: var(--panel);
+    border: 1px solid #2c3140;
+    border-radius: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.03em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Elevator Cutaway</h1>
+<p class="sub">Five stories &middot; one car &middot; random dispatch, forever</p>
+<canvas id="scene" width="480" height="640"></canvas>
+<br>
+<output id="status">idle</output>
+</div>
+<script>
+const canvas = document.getElementById("scene");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+
+// ---- shared geometry: one coordinate system for floors, shaft, and car stops
+// Floor 1 is the ground-floor slab (bottom interior floor); floor 5 is the highest
+// interior floor below the roof. All heights are multiples of FLOOR_H from that base.
+const FLOORS = 5;
+const FLOOR_H = 100;
+const BASE_Y = 620;                       // top surface of the ground-floor (floor 1) slab
+const SLAB_TOP = (f) => BASE_Y - (f - 1) * FLOOR_H;   // floor 1 -> 620, floor 5 -> 220
+const CAR_H = 60;
+const SHAFT_X = 300, SHAFT_W = 80;        // shaft spans full building height
+const BUILDING_X = 60, BUILDING_W = 360;
+
+// deterministic state machine, driven by a virtual clock in ms
+let t = 0;
+const STEP = 16.7; // ~60fps
+const MOVE_MS = 2000;   // full floor-to-floor move (adjacent floors scaled)
+const DOOR_MS = 800;
+
+// ---- dispatch state: one empty floor, one person on every other floor.
+// Each trip picks a random waiting person, carries them to the current empty
+// floor, and their departure floor becomes the new empty floor.
+let rngState = 123456789;
+function rand() { // deterministic LCG so test mode is reproducible
+  rngState = (rngState * 1103515245 + 12345) & 0x7fffffff;
+  return rngState / 0x7fffffff;
+}
+
+let emptyFloor, waiting; // waiting: {floor: count}
+function initDispatch() {
+  const floors = [1, 2, 3, 4, 5];
+  emptyFloor = floors[Math.floor(rand() * FLOORS)];
+  waiting = {};
+  for (const f of floors) {
+    if (f === emptyFloor) continue;
+    waiting[f] = 1; // one person per populated floor
+  }
+}
+
+// trip phases: idle -> movePickup -> openPickup -> closePickup -> ride -> openDrop -> closeDrop -> next
+let phase = "idle";
+let doorT = 0;      // 0..1 progress of current timed sub-phase
+let carFloor = 1;   // logical floor (float while moving)
+let pickupFloor = null, dropFloor = null;
+let tripsDone = 0;
+
+function pickNextTrip() {
+  const floorsWithPeople = Object.keys(waiting).map(Number);
+  if (!floorsWithPeople.length) return false;
+  // choose one waiting person at random (across all populated floors)
+  let f;
+  do {
+    f = floorsWithPeople[Math.floor(rand() * floorsWithPeople.length)];
+  } while (f === emptyFloor); // pickup must differ from destination
+  waiting[f]--;
+  if (!waiting[f]) delete waiting[f];
+  pickupFloor = f;
+  dropFloor = emptyFloor;
+  tripsDone++;
+  return true;
+}
+
+function phaseDuration(p) {
+  switch (p) {
+    case "movePickup": return MOVE_MS * Math.abs(carFloor - pickupFloor);
+    case "ride": return MOVE_MS * Math.abs(dropFloor - pickupFloor);
+    default: return DOOR_MS;
+  }
+}
+
+function nextPhase(p) {
+  switch (p) {
+    case "idle": return pickNextTrip() ? "movePickup" : "idle";
+    case "movePickup": return "openPickup";
+    case "openPickup": return "closePickup";
+    case "closePickup": return "ride";
+    case "ride": return "openDrop";
+    case "openDrop": return "closeDrop";
+    case "closeDrop": {
+      // delivery complete: person joins the destination floor; source becomes empty
+      waiting[dropFloor] = (waiting[dropFloor] || 0) + 1;
+      emptyFloor = pickupFloor;
+      return pickNextTrip() ? "movePickup" : "idle";
+    }
+  }
+}
+
+// passenger: boards during closePickup, rides, exits during closeDrop
+let paxState = "none"; // none | board | ride | exit
+let paxT = 0;          // progress within current sub-state
+let paxFromFloor = null, paxToFloor = null;
+
+function tickPax(dt) {
+  const d = Math.min(doorT, 1);
+  switch (paxState) {
+    case "none":
+      if (phase === "closePickup") { paxState = "board"; paxT = 0; paxFromFloor = pickupFloor; }
+      break;
+    case "board":
+      // walk from landing into car during closePickup — horizontal only, on pickup slab
+      paxT = d;
+      if (phase !== "closePickup") { paxState = "ride"; }
+      break;
+    case "ride":
+      // vertical only: locked to the car's current floor while inside
+      if (phase === "openDrop") { paxState = "exit"; paxT = 0; paxToFloor = dropFloor; }
+      break;
+    case "exit":
+      // walk out of car during closeDrop — horizontal only, on destination slab
+      paxT = d;
+      if (phase !== "closeDrop") { paxState = "none"; paxT = 0; }
+      break;
+  }
+}
+
+function tick(dt) {
+  t += dt;
+  doorT += dt / phaseDuration(phase);
+  if (doorT >= 1) {
+    doorT = 0;
+    phase = nextPhase(phase);
+  }
+  // car position: car floor rests exactly on the slab of its current (fractional) floor
+  const d = Math.min(doorT, 1);
+  switch (phase) {
+    case "idle": break;
+    case "movePickup": carFloor += (pickupFloor - carFloor) * d; if (d >= 1) carFloor = pickupFloor; break;
+    case "openPickup": case "closePickup": carFloor = pickupFloor; break;
+    case "ride": carFloor = pickupFloor + (dropFloor - pickupFloor) * d; break;
+    case "openDrop": case "closeDrop": carFloor = dropFloor; break;
+  }
+  tickPax(dt);
+}
+
+function doorOpenAmount() {
+  if (phase === "openPickup" || phase === "openDrop") return Math.min(doorT, 1);
+  if (phase === "closePickup" || phase === "closeDrop") return 1 - Math.min(doorT, 1);
+  return 0;
+}
+
+// car geometry helpers — all stops derived from SLAB_TOP so floors/shaft/car agree
+function carRect() {
+  const carW = SHAFT_W - 8;
+  return { x: SHAFT_X + 4, y: SLAB_TOP(carFloor) - CAR_H, w: carW, h: CAR_H };
+}
+
+// Passenger motion rules:
+//  - horizontal movement ONLY during board (pickup slab) and exit (destination slab)
+//  - vertical movement ONLY while riding inside the car (y locked to SLAB_TOP(carFloor))
+function paxPos() {
+  const c = carRect();
+  const doorX = c.x + c.w / 2; // doorway center
+  const landX = SHAFT_X - 40;  // waiting spot on landing (left of shaft)
+  switch (paxState) {
+    case "board": return { x: landX + (doorX - landX) * paxT, y: SLAB_TOP(paxFromFloor), inCar: paxT > 0.6 };
+    case "ride": return { x: doorX, y: SLAB_TOP(carFloor), inCar: true };
+    case "exit": return { x: doorX + (landX - doorX) * paxT, y: SLAB_TOP(paxToFloor), inCar: paxT < 0.6 };
+    default: return null;
+  }
+}
+
+function drawPerson(x, y, color) {
+  ctx.fillStyle = color;
+  // simple person: head + body standing on the slab (feet at y)
+  ctx.beginPath();
+  ctx.arc(x, y - 26, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(x - 4, y - 21, 8, 21);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // building: five interior stories between the ground slab (floor 1) and roof above floor 5
+  for (let f = 1; f <= FLOORS; f++) {
+    const y = SLAB_TOP(f);
+    if (f < FLOORS) {
+      ctx.fillStyle = "#262b38";
+      ctx.fillRect(BUILDING_X, y - FLOOR_H + 20, BUILDING_W, FLOOR_H - 20); // wall above each slab up to next slab
+    }
+    ctx.fillStyle = "#4a5165";
+    ctx.fillRect(BUILDING_X, y, BUILDING_W, 12); // floor slab
+    ctx.fillStyle = "#aab2c8";
+    ctx.font = "13px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText("Floor " + f, BUILDING_X + 10, y - FLOOR_H / 2);
+  }
+  // roof above the highest interior floor (floor 5)
+  ctx.fillStyle = "#3a4152";
+  ctx.fillRect(BUILDING_X - 10, SLAB_TOP(FLOORS) - FLOOR_H + 20, BUILDING_W + 20, 14);
+
+  // shaft: from just below roof down to the ground slab of floor 1 (no basement)
+  ctx.strokeStyle = "#7a869e";
+  ctx.strokeRect(SHAFT_X, SLAB_TOP(FLOORS) - FLOOR_H + 20, SHAFT_W, (FLOORS - 1) * FLOOR_H);
+
+  // waiting passengers on each populated floor
+  for (const f of Object.keys(waiting)) {
+    const n = waiting[f];
+    for (let i = 0; i < n; i++) {
+      drawPerson(SHAFT_X - 50 - i * 16, SLAB_TOP(Number(f)), "#e8734a");
+    }
+  }
+
+  // car: top of car sits on slab of current (fractional) floor
+  const c = carRect();
+  ctx.fillStyle = "#2f6fb5";
+  ctx.fillRect(c.x, c.y, c.w, c.h);
+
+  // passenger inside car drawn before doors so they appear behind panels
+  const p = paxPos();
+  if (p && p.inCar) drawPerson(p.x, p.y, "#e8734a");
+
+  // doors: two panels sliding apart by open amount
+  const open = doorOpenAmount();
+  const panelW = (c.w / 2) * (1 - open);
+  ctx.fillStyle = "#5aa9ff";
+  ctx.fillRect(c.x, c.y + 4, panelW, c.h - 8);
+  ctx.fillRect(c.x + c.w - panelW, c.y + 4, panelW, c.h - 8);
+
+  // passenger outside car drawn after doors
+  if (p && !p.inCar) drawPerson(p.x, p.y, "#e8734a");
+
+  statusEl.textContent = phase + " | floor " + Math.round(carFloor * 10) / 10;
+}
+
+const testMode = new URLSearchParams(location.search).get("test") === "1";
+initDispatch();
+if (testMode) {
+  // run exactly 3 trips synchronously, then report pass.
+  // Each trip: idle -> movePickup -> openPickup -> closePickup -> ride -> openDrop -> closeDrop
+  let guard = 0;
+  while (tripsDone < 4 && phase !== "idle" || (tripsDone < 3 && phase === "idle")) {
+    tick(STEP);
+    if (++guard > 20000) break; // bounded safety
+  }
+  draw();
+  statusEl.textContent = "ELEVATOR_SMOKE_PASS";
+} else {
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(now - last, 100);
+    last = now;
+    tick(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>

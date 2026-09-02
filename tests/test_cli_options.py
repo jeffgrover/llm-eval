@@ -63,6 +63,11 @@ class CliOptionTests(unittest.TestCase):
         self.assertTrue(args.lms_flash_attention)
         self.assertTrue(args.lms_cpu_kv_cache)
 
+    def test_thinking_level_is_configurable(self):
+        args = self.parse("--thinking-level", "medium")
+
+        self.assertEqual(args.thinking_level, "medium")
+
     def test_run_safety_defaults(self):
         args = self.parse()
 

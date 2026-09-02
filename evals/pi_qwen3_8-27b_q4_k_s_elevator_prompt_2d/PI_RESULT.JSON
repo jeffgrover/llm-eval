@@ -1,0 +1,14 @@
+{
+  "input_tokens": 600730,
+  "output_tokens": 22330,
+  "total_tokens": 623060,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 26,
+  "thinking_level": "off",
+  "provider_id": "lmstudio",
+  "model_id": "qwen3.8-27b@q4_k_s",
+  "status": "success",
+  "is_error": false
+}

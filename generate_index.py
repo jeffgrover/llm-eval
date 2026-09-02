@@ -40,6 +40,7 @@ from eval_scoring import (
     contains_any,
     deterministic_score,
     first_preview_link,
+    is_elevator_2d_prompt,
     is_elevator_prompt,
     is_office_prompt,
     points,
@@ -279,7 +280,19 @@ def score_bar(score: int) -> str:
 
 
 def render_reference_section() -> str:
-    return """
+    elevator_2d_dir = Path("reference/elevator_2d")
+    elevator_2d_card = ""
+    if (elevator_2d_dir / "index.html").is_file() and (elevator_2d_dir / "preview.png").is_file():
+        elevator_2d_card = """
+                <a class="reference-card" href="reference/elevator_2d/index.html" target="_blank" rel="noopener">
+                    <img class="reference-thumb" src="reference/elevator_2d/preview.png" alt="2D elevator dispatch simulation preview">
+                    <div class="reference-body">
+                        <span class="reference-title">2D Elevator Dispatch Simulation</span>
+                        <span class="reference-cta">Launch</span>
+                    </div>
+                </a>
+        """
+    return f"""
         <section class="reference-section">
             <div class="section-heading">
                 <div>
@@ -288,10 +301,11 @@ def render_reference_section() -> str:
                 </div>
             </div>
             <div class="reference-grid">
+                {elevator_2d_card}
                 <a class="reference-card" href="reference/elevator/index.html" target="_blank" rel="noopener">
-                    <img class="reference-thumb" src="reference/elevator/preview.png" alt="Elevator simulation preview">
+                    <img class="reference-thumb" src="reference/elevator/preview.png" alt="3D Elevator Simulation preview">
                     <div class="reference-body">
-                        <span class="reference-title">Elevator Simulation</span>
+                        <span class="reference-title">3D Elevator Simulation</span>
                         <span class="reference-cta">Launch</span>
                     </div>
                 </a>
@@ -404,7 +418,7 @@ def render_score_tab(tab_id: str, title: str, evaluations: List[Dict], descripti
     local = [ev for ev in evaluations if "Local" in ev["Provider"] or "lmstudio" in ev["Provider"].lower()]
     cloud = [ev for ev in evaluations if ev not in local and ev["Provider"] != "unknown"]
     avg = round(sum(ev["Score"]["total"] for ev in scored) / len(scored), 1) if scored else 0
-    active = " active" if tab_id == "elevator" else ""
+    active = " active" if tab_id == "elevator-2d" else ""
     return f"""
         <section id="{tab_id}-tab" class="tab-panel{active}">
             <div class="stats-grid">
@@ -731,6 +745,7 @@ def generate_index_html() -> None:
     evaluations = scan_evaluations()
     shortened = shorten_oversized_artifacts()
     elevator_evals = [ev for ev in evaluations if is_elevator_prompt(ev.get("Prompt", ""))]
+    elevator_2d_evals = [ev for ev in evaluations if is_elevator_2d_prompt(ev.get("Prompt", ""))]
     office_evals = [ev for ev in evaluations if is_office_prompt(ev.get("Prompt", ""))]
 
     html_content = f"""<!DOCTYPE html>
@@ -749,12 +764,14 @@ def generate_index_html() -> None:
             <p class="intro">Compare agent/model runs with deterministic scoring, token metrics, provider context, and links back to the full generated reports.</p>
             {render_reference_section()}
             <nav class="tab-nav" aria-label="Dashboard views">
-                <button class="tab-btn active" type="button" data-tab="elevator" onclick="showTab('elevator')">Elevator Prompt Scores</button>
+                <button class="tab-btn active" type="button" data-tab="elevator-2d" onclick="showTab('elevator-2d')">2D Elevator Prompt Scores</button>
+                <button class="tab-btn" type="button" data-tab="elevator" onclick="showTab('elevator')">3D Elevator Prompt Scores</button>
                 <button class="tab-btn" type="button" data-tab="office" onclick="showTab('office')">Office Prompt Scores</button>
                 <button class="tab-btn" type="button" data-tab="agents" onclick="showTab('agents')">By Agent</button>
             </nav>
         </header>
-        {render_score_tab("elevator", "Elevator Prompt Scores", elevator_evals, "Local-model focused elevator simulations, scored primarily by runtime viability, then file completeness, Three.js behavior cues, and efficiency.")}
+        {render_score_tab("elevator-2d", "2D Elevator Prompt Scores", elevator_2d_evals, "Self-contained canvas elevator dispatch simulations, scored by browser viability, one-based floor geometry, bounded smoke behavior, dispatch signals, and efficiency.")}
+        {render_score_tab("elevator", "3D Elevator Prompt Scores", elevator_evals, "Local-model focused 3D elevator simulations, scored primarily by runtime viability, then file completeness, Three.js behavior cues, and efficiency.")}
         {render_score_tab("office", "Office Prompt Scores", office_evals, "Frontier/cloud office simulations, scored primarily by runtime viability, then office-world behavior, elevator scheduling cues, and efficiency.")}
         {render_agent_tab(evaluations)}
     </div>
@@ -774,6 +791,7 @@ def generate_index_html() -> None:
         )
     print(f"[+] Index generated at: {INDEX_FILE.absolute()}")
     print(f"    Elevator prompt runs: {len(elevator_evals)}")
+    print(f"    2D elevator prompt runs: {len(elevator_2d_evals)}")
     print(f"    Office prompt runs: {len(office_evals)}")
 
 

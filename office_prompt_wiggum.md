@@ -4,6 +4,36 @@ Create a browser-only Three.js office-building simulation. The implementation
 plan is already approved. Do not ask the human for decisions, do not request
 plan approval, and do not use an interactive Wiggum TPM flow.
 
+## Execution Protocol - Act Before Planning
+
+This is an incremental implementation task, not a request for a complete
+design in one response. Do **not** mentally draft the whole application before
+using tools. Progress is measured only by files written in the current
+directory; analysis or code held in reasoning does not count.
+
+Follow this loop:
+
+1. Your first action must be a file-writing tool call. Create `index.html`
+   immediately using the exact shell from the Output Contract.
+2. Create each of the other six required files with a minimal valid skeleton,
+   using one reasonably-sized tool call per file. Do not compose all seven
+   finished files in reasoning first.
+3. Make Pass 1 visibly runnable before considering any later pass. A small,
+   working scene is preferred to an ambitious incomplete implementation.
+4. Work on exactly one lettered checkpoint at a time. Before thinking about
+   the next checkpoint, make at least one tool call that changes its named
+   output file. Never design several checkpoints in one reasoning response.
+5. After completing a checkpoint, briefly inspect only its named output file
+   and,
+   when applicable, run `node elevator_logic_test.js`. Then begin the next
+   incomplete pass.
+6. If time or output budget is running short, preserve the runnable files and
+   exit. A later Wiggum attempt will continue from those artifacts.
+
+Never spend a whole response reasoning without a file write. Never delay the
+first write until the implementation is fully designed. Do not narrate code
+that could instead be written to a required file.
+
 Success is defined by the evaluator-owned loop passing all checks:
 
 - `node ../../static_check.js .` has zero static errors
@@ -22,6 +52,12 @@ Success is defined by the evaluator-owned loop passing all checks:
 If checker feedback is provided in a later attempt, edit the existing files to
 fix that feedback and continue. Do not stop because a check failed; iterate from
 the feedback. Do not ask the human for decisions.
+
+The evaluator owns all validation. Do not inspect, read, edit, search for, or
+run `static_check.js` or `runtime_check.js`. Do not inspect other evaluation
+directories or use their artifacts as examples. Work only on the seven output
+files in the current directory, run only `node elevator_logic_test.js` yourself,
+then exit so the evaluator can run its static and runtime checks.
 
 The simulation must not simply be "an elevator moves people between floors."
 It must read as **a day in the life of a small office**, expressed through
@@ -125,19 +161,29 @@ Acceptance check for Pass 1:
 
 ### Pass 2 - World Geometry, Furniture, And Navigation
 
-Build the six-floor office world described below.
+Build the world through these separate write checkpoints. Complete them in
+order. For each checkpoint, reason only about the listed concern and edit
+`world.js` before considering the next checkpoint.
 
-Requirements:
+- **2A - Structural shell:** add the six floor slabs around a central shaft,
+  roof, transparent exterior walls, and a real 3+ unit ground-floor entrance
+  gap. Write and preserve this geometry before proceeding.
+- **2B - Entrance and lobby:** add the sidewalk, open/visual-only doors,
+  reception, cafe, lounges, and simple lobby furniture. Do not design the
+  office floors during this checkpoint.
+- **2C - Office floor layout:** add private offices, conference rooms,
+  lounges, desks, chairs, and water coolers on floors 1-5. Do not design the
+  navigation graph during this checkpoint.
+- **2D - Essential navigation:** first add only
+  `outside -> front_door_threshold -> entrance -> lobby_center` and verify
+  those links exist in `world.js`. Then add elevator wait nodes and one
+  hallway ring per office floor in a separate edit.
+- **2E - Targets and panels:** add standing/sitting targets with explicit
+  facing directions, followed by call panels and shaft indicators.
 
-- central shaft opening through all floors
-- transparent floor/wall materials with `depthWrite: false` and
-  `THREE.DoubleSide`
-- ground-floor lobby with a real 3+ unit front entrance gap
-- explicit `outside -> front_door_threshold -> entrance -> lobby_center`
-  navigation chain
-- office floors with private offices, desks, chairs, conference room, lounge,
-  water cooler, hallway ring, call panels, and shaft indicators
-- `sitTargets` encode both sit/stand behavior and exact facing direction
+Do not calculate the complete building and graph in advance. Coordinates need
+only be internally consistent with the conventions below; write a simple
+working arrangement first and refine it in later checkpoints.
 
 Acceptance check for Pass 2:
 
@@ -147,17 +193,12 @@ Acceptance check for Pass 2:
 
 ### Pass 3 - Person Factory And Seating Fidelity
 
-Implement reusable person geometry and animation.
+Edit only `person.js`, using one write checkpoint for each item:
 
-Requirements:
-
-- feet sit at local `y = 0`
-- legs and arms pivot from hip/shoulder groups
-- visible nose on `+Z` face of the head
-- walking animation swings legs and arms
-- sitting animation bends legs forward and lowers the body to chair height
-- seated orientation matches each chair, desk, couch, bistro chair, and
-  conference seat
+- **3A - Body:** feet at local `y = 0`, pivoted limbs, and a `+Z` nose.
+- **3B - Motion:** walking and idle limb animation.
+- **3C - Sitting:** bent-forward legs and body height; orientation values come
+  from the targets already written in `world.js`.
 
 Acceptance check for Pass 3:
 
@@ -167,20 +208,17 @@ Acceptance check for Pass 3:
 
 ### Pass 4 - Elevator Logic And Tests
 
-Implement `ElevatorLogic` as the authoritative scheduler/state machine and
-cover it with deterministic Node tests.
+Alternate small edits to `elevator_logic.js` with focused additions to
+`elevator_logic_test.js`. Run the test after every checkpoint.
 
-Requirements:
-
-- exactly five states: `IDLE`, `MOVING`, `DOOR_OPENING`, `DOOR_OPEN`,
-  `DOOR_CLOSING`
-- SCAN scheduling with direction, calls, destinations, capacity, pending
-  boarders/disembarkers, door timing, and anti-starvation rules
-- passenger destinations outrank same-floor hall calls when riders are aboard
-- full lobby cars leave for passenger destinations instead of reopening at
-  floor 0 forever
-- moving car can shorten target to a closer same-direction stop
-- `reset()` clears all phantom state
+- **4A - State cycle:** exactly `IDLE`, `MOVING`, `DOOR_OPENING`, `DOOR_OPEN`,
+  and `DOOR_CLOSING`; test basic motion and door timing.
+- **4B - Requests:** add calls, destinations, direction, and basic SCAN order;
+  test same- and opposite-direction requests.
+- **4C - Passengers:** add capacity and pending board/disembark bookkeeping;
+  test capacity and destination preservation.
+- **4D - Edge cases:** add anti-starvation, closer same-direction stops, full
+  lobby departure, door hold/safety cap, and reset tests.
 
 Acceptance check for Pass 4:
 
@@ -190,16 +228,13 @@ Acceptance check for Pass 4:
 
 ### Pass 5 - Elevator Visual Adapter
 
-Implement the Three.js car and adapter around `ElevatorLogic`.
+Edit only `elevator.js` in these write checkpoints:
 
-Requirements:
-
-- yellow transparent car frame, solid back wall, sliding front doors, in-car
-  destination buttons, in-car indicator, and building-side indicators
-- public `Elevator` class delegates scheduling to `ElevatorLogic`
-- `tick(dt)` updates logic, car position, doors, button lights, call-panel
-  lamps, and all floor indicators
-- boarding spots are capacity-limited and mapped to distinct car-local targets
+- **5A - Car motion:** delegate scheduling to `ElevatorLogic`; update car
+  position and sliding doors.
+- **5B - Controls:** add destination buttons, call-panel lamps, and indicators.
+- **5C - Boarding:** add four distinct car-local boarding targets and expose
+  the minimal adapter methods needed by agents.
 
 Acceptance check for Pass 5:
 
@@ -210,21 +245,19 @@ Acceptance check for Pass 5:
 
 ### Pass 6 - Agents, Daily Schedules, And Actions
 
-Implement the office day: workers, visitors, simulated clock, plans, and
-primitive actions.
+Edit only `sim.js` in these write checkpoints. Keep each checkpoint runnable
+before adding the next behavior.
 
-Requirements:
-
-- workers arrive, ride up, sit at desks, take lunch, attend meetings, visit
-  coworkers/lounges, and leave near end of day
-- visitors are dynamically topped up during business hours and recycle through
-  short visit plans
-- primitive action dispatch loops through zero-duration actions within one
-  frame
-- elevator actions preserve the explicit destination floor through
-  `WAIT_AT_PANEL`, `ENTER_ELEVATOR`, `PRESS_FLOOR`, and `WAIT_FOR_FLOOR`
-- scene reparenting preserves world position when entering/exiting the car
-- seat reservations prevent duplicate conference-seat assignments
+- **6A - Clock and movement:** simulated clock, agent records, path following,
+  and a few workers walking from outside into the lobby.
+- **6B - Elevator trip:** implement `WAIT_AT_PANEL`, `ENTER_ELEVATOR`,
+  `PRESS_FLOOR`, `WAIT_FOR_FLOOR`, and exit for one worker. Preserve the
+  explicit destination and world position while reparenting.
+- **6C - Workday:** add desk work, lunch, meetings, coworker/lounge visits,
+  and departure plans for workers.
+- **6D - Visitors:** add business-hour top-up and short recyclable plans.
+- **6E - Action robustness:** loop through zero-duration actions within one
+  frame and add conference-seat reservations.
 
 Acceptance check for Pass 6:
 
@@ -235,18 +268,16 @@ Acceptance check for Pass 6:
 
 ### Pass 7 - Collision, Crowding, UI, And Day Wrap
 
-Polish the system so it keeps running under crowd pressure.
+Finish through independent edits to `sim.js`:
 
-Requirements:
-
-- soft personal-space separation, with exact-overlap handling
-- collision exemptions for sitting agents, elevator passengers, entrance
-  crossing, and active boarders
-- stall recovery for paths, front-door threshold, and elevator boarding
-- day/night lighting keyed to the simulated clock
-- HUD with simulated time, speed slider, occupancy slider, state counts, and
-  elevator state
-- day-wrap resets both agents and elevator while honoring occupancy
+- **7A - Separation:** soft personal space and exact-overlap recovery, with
+  exemptions for seated people and elevator passengers.
+- **7B - Chokepoints:** exemptions and stall recovery for entrance crossing,
+  active boarders, paths, and the elevator threshold.
+- **7C - UI and lighting:** simulated-time lighting plus time, speed,
+  occupancy, agent-state, and elevator-state controls/readouts.
+- **7D - Day wrap:** reset agents, reservations, and elevator state while
+  preserving the configured occupancy.
 
 Acceptance check for Pass 7:
 
@@ -257,18 +288,16 @@ Acceptance check for Pass 7:
 - after a simulated day wraps, the next day starts without phantom elevator
   passengers or stale reservations
 
-### Pass 8 - Final Verification
+### Pass 8 - Final Handoff
 
-Run and fix all available checks before reporting completion:
+Run the generated deterministic logic test:
 
 ```bash
 node elevator_logic_test.js
-node ../../static_check.js .
-node ../../runtime_check.js .
 ```
 
-Only report completion when the generated simulation satisfies the checks and
-the browser artifact is visibly alive.
+Fix failures in that test, ensure the browser artifact remains visibly alive,
+then exit promptly. The evaluator will run its own static and runtime checks.
 
 ---
 
@@ -312,24 +341,11 @@ page even when the files look impressive in a static review.
 5. **Zero startup console errors.** A run that creates no canvas, logs
    `SyntaxError`, `ReferenceError`, `TypeError`, or has a missing script is a
    failed browser artifact, no matter how complete the code appears.
-6. **Run the available checkers before finishing.** This eval repository
-   provides checker scripts two directories above your workspace. After you
-   create or edit the files, run:
-
-   ```bash
-   node ../../static_check.js .
-   ```
-
-   Fix every reported issue. The static checker catches syntax errors, likely
-   unresolved references, and duplicate top-level `let` / `const` / `class`
-   declarations across classic browser scripts. Also run:
-
-   ```bash
-   node ../../runtime_check.js .
-   ```
-
-   Fix any startup, canvas, animation, or browser page errors it reports. Do
-   not report success while either checker reports errors.
+6. **Leave evaluator checks to the evaluator.** Do not inspect or run
+   `static_check.js` or `runtime_check.js`. Run only the generated
+   `elevator_logic_test.js`; then exit so the Wiggum loop can perform static
+   and browser-runtime validation and return focused feedback on the next
+   attempt.
 7. **Render-first fallback.** Before adding complex agent schedules and
    elevator behavior, make the page visibly render a nonblank Three.js scene:
    camera, renderer, lights, the office building/lobby shape, the elevator car,
@@ -1215,9 +1231,8 @@ Before reporting completion, verify these concrete things:
 - `index.html`, `person.js`, `world.js`, `elevator.js`, and `sim.js` contain
   no `file://` URLs, no `summary.html` references, and no `<iframe>`,
   `<object>`, or `<embed>` tags.
-- `node ../../static_check.js .` reports no static errors.
-- `node ../../runtime_check.js .` reports no startup, canvas, animation, or
-  browser page errors.
+- Leave `static_check.js` and `runtime_check.js` to the evaluator; do not run
+  or inspect them yourself.
 - Shared identifiers are spelled consistently and are not duplicated across
   classic browser scripts.
 - The floor-0 front wall is not a single solid box across the entrance; it is
