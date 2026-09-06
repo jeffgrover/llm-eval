@@ -1,0 +1,13 @@
+- id: acp
+  config:
+    provider: openrouter
+    model: deepseek/deepseek-v4-pro-0813
+- id: agent-default-model
+  config:
+    provider: openrouter
+    model: deepseek/deepseek-v4-pro-0813
+- id: llm-pi-ai
+  config:
+    providers:
+      openrouter:
+        apiKeyEnv: OPENROUTER_API_KEY

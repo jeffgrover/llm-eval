@@ -21,6 +21,7 @@ AGENT_DISPLAY_NAMES = {
     "pi": "Pi Coding Agent",
     "pi-wiggum": "Pi Wiggum",
     "qoder": "Qoder CLI",
+    "dsh": "DeepSeek Harness",
 }
 
 

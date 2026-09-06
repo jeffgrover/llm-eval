@@ -61,6 +61,7 @@ class AgentRunnerLifecycleTests(unittest.TestCase):
             "claude": "runners.claude",
             "codex": "runners.codex",
             "crush": "runners.crush",
+            "dsh": "runners.dsh",
             "gemini": "runners.gemini",
             "opencode": "runners.opencode",
             "pi": "runners.pi",
