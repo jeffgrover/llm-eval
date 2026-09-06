@@ -47,6 +47,7 @@ AGENT_DISPLAY_NAMES = {
     "pi": "Pi Coding Agent",
     "qoder": "Qoder CLI",
     "vibe": "Mistral Vibe",
+    "dsh": "DeepSeek Harness",
 }
 
 AGENT_COLORS = {
@@ -60,6 +61,7 @@ AGENT_COLORS = {
     "Pi Coding Agent": "#0e7490",
     "Pi Wiggum": "#be123c",
     "Qoder CLI": "#4f46e5",
+    "DeepSeek Harness": "#3b82f6",
 }
 
 

@@ -3,6 +3,7 @@
 from .claude import ClaudeRunner
 from .codex import CodexRunner
 from .crush import CrushRunner
+from .dsh import DshRunner
 from .gemini import GeminiRunner
 from .opencode import OpenCodeRunner
 from .pi import PiRunner
@@ -14,6 +15,7 @@ __all__ = [
     "ClaudeRunner",
     "CodexRunner",
     "CrushRunner",
+    "DshRunner",
     "GeminiRunner",
     "OpenCodeRunner",
     "PiRunner",

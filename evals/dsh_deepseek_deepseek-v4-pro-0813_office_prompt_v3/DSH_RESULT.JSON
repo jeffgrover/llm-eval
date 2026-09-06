@@ -1,0 +1,15 @@
+{
+  "provider_id": "openrouter",
+  "model_id": "deepseek/deepseek-v4-pro-0813",
+  "num_turns": 1,
+  "tool_calls": 80,
+  "finish_reasons": [
+    "end_turn"
+  ],
+  "status": "success",
+  "is_error": false,
+  "token_counts_estimated": true,
+  "cost_available": false,
+  "cost_note": "DeepSeek Harness ACP does not expose per-run token usage.",
+  "stop_reason": "end_turn"
+}

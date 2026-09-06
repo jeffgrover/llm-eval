@@ -211,3 +211,7 @@ __marimo__/
 
 # Qoder CLI project-local permissions and settings
 .qoder/
+
+# DeepSeek Harness isolated per-run home (profiles, sessions, storages)
+.dsh/
+

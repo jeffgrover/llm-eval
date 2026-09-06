@@ -872,6 +872,18 @@ class MetadataCollector:
                 info["Type"] = "Cloud API"
                 info["Model ID"] = model_key
                 return info
+            elif agent_name == "dsh":
+                # DeepSeek Harness routes through pi-ai providers; a bare model
+                # id defaults to OpenRouter when no provider is named.
+                if "/" in model_key:
+                    provider, model_id = model_key.split("/", 1)
+                    info["Provider"] = provider.title() if "-" not in provider else provider.split("-")[0].title()
+                    info["Model ID"] = model_id
+                else:
+                    info["Provider"] = "OpenRouter"
+                    info["Model ID"] = model_key
+                info["Type"] = "Cloud API"
+                return info
 
         # Heuristic Defaults
         if "24b" in model_key.lower():

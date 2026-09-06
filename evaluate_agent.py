@@ -22,6 +22,7 @@ from evaluation_metrics import (
     CODEX_RESULT_FILENAME,
     CRUSH_RESULT_FILENAME,
     CRUSH_SESSION_FILENAME,
+    DSH_RESULT_FILENAME,
     GEMINI_RESULT_FILENAME,
     OPENCODE_RESULT_FILENAME,
     PI_RESULT_FILENAME,
@@ -48,6 +49,7 @@ from runners import (
     ClaudeRunner,
     CodexRunner,
     CrushRunner,
+    DshRunner,
     GeminiRunner,
     OpenCodeRunner,
     PiRunner,
@@ -81,6 +83,7 @@ AGENT_RUNNERS = {
     "pi": PiRunner,
     "pi-wiggum": PiWiggumRunner,
     "qoder": QoderRunner,
+    "dsh": DshRunner,
 }
 CLI_AGENT_CHOICES = tuple(name for name in AGENT_RUNNERS if name != "mistral")
 
