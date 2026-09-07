@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-09-07T01:21:05.050Z",
+  "url": "http://127.0.0.1:37439/evals/opencode_Hy4_preview_office_prompt_v3/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/opencode_Hy4_preview_office_prompt_v3/person.js",
+    "evals/opencode_Hy4_preview_office_prompt_v3/world.js",
+    "evals/opencode_Hy4_preview_office_prompt_v3/elevator_logic.js",
+    "evals/opencode_Hy4_preview_office_prompt_v3/elevator.js",
+    "evals/opencode_Hy4_preview_office_prompt_v3/sim.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 73,
+  "scene_object_count": 2983,
+  "dynamic_changes": 1616,
+  "canvas_changed": false,
+  "duration_ms": 6269,
+  "warnings": []
+}
