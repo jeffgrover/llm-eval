@@ -114,6 +114,15 @@ def resolve_max_idle_seconds(
     return DEFAULT_LOCAL_MAX_IDLE_SECONDS
 
 
+def resolve_lms_context_length(configured_context_length: Optional[int]) -> int:
+    """Resolve the local context and keep LM Studio and agents in sync."""
+    if configured_context_length is not None:
+        return configured_context_length
+    return core.get_env_int(
+        "LLM_EVAL_LOCAL_CONTEXT_LIMIT", core.DEFAULT_LOCAL_CONTEXT_LIMIT
+    )
+
+
 # --- Main ---
 
 
@@ -168,7 +177,10 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--lms-context-length",
         type=int,
-        help="Force LM Studio to load the model with this context length",
+        help=(
+            "Force LM Studio to load the model with this context length "
+            "(default: 65536; override with LLM_EVAL_LOCAL_CONTEXT_LIMIT)"
+        ),
     )
     parser.add_argument(
         "--lms-eval-batch-size",
@@ -309,7 +321,8 @@ def main(argv: Optional[List[str]] = None):
             doom_loop_min_calls=args.doom_loop_min_calls,
         ),
     )
-    runner.local_context_limit = args.lms_context_length
+    local_context_length = resolve_lms_context_length(args.lms_context_length)
+    runner.local_context_limit = local_context_length
     runner.thinking_level = args.thinking_level
 
     runner.confirm_workspace_overwrite()
@@ -322,7 +335,7 @@ def main(argv: Optional[List[str]] = None):
     if not args.non_local and not args.provider and not skip_local_model_load:
         runner.lms_cli_available = load_lms_model(
             args.model,
-            context_length=args.lms_context_length,
+            context_length=local_context_length,
             eval_batch_size=args.lms_eval_batch_size,
             flash_attention=args.lms_flash_attention,
             cpu_kv_cache=args.lms_cpu_kv_cache,

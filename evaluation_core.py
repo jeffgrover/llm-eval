@@ -40,7 +40,10 @@ SERVER_LOG_FILENAME = "SERVER.LOG"
 CHAT_SESSION_FILENAME = "CHAT_SESSION.TXT"
 CODEX_EVENTS_FILENAME = "CODEX_EVENTS.JSONL"
 CODEX_LAST_MESSAGE_FILENAME = "CODEX_LAST_MESSAGE.TXT"
-DEFAULT_LOCAL_CONTEXT_LIMIT = 32768
+# Local agent prompts include large system/tool definitions.  Use a context
+# large enough for those prompts by default, while still allowing callers to
+# lower it for machines with tighter memory limits.
+DEFAULT_LOCAL_CONTEXT_LIMIT = 65536
 # Reasoning models (e.g. Qwen 3.8) spend internal thinking tokens out of the
 # response budget, so 16K can be consumed entirely by reasoning before any
 # visible output or tool call is produced.
