@@ -1,0 +1,523 @@
+{
+  "errors": [],
+  "rush": [
+    {
+      "seconds": 0,
+      "inside": 0,
+      "outside": 20,
+      "queue": 0,
+      "rides": 0,
+      "car": "IDLE",
+      "capacity": 0
+    },
+    {
+      "seconds": 10,
+      "inside": 21,
+      "outside": 1,
+      "queue": 16,
+      "rides": 0,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 20,
+      "inside": 23,
+      "outside": 0,
+      "queue": 16,
+      "rides": 0,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 30,
+      "inside": 26,
+      "outside": 1,
+      "queue": 16,
+      "rides": 3,
+      "car": "DOOR_CLOSING",
+      "capacity": 1
+    },
+    {
+      "seconds": 40,
+      "inside": 27,
+      "outside": 1,
+      "queue": 19,
+      "rides": 4,
+      "car": "MOVING",
+      "capacity": 0
+    },
+    {
+      "seconds": 50,
+      "inside": 28,
+      "outside": 1,
+      "queue": 20,
+      "rides": 4,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 60,
+      "inside": 29,
+      "outside": 0,
+      "queue": 16,
+      "rides": 4,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 70,
+      "inside": 30,
+      "outside": 0,
+      "queue": 16,
+      "rides": 6,
+      "car": "DOOR_OPEN",
+      "capacity": 2
+    },
+    {
+      "seconds": 80,
+      "inside": 35,
+      "outside": 2,
+      "queue": 18,
+      "rides": 8,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 90,
+      "inside": 37,
+      "outside": 0,
+      "queue": 16,
+      "rides": 8,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 100,
+      "inside": 39,
+      "outside": 1,
+      "queue": 17,
+      "rides": 11,
+      "car": "DOOR_CLOSING",
+      "capacity": 1
+    },
+    {
+      "seconds": 110,
+      "inside": 42,
+      "outside": 0,
+      "queue": 17,
+      "rides": 12,
+      "car": "DOOR_CLOSING",
+      "capacity": 0
+    },
+    {
+      "seconds": 120,
+      "inside": 44,
+      "outside": 2,
+      "queue": 18,
+      "rides": 12,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 130,
+      "inside": 48,
+      "outside": 1,
+      "queue": 16,
+      "rides": 12,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 140,
+      "inside": 50,
+      "outside": 2,
+      "queue": 17,
+      "rides": 16,
+      "car": "DOOR_CLOSING",
+      "capacity": 0
+    },
+    {
+      "seconds": 150,
+      "inside": 52,
+      "outside": 0,
+      "queue": 13,
+      "rides": 16,
+      "car": "DOOR_CLOSING",
+      "capacity": 4
+    },
+    {
+      "seconds": 160,
+      "inside": 56,
+      "outside": 0,
+      "queue": 13,
+      "rides": 17,
+      "car": "DOOR_OPENING",
+      "capacity": 3
+    },
+    {
+      "seconds": 170,
+      "inside": 58,
+      "outside": 1,
+      "queue": 15,
+      "rides": 18,
+      "car": "DOOR_OPEN",
+      "capacity": 2
+    },
+    {
+      "seconds": 180,
+      "inside": 60,
+      "outside": 1,
+      "queue": 16,
+      "rides": 20,
+      "car": "DOOR_CLOSING",
+      "capacity": 0
+    },
+    {
+      "seconds": 190,
+      "inside": 63,
+      "outside": 1,
+      "queue": 16,
+      "rides": 20,
+      "car": "DOOR_OPEN",
+      "capacity": 4
+    },
+    {
+      "seconds": 200,
+      "inside": 65,
+      "outside": 0,
+      "queue": 14,
+      "rides": 20,
+      "car": "DOOR_OPENING",
+      "capacity": 4
+    },
+    {
+      "seconds": 210,
+      "inside": 67,
+      "outside": 0,
+      "queue": 14,
+      "rides": 21,
+      "car": "DOOR_OPEN",
+      "capacity": 3
+    },
+    {
+      "seconds": 220,
+      "inside": 69,
+      "outside": 3,
+      "queue": 15,
+      "rides": 23,
+      "car": "DOOR_OPEN",
+      "capacity": 1
+    },
+    {
+      "seconds": 230,
+      "inside": 73,
+      "outside": 0,
+      "queue": 17,
+      "rides": 24,
+      "car": "MOVING",
+      "capacity": 0
+    }
+  ],
+  "hours": [
+    {
+      "time": " 9:18 AM",
+      "present": 92,
+      "maxPresent": 100,
+      "metrics": {
+        "arrivals": 222,
+        "exits": 130,
+        "boarded": 134,
+        "rides": 133,
+        "seatsChecked": 224,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 18,
+        "AT_BREAK": 1,
+        "IN_MEETING": 17,
+        "AWAY": 8,
+        "ON_FLOOR": 1,
+        "ARRIVING": 1,
+        "VISITING": 53,
+        "WAITING_ELEVATOR": 1
+      }
+    },
+    {
+      "time": "10:18 AM",
+      "present": 92,
+      "maxPresent": 98,
+      "metrics": {
+        "arrivals": 372,
+        "exits": 280,
+        "boarded": 234,
+        "rides": 234,
+        "seatsChecked": 403,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "IN_MEETING": 18,
+        "AT_DESK": 14,
+        "AT_BREAK": 2,
+        "VISITING": 56,
+        "AWAY": 8,
+        "LEAVING": 1,
+        "ON_FLOOR": 1
+      }
+    },
+    {
+      "time": "11:18 AM",
+      "present": 92,
+      "maxPresent": 97,
+      "metrics": {
+        "arrivals": 537,
+        "exits": 445,
+        "boarded": 347,
+        "rides": 347,
+        "seatsChecked": 601,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 14,
+        "IN_MEETING": 18,
+        "WAITING_ELEVATOR": 1,
+        "VISITING": 58,
+        "AWAY": 8,
+        "LEAVING": 1
+      }
+    },
+    {
+      "time": "12:18 PM",
+      "present": 91,
+      "maxPresent": 96,
+      "metrics": {
+        "arrivals": 695,
+        "exits": 604,
+        "boarded": 459,
+        "rides": 459,
+        "seatsChecked": 780,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 15,
+        "IN_MEETING": 14,
+        "AT_LUNCH": 2,
+        "ON_FLOOR": 2,
+        "VISITING": 56,
+        "AWAY": 9,
+        "LEAVING": 1,
+        "WAITING_ELEVATOR": 1
+      }
+    },
+    {
+      "time": " 1:18 PM",
+      "present": 92,
+      "maxPresent": 96,
+      "metrics": {
+        "arrivals": 865,
+        "exits": 773,
+        "boarded": 600,
+        "rides": 599,
+        "seatsChecked": 970,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 10,
+        "WAITING_ELEVATOR": 1,
+        "AT_LUNCH": 7,
+        "IN_MEETING": 11,
+        "AT_BREAK": 1,
+        "VISITING": 60,
+        "AWAY": 8,
+        "IN_CAR": 1,
+        "ARRIVING": 1
+      }
+    },
+    {
+      "time": " 2:18 PM",
+      "present": 93,
+      "maxPresent": 97,
+      "metrics": {
+        "arrivals": 1023,
+        "exits": 930,
+        "boarded": 754,
+        "rides": 754,
+        "seatsChecked": 1158,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 12,
+        "AT_LUNCH": 5,
+        "ON_FLOOR": 1,
+        "IN_MEETING": 16,
+        "VISITING": 57,
+        "IN_CAR": 1,
+        "LEAVING": 1,
+        "AWAY": 7
+      }
+    },
+    {
+      "time": " 3:18 PM",
+      "present": 93,
+      "maxPresent": 98,
+      "metrics": {
+        "arrivals": 1179,
+        "exits": 1086,
+        "boarded": 876,
+        "rides": 875,
+        "seatsChecked": 1349,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 10,
+        "IN_MEETING": 17,
+        "AT_BREAK": 3,
+        "ON_FLOOR": 1,
+        "VISITING": 59,
+        "ARRIVING": 1,
+        "AWAY": 7,
+        "WAITING_ELEVATOR": 1,
+        "IN_CAR": 1
+      }
+    },
+    {
+      "time": " 4:18 PM",
+      "present": 94,
+      "maxPresent": 98,
+      "metrics": {
+        "arrivals": 1336,
+        "exits": 1242,
+        "boarded": 992,
+        "rides": 992,
+        "seatsChecked": 1532,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 18,
+        "IN_MEETING": 14,
+        "VISITING": 59,
+        "WAITING_ELEVATOR": 2,
+        "AWAY": 6,
+        "LEAVING": 1
+      }
+    },
+    {
+      "time": " 5:19 PM",
+      "present": 87,
+      "maxPresent": 95,
+      "metrics": {
+        "arrivals": 1495,
+        "exits": 1408,
+        "boarded": 1096,
+        "rides": 1096,
+        "seatsChecked": 1711,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "AT_DESK": 11,
+        "GONE": 4,
+        "IN_MEETING": 15,
+        "AT_BREAK": 1,
+        "VISITING": 59,
+        "AWAY": 9,
+        "LEAVING": 1
+      }
+    },
+    {
+      "time": " 6:19 PM",
+      "present": 3,
+      "maxPresent": 87,
+      "metrics": {
+        "arrivals": 1508,
+        "exits": 1505,
+        "boarded": 1146,
+        "rides": 1146,
+        "seatsChecked": 1733,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "IN_MEETING": 1,
+        "GONE": 97,
+        "VISITING": 1,
+        "AT_DESK": 1
+      }
+    },
+    {
+      "time": " 7:19 PM",
+      "present": 1,
+      "maxPresent": 3,
+      "metrics": {
+        "arrivals": 1508,
+        "exits": 1507,
+        "boarded": 1149,
+        "rides": 1149,
+        "seatsChecked": 1734,
+        "maxCarLoad": 4,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "maxStillOverlap": 0,
+      "overlapExample": [],
+      "issues": [],
+      "states": {
+        "GONE": 99,
+        "AT_DESK": 1
+      }
+    }
+  ],
+  "slider": {
+    "retained": true,
+    "enabled": 5,
+    "car": 0,
+    "reservations": 0
+  }
+}

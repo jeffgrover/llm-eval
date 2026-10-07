@@ -1,0 +1,14 @@
+{
+  "input_tokens": 1779147,
+  "output_tokens": 42881,
+  "total_tokens": 1822028,
+  "reasoning_tokens": 9417,
+  "cache_read_tokens": 1634816,
+  "num_turns": 1,
+  "provider_id": "OpenAI",
+  "model_id": "gpt-6-astra",
+  "status": "success",
+  "is_error": false,
+  "session_id": "01a0744a-2e7b-7d72-a39d-21c19b621f35",
+  "codex_version": "codex-cli 0.153.4"
+}

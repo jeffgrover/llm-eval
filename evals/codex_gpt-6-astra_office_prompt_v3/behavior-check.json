@@ -1,0 +1,2969 @@
+{
+  "errors": [],
+  "snapshots": [
+    {
+      "time": " 8:30 AM",
+      "minute": 510.4153999999445,
+      "present": 30,
+      "maxPresent": 30,
+      "seen": {
+        "AWAY": 2334,
+        "DISABLED": 3300,
+        "ARRIVING": 7,
+        "VISITING": 239,
+        "IN_CAR": 3,
+        "IN_MEETING": 68,
+        "AT_DESK": 43,
+        "ON_FLOOR": 2,
+        "WAITING_ELEVATOR": 4
+      },
+      "metrics": {
+        "arrivals": 31,
+        "exits": 1,
+        "boarded": 14,
+        "rides": 14,
+        "seatsChecked": 31,
+        "maxCarLoad": 2,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 0,
+        "state": "DOOR_OPEN",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 1,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 1,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 2,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 1,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 3,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 1,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 4,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 5,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 6,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 7,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 8,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 3,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 9,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 3,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 10,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 3,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 11,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 12,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 4,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 13,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 14,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 4,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 15,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 4,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 17,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 18,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 19,
+          "state": "AWAY",
+          "floor": 0,
+          "home": 5,
+          "lunched": false,
+          "goal": "Not yet arrived"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 9:30 AM",
+      "minute": 570.4153999998899,
+      "present": 43,
+      "maxPresent": 44,
+      "seen": {
+        "AT_DESK": 738,
+        "AWAY": 589,
+        "VISITING": 1011,
+        "IN_MEETING": 304,
+        "DISABLED": 3300,
+        "IN_CAR": 14,
+        "LEAVING": 11,
+        "ARRIVING": 11,
+        "WAITING_ELEVATOR": 10,
+        "ON_FLOOR": 12
+      },
+      "metrics": {
+        "arrivals": 98,
+        "exits": 55,
+        "boarded": 71,
+        "rides": 71,
+        "seatsChecked": 100,
+        "maxCarLoad": 2,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 5,
+        "state": "DOOR_CLOSING",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 1,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 4,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 5,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 6,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 7,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 8,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 9,
+          "state": "IN_MEETING",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 10,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 11,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 12,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 13,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 15,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 17,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 18,
+          "state": "ON_FLOOR",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WALK_TO_WP",
+          "goal": "A desk-side chat with Lena"
+        },
+        {
+          "id": 19,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Arriving for work"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": "10:30 AM",
+      "minute": 630.4153999998354,
+      "present": 42,
+      "maxPresent": 45,
+      "seen": {
+        "AT_DESK": 973,
+        "IN_MEETING": 661,
+        "VISITING": 859,
+        "AWAY": 116,
+        "LEAVING": 9,
+        "DISABLED": 3300,
+        "ARRIVING": 11,
+        "WAITING_ELEVATOR": 7,
+        "ON_FLOOR": 25,
+        "AT_BREAK": 27,
+        "IN_CAR": 12
+      },
+      "metrics": {
+        "arrivals": 141,
+        "exits": 99,
+        "boarded": 114,
+        "rides": 114,
+        "seatsChecked": 164,
+        "maxCarLoad": 2,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 3,
+        "state": "IDLE",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 1,
+          "state": "IN_MEETING",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 3,
+          "state": "IN_MEETING",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 4,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 5,
+          "state": "IN_MEETING",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 6,
+          "state": "IN_MEETING",
+          "floor": 4,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 7,
+          "state": "IN_MEETING",
+          "floor": 5,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 8,
+          "state": "ON_FLOOR",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WALK_TO_WP",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 9,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 10,
+          "state": "IN_MEETING",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 11,
+          "state": "IN_MEETING",
+          "floor": 2,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 12,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 13,
+          "state": "IN_MEETING",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 15,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 17,
+          "state": "IN_MEETING",
+          "floor": 2,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 18,
+          "state": "IN_MEETING",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 19,
+          "state": "IN_MEETING",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": "11:30 AM",
+      "minute": 690.4153999997808,
+      "present": 44,
+      "maxPresent": 45,
+      "seen": {
+        "AT_DESK": 720,
+        "IN_MEETING": 625,
+        "VISITING": 1122,
+        "LEAVING": 17,
+        "AWAY": 168,
+        "DISABLED": 3300,
+        "IN_CAR": 3,
+        "WAITING_ELEVATOR": 9,
+        "ON_FLOOR": 15,
+        "AT_BREAK": 11,
+        "ARRIVING": 10
+      },
+      "metrics": {
+        "arrivals": 194,
+        "exits": 150,
+        "boarded": 153,
+        "rides": 153,
+        "seatsChecked": 247,
+        "maxCarLoad": 2,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 0,
+        "state": "IDLE",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Eva"
+        },
+        {
+          "id": 1,
+          "state": "VISITING",
+          "floor": 5,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Milo"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 4,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 5,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 6,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Nina"
+        },
+        {
+          "id": 7,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 8,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 9,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 10,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 11,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 12,
+          "state": "IN_MEETING",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 13,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 15,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 17,
+          "state": "AT_BREAK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 18,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 19,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": "12:30 PM",
+      "minute": 750.4153999997262,
+      "present": 43,
+      "maxPresent": 45,
+      "seen": {
+        "AT_DESK": 895,
+        "VISITING": 1047,
+        "IN_MEETING": 480,
+        "ON_FLOOR": 24,
+        "AWAY": 134,
+        "LEAVING": 10,
+        "DISABLED": 3300,
+        "ARRIVING": 7,
+        "AT_BREAK": 32,
+        "WAITING_ELEVATOR": 7,
+        "IN_CAR": 5,
+        "AT_LUNCH": 59
+      },
+      "metrics": {
+        "arrivals": 246,
+        "exits": 203,
+        "boarded": 199,
+        "rides": 199,
+        "seatsChecked": 327,
+        "maxCarLoad": 2,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 0,
+        "state": "DOOR_OPEN",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 1,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 4,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 5,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 6,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Finn"
+        },
+        {
+          "id": 7,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 8,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 9,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 10,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 11,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 12,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 13,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Noah"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 15,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Ada"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Nina"
+        },
+        {
+          "id": 17,
+          "state": "ON_FLOOR",
+          "floor": 4,
+          "home": 5,
+          "lunched": false,
+          "action": "WALK_TO_WP",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 18,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 19,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 5,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 1:30 PM",
+      "minute": 810.4153999996716,
+      "present": 41,
+      "maxPresent": 45,
+      "seen": {
+        "AT_DESK": 631,
+        "AT_LUNCH": 522,
+        "VISITING": 1025,
+        "WAITING_ELEVATOR": 7,
+        "IN_MEETING": 300,
+        "AWAY": 158,
+        "DISABLED": 3300,
+        "ON_FLOOR": 24,
+        "ARRIVING": 11,
+        "IN_CAR": 11,
+        "LEAVING": 11
+      },
+      "metrics": {
+        "arrivals": 299,
+        "exits": 258,
+        "boarded": 261,
+        "rides": 261,
+        "seatsChecked": 407,
+        "maxCarLoad": 2,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 0,
+        "state": "IDLE",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 1,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 3,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 1,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 4,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Zoe"
+        },
+        {
+          "id": 5,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 6,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Sofia"
+        },
+        {
+          "id": 7,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 8,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 9,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 10,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 3,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 11,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 12,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 13,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 15,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 4,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 17,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 18,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 19,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 2:30 PM",
+      "minute": 870.4153999996171,
+      "present": 40,
+      "maxPresent": 45,
+      "seen": {
+        "AT_DESK": 795,
+        "AT_LUNCH": 293,
+        "ARRIVING": 11,
+        "VISITING": 909,
+        "AWAY": 158,
+        "IN_MEETING": 458,
+        "ON_FLOOR": 26,
+        "DISABLED": 3300,
+        "WAITING_ELEVATOR": 7,
+        "IN_CAR": 6,
+        "LEAVING": 13,
+        "AT_BREAK": 24
+      },
+      "metrics": {
+        "arrivals": 352,
+        "exits": 312,
+        "boarded": 316,
+        "rides": 315,
+        "seatsChecked": 482,
+        "maxCarLoad": 2,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 2,
+        "state": "DOOR_OPEN",
+        "passengers": 1,
+        "pending": 0,
+        "dest": [
+          4
+        ]
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "IN_MEETING",
+          "floor": 3,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 1,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 4,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 5,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 6,
+          "state": "AT_LUNCH",
+          "floor": 0,
+          "home": 2,
+          "lunched": false,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 7,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 8,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 9,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 10,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 11,
+          "state": "IN_MEETING",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 12,
+          "state": "IN_CAR",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_FOR_FLOOR",
+          "goal": "Lunch at the ground-floor café"
+        },
+        {
+          "id": 13,
+          "state": "IN_MEETING",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 14,
+          "state": "IN_MEETING",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 15,
+          "state": "IN_MEETING",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 17,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 18,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 19,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 3:30 PM",
+      "minute": 930.4153999995625,
+      "present": 40,
+      "maxPresent": 45,
+      "seen": {
+        "IN_MEETING": 672,
+        "AT_DESK": 858,
+        "AT_LUNCH": 27,
+        "ON_FLOOR": 20,
+        "VISITING": 877,
+        "IN_CAR": 9,
+        "AWAY": 157,
+        "DISABLED": 3300,
+        "AT_BREAK": 37,
+        "WAITING_ELEVATOR": 11,
+        "ARRIVING": 15,
+        "LEAVING": 17
+      },
+      "metrics": {
+        "arrivals": 406,
+        "exits": 366,
+        "boarded": 366,
+        "rides": 366,
+        "seatsChecked": 565,
+        "maxCarLoad": 3,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 4,
+        "state": "DOOR_OPEN",
+        "passengers": 0,
+        "pending": 1,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 1,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 4,
+          "state": "IN_MEETING",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 5,
+          "state": "IN_MEETING",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 6,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 7,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 8,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 9,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 10,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 11,
+          "state": "VISITING",
+          "floor": 4,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Eva"
+        },
+        {
+          "id": 12,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 13,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 15,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 17,
+          "state": "IN_MEETING",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 18,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 19,
+          "state": "IN_MEETING",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 4:30 PM",
+      "minute": 990.4153999995079,
+      "present": 42,
+      "maxPresent": 45,
+      "seen": {
+        "AT_DESK": 1015,
+        "IN_MEETING": 373,
+        "VISITING": 1059,
+        "AWAY": 169,
+        "ARRIVING": 13,
+        "LEAVING": 12,
+        "DISABLED": 3300,
+        "AT_BREAK": 22,
+        "IN_CAR": 5,
+        "ON_FLOOR": 25,
+        "WAITING_ELEVATOR": 7
+      },
+      "metrics": {
+        "arrivals": 461,
+        "exits": 419,
+        "boarded": 413,
+        "rides": 413,
+        "seatsChecked": 638,
+        "maxCarLoad": 3,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 2,
+        "state": "MOVING",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Jude"
+        },
+        {
+          "id": 1,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 2,
+          "state": "IN_MEETING",
+          "floor": 4,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Ada"
+        },
+        {
+          "id": 4,
+          "state": "IN_MEETING",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 5,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 2"
+        },
+        {
+          "id": 6,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 7,
+          "state": "IN_MEETING",
+          "floor": 1,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 8,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 9,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 10,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 11,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 12,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 13,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 15,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 17,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        },
+        {
+          "id": 18,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 19,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 5"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 5:30 PM",
+      "minute": 1050.415400001249,
+      "present": 29,
+      "maxPresent": 45,
+      "seen": {
+        "AT_DESK": 833,
+        "IN_MEETING": 343,
+        "VISITING": 1044,
+        "AWAY": 139,
+        "DISABLED": 3300,
+        "ON_FLOOR": 16,
+        "ARRIVING": 11,
+        "IN_CAR": 9,
+        "LEAVING": 11,
+        "WAITING_ELEVATOR": 7,
+        "AT_BREAK": 19,
+        "GONE": 268
+      },
+      "metrics": {
+        "arrivals": 508,
+        "exits": 479,
+        "boarded": 455,
+        "rides": 454,
+        "seatsChecked": 702,
+        "maxCarLoad": 3,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 3,
+        "state": "MOVING",
+        "passengers": 1,
+        "pending": 0,
+        "dest": [
+          0
+        ]
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 1,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 2,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 4"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A desk-side chat with Maya"
+        },
+        {
+          "id": 4,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 5,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 6,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 7,
+          "state": "AT_DESK",
+          "floor": 2,
+          "home": 2,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 1"
+        },
+        {
+          "id": 8,
+          "state": "ON_FLOOR",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WALK_TO_WP",
+          "goal": "A desk-side chat with Sam"
+        },
+        {
+          "id": 9,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 10,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 11,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 12,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 13,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 14,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 15,
+          "state": "AT_DESK",
+          "floor": 4,
+          "home": 4,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 17,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 18,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 19,
+          "state": "IN_CAR",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_FOR_FLOOR",
+          "goal": "Heading home"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 6:30 PM",
+      "minute": 1110.4154000052736,
+      "present": 3,
+      "maxPresent": 28,
+      "seen": {
+        "GONE": 2134,
+        "AT_DESK": 360,
+        "VISITING": 144,
+        "IN_MEETING": 26,
+        "DISABLED": 3300,
+        "LEAVING": 7,
+        "AT_BREAK": 19,
+        "WAITING_ELEVATOR": 4,
+        "ON_FLOOR": 3,
+        "IN_CAR": 3
+      },
+      "metrics": {
+        "arrivals": 508,
+        "exits": 505,
+        "boarded": 476,
+        "rides": 476,
+        "seatsChecked": 711,
+        "maxCarLoad": 3,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 3,
+        "state": "IDLE",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 1,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 2,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 3,
+          "state": "AT_DESK",
+          "floor": 1,
+          "home": 1,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "A coffee and a short break"
+        },
+        {
+          "id": 4,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 5,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 6,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 7,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 8,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 9,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 10,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 11,
+          "state": "ON_FLOOR",
+          "floor": 1,
+          "home": 3,
+          "lunched": true,
+          "action": "WALK_TO_WP",
+          "goal": "A desk-side chat with Sofia"
+        },
+        {
+          "id": 12,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 13,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 14,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 15,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 16,
+          "state": "AT_DESK",
+          "floor": 5,
+          "home": 5,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Working at their desk"
+        },
+        {
+          "id": 17,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 18,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 19,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 7:30 PM",
+      "minute": 1170.415400009298,
+      "present": 1,
+      "maxPresent": 3,
+      "seen": {
+        "GONE": 2532,
+        "AT_DESK": 100,
+        "DISABLED": 3300,
+        "ON_FLOOR": 3,
+        "IN_MEETING": 54,
+        "AT_BREAK": 11
+      },
+      "metrics": {
+        "arrivals": 508,
+        "exits": 507,
+        "boarded": 479,
+        "rides": 479,
+        "seatsChecked": 717,
+        "maxCarLoad": 3,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 5,
+        "state": "IDLE",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 1,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 2,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 3,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 4,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 5,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 6,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 7,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 8,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 9,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 10,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 11,
+          "state": "AT_DESK",
+          "floor": 3,
+          "home": 3,
+          "lunched": true,
+          "action": "WAIT_SIM",
+          "goal": "Meeting on floor 3"
+        },
+        {
+          "id": 12,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 13,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 14,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 15,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 16,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 17,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 18,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 19,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 8:30 PM",
+      "minute": 1230.4154000133226,
+      "present": 0,
+      "maxPresent": 1,
+      "seen": {
+        "GONE": 2699,
+        "LEAVING": 1,
+        "DISABLED": 3300
+      },
+      "metrics": {
+        "arrivals": 508,
+        "exits": 508,
+        "boarded": 480,
+        "rides": 480,
+        "seatsChecked": 717,
+        "maxCarLoad": 3,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 3,
+        "state": "IDLE",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 1,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 2,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 3,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 4,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 5,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 6,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 7,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 8,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 9,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 10,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 11,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 12,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 13,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 14,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 15,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 16,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 17,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 18,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 19,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        }
+      ],
+      "violations": []
+    },
+    {
+      "time": " 9:30 PM",
+      "minute": 1290.415400017347,
+      "present": 0,
+      "maxPresent": 0,
+      "seen": {
+        "GONE": 2700,
+        "DISABLED": 3300
+      },
+      "metrics": {
+        "arrivals": 508,
+        "exits": 508,
+        "boarded": 480,
+        "rides": 480,
+        "seatsChecked": 717,
+        "maxCarLoad": 3,
+        "entranceRecoveries": 0,
+        "doorRecoveries": 0
+      },
+      "car": {
+        "floor": 3,
+        "state": "IDLE",
+        "passengers": 0,
+        "pending": 0,
+        "dest": []
+      },
+      "workers": [
+        {
+          "id": 0,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 1,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 2,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 3,
+          "state": "GONE",
+          "floor": 0,
+          "home": 1,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 4,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 5,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 6,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 7,
+          "state": "GONE",
+          "floor": 0,
+          "home": 2,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 8,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 9,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 10,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 11,
+          "state": "GONE",
+          "floor": 0,
+          "home": 3,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 12,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 13,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 14,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 15,
+          "state": "GONE",
+          "floor": 0,
+          "home": 4,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 16,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 17,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 18,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        },
+        {
+          "id": 19,
+          "state": "GONE",
+          "floor": 0,
+          "home": 5,
+          "lunched": true,
+          "goal": "Heading home"
+        }
+      ],
+      "violations": []
+    }
+  ],
+  "checks": [],
+  "reset": {
+    "time": 0.5000000000336396,
+    "passengers": 0,
+    "pending": 0,
+    "calls": [],
+    "seats": 0,
+    "states": [
+      "AWAY",
+      "DISABLED"
+    ]
+  }
+}
