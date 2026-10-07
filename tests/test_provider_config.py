@@ -9,6 +9,7 @@ from pathlib import Path
 
 from evaluation_core import (
     AgentRunner,
+    DEFAULT_LOCAL_CONTEXT_LIMIT,
     LLAMA_SERVER_PROVIDER,
     LM_STUDIO_PROVIDER,
     OMLX_PROVIDER,
@@ -223,7 +224,7 @@ class LocalProviderConfigTests(unittest.TestCase):
             )
             self.assertEqual(
                 config["provider"]["lmstudio"]["models"]["deepseek-v4"]["limit"]["context"],
-                32768,
+                DEFAULT_LOCAL_CONTEXT_LIMIT,
             )
 
     @patch("runners.opencode.urllib.request.urlopen")

@@ -124,7 +124,7 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 -   `--open-report`: Open `summary.html` in the default browser after the run.
 -   `--execute-generated-python`: Execute root-level Python artifacts and capture their output in `OUTPUT.TXT`. This is disabled by default.
 -   `--restore-agent-config`: Restore Vibe's original `active_model` after the run. Pi's temporary provider file is always restored or removed.
--   `--lms-context-length`: Reload the LM Studio model with an explicit context length. OpenCode is given the same advertised context limit.
+-   `--lms-context-length`: Reload the LM Studio model with an explicit context length (default: `65536`). OpenCode and other local adapters are given the same advertised context limit. Override the default with `LLM_EVAL_LOCAL_CONTEXT_LIMIT`.
 -   `--lms-eval-batch-size`: Set LM Studio llama.cpp's prompt-evaluation batch size. Smaller values can reduce peak memory during prompt ingestion.
 -   `--lms-flash-attention`: Enable Flash Attention when LM Studio loads a compatible llama.cpp model.
 -   `--lms-cpu-kv-cache`: Keep the KV cache in system memory rather than offloading it to the GPU. On unified-memory systems this changes placement/accounting, not the total physical-memory requirement.
@@ -156,7 +156,7 @@ LLM_EVAL_LOCAL_OUTPUT_LIMIT=2048 ./evaluate_agent.py \
   --lms-eval-batch-size 64
 ```
 
-OpenCode's default local limits are 32,768 context tokens and 16,384 output
+OpenCode's default local limits are 65,536 context tokens and 32,768 output
 tokens. Override them with `LLM_EVAL_LOCAL_CONTEXT_LIMIT` and
 `LLM_EVAL_LOCAL_OUTPUT_LIMIT`. An explicit `--lms-context-length` takes
 precedence over `LLM_EVAL_LOCAL_CONTEXT_LIMIT` for OpenCode so the client and

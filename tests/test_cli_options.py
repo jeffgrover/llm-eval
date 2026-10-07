@@ -4,9 +4,11 @@ import unittest
 
 from evaluate_agent import (
     build_argument_parser,
+    resolve_lms_context_length,
     resolve_max_idle_seconds,
     resolve_max_seconds,
 )
+from evaluation_core import DEFAULT_LOCAL_CONTEXT_LIMIT
 from run_safety import (
     DEFAULT_DOOM_LOOP_REPEATS,
     DEFAULT_LOCAL_MAX_IDLE_SECONDS,
@@ -62,6 +64,15 @@ class CliOptionTests(unittest.TestCase):
         self.assertEqual(args.lms_eval_batch_size, 128)
         self.assertTrue(args.lms_flash_attention)
         self.assertTrue(args.lms_cpu_kv_cache)
+
+    def test_local_context_defaults_high_and_supports_overrides(self):
+        args = self.parse()
+
+        self.assertEqual(
+            resolve_lms_context_length(args.lms_context_length),
+            DEFAULT_LOCAL_CONTEXT_LIMIT,
+        )
+        self.assertEqual(resolve_lms_context_length(16384), 16384)
 
     def test_thinking_level_is_configurable(self):
         args = self.parse("--thinking-level", "medium")
