@@ -1,5 +1,6 @@
 import contextlib
 import io
+import json
 import sys
 import tempfile
 import unittest
@@ -11,6 +12,69 @@ from runners import PiRunner, PiWiggumRunner
 
 
 class PiRunnerTests(unittest.TestCase):
+    def test_provider_outcome_overrides_clean_process_exit(self):
+        failed_message = {
+            "type": "message_end",
+            "message": {
+                "role": "assistant",
+                "stopReason": "error",
+                "errorMessage": "Upstream idle timeout exceeded",
+            },
+        }
+        retry_failure = {
+            "type": "auto_retry_end",
+            "success": False,
+            "finalError": "Upstream idle timeout exceeded",
+        }
+        recovered_message = {
+            "type": "message_end",
+            "message": {
+                "role": "assistant",
+                "stopReason": "stop",
+                "usage": {"input": 1, "output": 1},
+            },
+        }
+        for events, expected_error in (
+            ([failed_message], "Upstream idle timeout exceeded"),
+            ([retry_failure], "Upstream idle timeout exceeded"),
+            ([failed_message, retry_failure], "Upstream idle timeout exceeded"),
+            ([{"type": "message_end", "message": {
+                "role": "assistant", "stopReason": "error",
+            }}], "Pi assistant stopped: error"),
+            ([{"type": "message_end", "message": {
+                "role": "assistant", "stopReason": "aborted",
+            }}], "Pi assistant stopped: aborted"),
+            ([{"type": "auto_retry_end", "success": False}],
+             "Pi exhausted provider retries"),
+            ([failed_message, recovered_message,
+              {"type": "auto_retry_end", "success": True}], None),
+        ):
+            with self.subTest(events=events), tempfile.TemporaryDirectory() as temp_dir:
+                work_dir = Path(temp_dir)
+                prompt_path = work_dir / "prompt.txt"
+                prompt_path.write_text("build it", encoding="utf-8")
+                runner = PiRunner(
+                    "pi", "test-model", prompt_path, headless=True, non_local=True
+                )
+                runner.work_dir = work_dir
+                script = (
+                    "import json\n"
+                    f"for event in {events!r}: print(json.dumps(event), flush=True)\n"
+                )
+                with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                    runner, "_build_pi_command",
+                    return_value=[sys.executable, "-c", script],
+                ):
+                    runner.execute_agent()
+
+                result = json.loads((work_dir / "PI_RESULT.JSON").read_text())
+                is_error = expected_error is not None
+                self.assertEqual(result["is_error"], is_error)
+                self.assertEqual(result["status"], "error" if is_error else "success")
+                self.assertEqual(result.get("error"), expected_error)
+                if is_error:
+                    self.assertNotIn("[SUCCESS]", (work_dir / "CHAT_SESSION.TXT").read_text())
+
     def test_pi_command_passes_explicit_thinking_level(self):
         runner = PiRunner(
             "pi",
