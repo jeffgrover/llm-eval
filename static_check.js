@@ -92,7 +92,7 @@ function stripStringsAndComments(source) {
 function tokenize(source) {
   const stripped = stripStringsAndComments(source);
   const tokens = [];
-  const re = /0x[0-9A-Fa-f]+|\d+(?:\.\d+)?|[A-Za-z_$][A-Za-z0-9_$]*|=>|===|!==|==|!=|<=|>=|\+\+|--|&&|\|\||[{}()[\].,;:=+\-*/%<>!?]/g;
+  const re = /0x[0-9A-Fa-f]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_$][A-Za-z0-9_$]*|=>|===|!==|==|!=|<=|>=|\+\+|--|&&|\|\||[{}()[\].,;:=+\-*/%<>!?]/g;
   const lineStarts = [0];
   for (let i = 0; i < stripped.length; i += 1) {
     if (stripped[i] === "\n") lineStarts.push(i + 1);

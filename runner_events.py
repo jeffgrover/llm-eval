@@ -412,6 +412,7 @@ def parse_pi_event(event: Dict) -> ParsedEvent:
         usage = message.get("usage", {})
         cost = usage.get("cost", {})
         total_cost = cost.get("total", 0) if isinstance(cost, dict) else cost
+        finish_reason = message.get("stopReason")
         return ParsedEvent(
             usage={
                 "input_tokens": usage.get("input", 0),
@@ -423,6 +424,15 @@ def parse_pi_event(event: Dict) -> ParsedEvent:
             provider_id=message.get("provider"),
             model_id=message.get("model"),
             turn_completed=True,
+            finish_reason=finish_reason,
+            error=(message.get("errorMessage") or f"Pi assistant stopped: {finish_reason}")
+            if finish_reason in ("error", "aborted")
+            else None,
+        )
+    if event_type == "auto_retry_end" and event.get("success") is False:
+        return ParsedEvent(
+            error=event.get("finalError") or "Pi exhausted provider retries",
+            finish_reason="error",
         )
     if event_type == "message_update":
         update = event.get("assistantMessageEvent", {})

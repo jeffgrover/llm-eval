@@ -177,6 +177,7 @@ class PiRunner(AgentRunner):
             result_data["input_tokens"] > 0
             or result_data["output_tokens"] > 0
             or result_data.get("termination")
+            or result_data.get("error")
             or result_data.get("returncode") != 0
         ):
             result_json_path = self.work_dir / PI_RESULT_FILENAME
@@ -239,6 +240,7 @@ class PiRunner(AgentRunner):
         num_turns = 0
         pi_provider = None
         pi_model = None
+        provider_error = None
         timed_out = False
         termination = None
         safety_monitor = self.create_safety_monitor()
@@ -365,6 +367,13 @@ class PiRunner(AgentRunner):
                 try:
                     event = json.loads(stripped)
                     parsed = parse_pi_event(event)
+                    if parsed.turn_completed or parsed.error:
+                        provider_error = parsed.error
+                    if parsed.error:
+                        error_text = f"\n[PROVIDER ERROR] {parsed.error}\n"
+                        safe_stdout_write(error_text)
+                        log_file.write(error_text)
+                        log_file.flush()
                     if parsed.text:
                         safe_stdout_write(parsed.text)
                         log_file.write(parsed.text)
@@ -420,9 +429,12 @@ class PiRunner(AgentRunner):
                 if close:
                     close()
 
-            if process.returncode == 0 and not termination:
+            if process.returncode == 0 and not termination and not provider_error:
                 print(f"\n[+] Agent finished successfully.")
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
+            elif provider_error and not termination:
+                print(f"\n[-] Agent finished with provider error: {provider_error}")
+                log_file.write(f"\n[ERROR] {provider_error}\n")
             else:
                 print(f"\n[-] Agent finished with error code {process.returncode}")
                 log_file.write(
@@ -442,6 +454,7 @@ class PiRunner(AgentRunner):
             "returncode": process.returncode,
             "timed_out": timed_out,
             "termination": termination,
+            "error": provider_error,
             "raw_jsonl": raw_jsonl_filename,
         }
 
@@ -477,12 +490,13 @@ class PiRunner(AgentRunner):
                     ],
                 }
             )
-        elif result_data.get("returncode") != 0:
+        elif result_data.get("error") or result_data.get("returncode") != 0:
             metrics.update(
                 {
                     "status": "error",
                     "is_error": True,
-                    "error": f"Pi exited with code {result_data['returncode']}",
+                    "error": result_data.get("error")
+                    or f"Pi exited with code {result_data['returncode']}",
                 }
             )
         else:
