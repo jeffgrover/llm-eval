@@ -1,0 +1,14 @@
+{
+  "input_tokens": 198878,
+  "output_tokens": 47920,
+  "total_tokens": 246798,
+  "cache_read_tokens": 2303112,
+  "cache_write_tokens": 0,
+  "cost_usd": 1.1072672000000003,
+  "num_turns": 49,
+  "thinking_level": "medium",
+  "provider_id": "openrouter",
+  "model_id": "google/gemini-4-argon",
+  "status": "success",
+  "is_error": false
+}

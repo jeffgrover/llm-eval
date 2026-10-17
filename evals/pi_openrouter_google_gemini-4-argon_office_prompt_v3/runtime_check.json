@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-10-17T16:27:46.537Z",
+  "url": "http://127.0.0.1:51415/evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/person.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/world.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/elevator_logic.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/elevator.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/sim.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 217,
+  "scene_object_count": 1099,
+  "dynamic_changes": 945,
+  "canvas_changed": true,
+  "duration_ms": 6027,
+  "warnings": []
+}
