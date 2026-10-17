@@ -26,11 +26,13 @@ class VibeRunner(AgentRunner):
 
     def configure_agent(self):
         """Set vibe's active_model to match the --model and --provider passed to this script."""
-        if self.non_local:
+        if self.non_local and not self.custom_provider:
             return
 
         vibe_config_path = Path.home() / ".vibe" / "config.toml"
         if not vibe_config_path.exists():
+            if self.non_local:
+                raise ValueError(f"Configure the Vibe provider and model in {vibe_config_path} first")
             return
 
         try:
@@ -94,6 +96,11 @@ class VibeRunner(AgentRunner):
 
             if not target_alias:
                 provider_str = f"{self.custom_provider}/" if self.custom_provider else ""
+                if self.non_local:
+                    raise ValueError(
+                        f"No Vibe model alias found matching '{provider_str}{self.model_name}' "
+                        f"in {vibe_config_path}"
+                    )
                 print(
                     f"[-] No vibe model alias found matching '{provider_str}{self.model_name}', using current active_model."
                 )
@@ -103,6 +110,8 @@ class VibeRunner(AgentRunner):
             am_match = re.search(
                 r'^active_model\s*=\s*"(.+?)"', config_text, re.MULTILINE
             )
+            if not am_match and self.non_local:
+                raise ValueError(f'Add a top-level active_model = "{target_alias}" to {vibe_config_path}')
             if am_match:
                 self._original_active_model = am_match.group(1)
                 if self._original_active_model == target_alias:
@@ -122,6 +131,8 @@ class VibeRunner(AgentRunner):
             )
 
         except Exception as e:
+            if self.non_local:
+                raise
             print(f"[-] Failed to configure vibe model: {e}")
 
     def _restore_vibe_config(self):
@@ -291,11 +302,11 @@ class VibeRunner(AgentRunner):
             try:
                 event = json.loads(stripped)
                 parsed = parse_vibe_event(event)
-                if parsed.text:
-                    safe_stdout_write(parsed.text)
                 if parsed.log_raw:
                     log_file.write(line)
                     log_file.flush()
+                if parsed.text:
+                    safe_stdout_write(parsed.text)
                 if parsed.turn_completed:
                     num_turns += 1
                     termination = safety_monitor.observe_turn({})
@@ -365,8 +376,12 @@ class VibeRunner(AgentRunner):
 
         # Add model info based on non_local mode
         if self.non_local:
-            # For non-local mode, try to extract provider from model_name if it contains /
-            if "/" in self.model_name:
+            # An explicit provider keeps namespaced model IDs intact (e.g. OpenRouter).
+            if self.custom_provider:
+                result_data["provider"] = self.custom_provider
+                result_data["model_id"] = self.model_name
+                result_data["model_name"] = self.model_name
+            elif "/" in self.model_name:
                 parts = self.model_name.split("/", 1)
                 result_data["provider"] = parts[0]
                 result_data["model_id"] = parts[1]

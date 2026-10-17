@@ -1,3 +1,7 @@
 {"role":"system","content":"hidden system prompt"}
 {"role":"assistant","content":"First response"}
 {"role":"assistant","content":"Second response"}
+{"type":"message","role":"user","content":[{"type":"text","text":"Build an office simulation"}],"generationStatus":"completed"}
+{"type":"message","role":"assistant","content":[{"type":"text","text":"Creating the scene."},{"type":"text","text":"Then adding people."}],"generationStatus":"completed"}
+{"type":"message","role":"system","content":[{"type":"text","text":"hidden block system prompt"}],"generationStatus":"completed"}
+{"type":"effect","title":"Write index.html","detail":{"kind":"tool_call","toolName":"write_file"},"state":{"status":"completed"},"generationStatus":"completed"}
