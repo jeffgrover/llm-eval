@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-10-17T22:06:40.813Z",
+  "url": "http://127.0.0.1:54665/index.html",
+  "static_errors": [],
+  "static_warnings": [],
+  "static_files_checked": [
+    "person.js",
+    "elevator.js"
+  ],
+  "loaded": true,
+  "console_errors": [],
+  "page_errors": [],
+  "canvas_count": 1,
+  "nonblank_canvas": true,
+  "animation_frames": 554,
+  "scene_object_count": 92,
+  "dynamic_changes": 224,
+  "canvas_changed": true,
+  "duration_ms": 5963,
+  "warnings": []
+}

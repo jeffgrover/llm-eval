@@ -107,9 +107,24 @@ class RunnerEventContractTests(unittest.TestCase):
         self.assertTrue(parsed[0].log_raw)
         self.assertEqual(
             [event.text for event in parsed[1:]],
-            ["First response", "Second response"],
+            ["First response", "Second response", "Build an office simulation",
+             "Creating the scene.\n\nThen adding people.", "", ""],
         )
-        self.assertEqual(sum(event.turn_completed for event in parsed), 2)
+        self.assertEqual(sum(event.turn_completed for event in parsed), 3)
+        self.assertTrue(all(event.log_raw for event in parsed))
+
+    def test_vibe_non_text_content_is_logged_without_printing(self):
+        for content in (None, [], 42, {"text": "not a block list"}, [
+            {"type": "image", "attachment": {"uri": "image.png"}},
+            {"type": "text", "text": None},
+            {"type": "text", "text": ["not a string"]},
+            "not a block", None,
+        ]):
+            with self.subTest(content=content):
+                parsed = parse_vibe_event({"role": "assistant", "content": content})
+                self.assertEqual(parsed.text, "")
+                self.assertTrue(parsed.log_raw)
+                self.assertTrue(parsed.turn_completed)
 
     def test_opencode_stream_contract(self):
         parsed = [

@@ -199,6 +199,50 @@ execution are separate opt-in post-processing steps:
   --prompt-file prompt.txt --execute-generated-python
 ```
 
+### Mistral Vibe through OpenRouter
+
+Vibe supports custom OpenAI-compatible providers. Add these entries to
+`~/.vibe/config.toml` (keep your existing top-level `active_model` and other
+providers/models):
+
+```toml
+[[providers]]
+name = "openrouter"
+api_base = "https://openrouter.ai/api/v1"
+api_key_env_var = "OPENROUTER_API_KEY"
+api_style = "openai"
+backend = "generic"
+
+[[models]]
+name = "mistralai/mistral-large-4-0"
+provider = "openrouter"
+alias = "mistral-large-4-openrouter"
+input_price = 0.68
+output_price = 2.09
+cached_input_price = 0.07
+max_context_length = 1048576
+```
+
+Export `OPENROUTER_API_KEY` in the shell that launches the evaluation, then run:
+
+```bash
+./evaluate_agent.py --agent vibe \
+  --model mistralai/mistral-large-4-0 --provider openrouter --non-local \
+  --prompt-file elevator_prompt.txt --restore-agent-config
+```
+
+`--non-local` skips LM Studio. With an explicit `--provider`, the evaluator
+selects the matching model alias before launching Vibe; it stops if the config
+or matching model is missing. `--restore-agent-config` restores your previous
+selection afterward, including on failure. Without `--provider`, non-local
+Vibe runs continue using the model already active in Vibe.
+
+The model ID, context limit, and USD-per-million token prices above were checked
+on October 17, 2026. Vibe uses configured prices for cost estimates; check
+[OpenRouter's model page](https://openrouter.ai/mistralai/mistral-large-4-0)
+for current rates and actual billing. See also
+[Vibe's custom provider configuration](https://docs.mistral.ai/vibe/code/cli/configuration).
+
 ### Codex CLI
 Codex currently runs through your ChatGPT account service, so use it with `--non-local`:
 

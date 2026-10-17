@@ -298,10 +298,20 @@ def normalize_qoder_result(
 def parse_vibe_event(event: Dict) -> ParsedEvent:
     role = event.get("role", "")
     content = event.get("content", "")
+    if isinstance(content, list):
+        text = "\n\n".join(
+            block["text"]
+            for block in content
+            if isinstance(block, dict)
+            and block.get("type") == "text"
+            and isinstance(block.get("text"), str)
+        )
+    else:
+        text = content if isinstance(content, str) else ""
     return ParsedEvent(
-        text=content if content and role != "system" else "",
+        text=text if role != "system" else "",
         turn_completed=role == "assistant",
-        log_raw=bool(content),
+        log_raw=True,
     )
 
 
