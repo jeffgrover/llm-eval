@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-10-17T16:27:38.373Z",
+  "files_checked": [
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/person.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/world.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/elevator_logic.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/elevator.js",
+    "evals/pi_openrouter_google_gemini-4-argon_office_prompt_v3_incremental/sim.js"
+  ],
+  "static_errors": [],
+  "static_warnings": []
+}
