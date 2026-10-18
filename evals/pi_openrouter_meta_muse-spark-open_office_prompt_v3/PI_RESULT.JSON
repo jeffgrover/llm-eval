@@ -1,0 +1,13 @@
+{
+  "input_tokens": 1458725,
+  "output_tokens": 41259,
+  "total_tokens": 1499984,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 0,
+  "cost_usd": 1.9987570000000001,
+  "num_turns": 30,
+  "provider_id": "openrouter",
+  "model_id": "meta/muse-spark-open",
+  "status": "success",
+  "is_error": false
+}
