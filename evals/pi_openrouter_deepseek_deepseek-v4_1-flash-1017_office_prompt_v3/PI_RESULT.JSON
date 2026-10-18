@@ -1,0 +1,13 @@
+{
+  "input_tokens": 812567,
+  "output_tokens": 103048,
+  "total_tokens": 915615,
+  "cache_read_tokens": 3987776,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.8290895385500001,
+  "num_turns": 45,
+  "provider_id": "openrouter",
+  "model_id": "deepseek/deepseek-v4.1-flash-1017",
+  "status": "success",
+  "is_error": false
+}

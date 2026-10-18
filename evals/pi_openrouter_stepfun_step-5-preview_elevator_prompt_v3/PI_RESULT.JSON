@@ -1,0 +1,13 @@
+{
+  "input_tokens": 41521,
+  "output_tokens": 63439,
+  "total_tokens": 104960,
+  "cache_read_tokens": 3003840,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.3629983000000001,
+  "num_turns": 40,
+  "provider_id": "openrouter",
+  "model_id": "stepfun/step-5-preview",
+  "status": "success",
+  "is_error": false
+}
