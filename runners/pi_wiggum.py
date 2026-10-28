@@ -57,6 +57,7 @@ class PiWiggumRunner(PiRunner):
         aggregate = {
             "input_tokens": 0,
             "output_tokens": 0,
+            "reasoning_tokens": 0,
             "total_tokens": 0,
             "cache_read_tokens": 0,
             "cache_write_tokens": 0,
@@ -161,6 +162,7 @@ class PiWiggumRunner(PiRunner):
         for key in (
             "input_tokens",
             "output_tokens",
+            "reasoning_tokens",
             "total_tokens",
             "cache_read_tokens",
             "cache_write_tokens",

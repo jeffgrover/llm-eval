@@ -164,6 +164,15 @@ class RunnerEventContractTests(unittest.TestCase):
         self.assertEqual(completed.usage["cost_usd"], 0.03)
         self.assertTrue(parsed[3].log_raw)
 
+    def test_pi_reasoning_and_terminal_response_contract(self):
+        parsed = parse_pi_event({"type": "message_end", "message": {
+            "role": "assistant", "stopReason": "length",
+            "usage": {"input": 18926, "output": 32768, "reasoning": 32768},
+        }})
+        self.assertEqual(parsed.finish_reason, "length")
+        self.assertEqual(parsed.usage["reasoning_tokens"], 32768)
+        self.assertEqual(parsed.usage["output_tokens"], 32768)
+
     def test_pi_completed_tool_call_contract(self):
         event = {
             "type": "message_update",

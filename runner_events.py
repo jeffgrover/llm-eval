@@ -427,6 +427,7 @@ def parse_pi_event(event: Dict) -> ParsedEvent:
             usage={
                 "input_tokens": usage.get("input", 0),
                 "output_tokens": usage.get("output", 0),
+                "reasoning_tokens": usage.get("reasoning", 0),
                 "cache_read_tokens": usage.get("cacheRead", 0),
                 "cache_write_tokens": usage.get("cacheWrite", 0),
                 "cost_usd": total_cost or 0,
