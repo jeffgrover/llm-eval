@@ -93,6 +93,15 @@ class PiRunner(AgentRunner):
             }
         }
 
+        # Pi otherwise omits reasoning_effort for "off", which leaves these
+        # LM Studio models' default thinking enabled. Verified on Swift Flash.
+        if (
+            self.local_provider.api_url == LM_STUDIO_API_URL
+            and "qwen3.8-flash" in self.model_name.lower()
+        ):
+            model_config = next(iter(config["providers"].values()))["models"][0]
+            model_config["thinkingLevelMap"] = {"off": "none"}
+
         self.models_json_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.models_json_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
@@ -172,6 +181,19 @@ class PiRunner(AgentRunner):
     def _execute_pi(self):
         prompt_content = read_prompt_file(self.prompt_file)
         result_data = self._run_pi_attempt(prompt_content, "PI_EVENTS.JSONL")
+        # Process success does not establish that a requested app was written.
+        # Limit this check to the known office task contract; Wiggum additionally
+        # runs the static and browser checkers.
+        if self.prompt_file.stem == "office_prompt_v3":
+            required_files = (
+                "index.html", "person.js", "world.js", "elevator_logic.js",
+                "elevator.js", "sim.js", "elevator_logic_test.js",
+            )
+            result_data["missing_files"] = [
+                name for name in required_files
+                if not (self.work_dir / name).is_file()
+                or (self.work_dir / name).stat().st_size == 0
+            ]
 
         if (
             result_data["input_tokens"] > 0
@@ -179,11 +201,16 @@ class PiRunner(AgentRunner):
             or result_data.get("termination")
             or result_data.get("error")
             or result_data.get("returncode") != 0
+            or result_data.get("missing_files")
+            or result_data.get("finish_reason") in ("length", "error", "aborted")
         ):
             result_json_path = self.work_dir / PI_RESULT_FILENAME
+            metrics = self._pi_result_metrics(result_data)
             with open(result_json_path, "w", encoding="utf-8") as f:
-                json.dump(self._pi_result_metrics(result_data), f, indent=2)
+                json.dump(metrics, f, indent=2)
             print(f"[+] Token metrics saved to {PI_RESULT_FILENAME}")
+            if metrics["is_error"]:
+                print(f"[-] Evaluation failed: {metrics['error']}")
 
     def _build_pi_command(self) -> List[str]:
         cmd = ["pi", "--mode", "json", "--print", "--no-session"]
@@ -234,6 +261,8 @@ class PiRunner(AgentRunner):
         # Accumulate token usage from assistant message_end events
         total_input = 0
         total_output = 0
+        total_reasoning = 0
+        finish_reason = None
         total_cost = 0.0
         cache_read = 0
         cache_write = 0
@@ -369,6 +398,7 @@ class PiRunner(AgentRunner):
                     parsed = parse_pi_event(event)
                     if parsed.turn_completed or parsed.error:
                         provider_error = parsed.error
+                        finish_reason = parsed.finish_reason
                     if parsed.error:
                         error_text = f"\n[PROVIDER ERROR] {parsed.error}\n"
                         safe_stdout_write(error_text)
@@ -381,6 +411,7 @@ class PiRunner(AgentRunner):
                     if parsed.usage:
                         total_input += parsed.usage.get("input_tokens", 0)
                         total_output += parsed.usage.get("output_tokens", 0)
+                        total_reasoning += parsed.usage.get("reasoning_tokens", 0)
                         cache_read += parsed.usage.get("cache_read_tokens", 0)
                         cache_write += parsed.usage.get("cache_write_tokens", 0)
                         total_cost += parsed.usage.get("cost_usd", 0)
@@ -429,21 +460,28 @@ class PiRunner(AgentRunner):
                 if close:
                     close()
 
-            if process.returncode == 0 and not termination and not provider_error:
-                print(f"\n[+] Agent finished successfully.")
+            if (
+                process.returncode == 0 and not termination
+                and finish_reason not in ("length", "error", "aborted")
+                and not provider_error
+            ):
+                print("\n[+] Pi process exited cleanly; task completion is not verified.")
                 log_file.write(f"\n[SUCCESS] Process exited cleanly.\n")
             elif provider_error and not termination:
                 print(f"\n[-] Agent finished with provider error: {provider_error}")
                 log_file.write(f"\n[ERROR] {provider_error}\n")
             else:
-                print(f"\n[-] Agent finished with error code {process.returncode}")
+                detail = provider_error or finish_reason or "process error"
+                print(f"\n[-] Pi failed: {detail} (exit code {process.returncode})")
                 log_file.write(
-                    f"\n[ERROR] Process exited with code {process.returncode}\n"
+                    f"\n[ERROR] Pi failed: {detail} (exit code {process.returncode})\n"
                 )
 
         return {
             "input_tokens": total_input,
             "output_tokens": total_output,
+            "reasoning_tokens": total_reasoning,
+            "finish_reason": finish_reason,
             "total_tokens": total_input + total_output,
             "cache_read_tokens": cache_read,
             "cache_write_tokens": cache_write,
@@ -462,12 +500,17 @@ class PiRunner(AgentRunner):
         metrics = {
             "input_tokens": result_data.get("input_tokens", 0),
             "output_tokens": result_data.get("output_tokens", 0),
+            "reasoning_tokens": result_data.get("reasoning_tokens", 0),
             "total_tokens": result_data.get("total_tokens", 0),
             "cache_read_tokens": result_data.get("cache_read_tokens", 0),
             "cache_write_tokens": result_data.get("cache_write_tokens", 0),
             "cost_usd": result_data.get("cost_usd", 0.0),
             "num_turns": result_data.get("num_turns", 0),
         }
+        if result_data.get("finish_reason"):
+            metrics["finish_reasons"] = [result_data["finish_reason"]]
+        if result_data.get("missing_files"):
+            metrics["missing_files"] = result_data["missing_files"]
         thinking_level = getattr(self, "thinking_level", None)
         if thinking_level:
             metrics["thinking_level"] = thinking_level
@@ -490,7 +533,20 @@ class PiRunner(AgentRunner):
                     ],
                 }
             )
-        elif result_data.get("error") or result_data.get("returncode") != 0:
+        elif (
+            result_data.get("finish_reason") in ("length", "error", "aborted")
+            or result_data.get("error")
+        ):
+            reason = result_data.get("finish_reason") or "error"
+            metrics.update({
+                "status": "error", "is_error": True,
+                "terminal_reason": "output_limit" if reason == "length" else reason,
+                "error": result_data.get("error") or (
+                    "Pi response exhausted its output token budget before completion."
+                    if reason == "length" else f"Pi response ended with {reason}."
+                ),
+            })
+        elif result_data.get("returncode") != 0:
             metrics.update(
                 {
                     "status": "error",
@@ -499,6 +555,13 @@ class PiRunner(AgentRunner):
                     or f"Pi exited with code {result_data['returncode']}",
                 }
             )
+        elif result_data.get("missing_files"):
+            metrics.update({
+                "status": "error", "is_error": True,
+                "terminal_reason": "missing_artifacts",
+                "error": "Required simulation files missing or empty: "
+                + ", ".join(result_data["missing_files"]),
+            })
         else:
             metrics.update({"status": "success", "is_error": False})
         return metrics

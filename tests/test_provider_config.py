@@ -53,9 +53,32 @@ class LocalProviderConfigTests(unittest.TestCase):
                 self.assertEqual(model["maxTokens"], 16042)
                 self.assertTrue(model["reasoning"])
                 self.assertTrue(model["compat"]["supportsReasoningEffort"])
+                self.assertNotIn("thinkingLevelMap", model)
                 runner._restore_pi_models_json()
 
             self.assertFalse((home / ".pi" / "agent" / "models.json").exists())
+
+    def test_flash_thinking_off_sends_explicit_none_only_for_lm_studio(self):
+        for provider in (LM_STUDIO_PROVIDER, LLAMA_SERVER_PROVIDER):
+            with self.subTest(provider=provider.provider_id), tempfile.TemporaryDirectory() as temp_dir:
+                home = Path(temp_dir)
+                runner = PiRunner(
+                    "pi", "swift-1.5-qwen3.8-flash-next-gsq-rco-abliterated",
+                    Path("prompt.txt"), headless=True, non_local=False,
+                    local_provider=provider,
+                )
+                runner.local_context_limit = 102400
+                with (
+                    patch("runners.pi.Path.home", return_value=home),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    runner.agent_configuration(),
+                ):
+                    config = json.loads(runner.models_json_path.read_text(encoding="utf-8"))
+                    model = config["providers"][provider.provider_id]["models"][0]
+                    if provider is LM_STUDIO_PROVIDER:
+                        self.assertEqual(model["thinkingLevelMap"]["off"], "none")
+                    else:
+                        self.assertNotIn("thinkingLevelMap", model)
 
     def test_opencode_parses_current_log_metadata(self):
         version, provider, model = OpenCodeRunner._parse_log_metadata(
