@@ -1375,9 +1375,9 @@
 
         <section id="office-tab" class="tab-panel">
             <div class="stats-grid">
-                <div class="stat-card"><span>Total Runs</span><strong>42</strong></div>
-                <div class="stat-card"><span>Average Score</span><strong>87.6</strong></div>
-                <div class="stat-card"><span>Local Runs</span><strong>8</strong></div>
+                <div class="stat-card"><span>Total Runs</span><strong>45</strong></div>
+                <div class="stat-card"><span>Average Score</span><strong>84.4</strong></div>
+                <div class="stat-card"><span>Local Runs</span><strong>11</strong></div>
                 <div class="stat-card"><span>Cloud Runs</span><strong>29</strong></div>
             </div>
             <section class="leaderboard">
@@ -2700,6 +2700,41 @@
                 </td>
                 <td>
                     <div class="identity">
+                        <span class="agent-dot" style="background:#0e7490"></span>
+                        <strong>Pi Coding Agent</strong>
+                        <span>kolibri-1</span>
+                    </div>
+                </td>
+                <td><span class="provider-badge provider-local">Kolibri-Local</span></td>
+                <td class="metric">74,814</td>
+                <td class="metric">-</td>
+                <td class="metric">-</td>
+                <td class="breakdown-cell">
+                    <div class="category-pills">
+                        <span>C 10</span>
+                        <span>F 15</span>
+                        <span>I 30</span>
+                        <span>R 35</span>
+                        <span>E 3</span>
+                    </div>
+                    <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
+                    <div><span class="flag">No runtime motion detected</span><span class="flag">Capped at 70: no runtime motion detected</span></div>
+
+                </td>
+                <td><div class="actions"><a class="link-btn" href="evals/pi_kolibri-1_office_prompt_v3/summary.html">Report</a><a class="link-btn subtle" href="evals/pi_kolibri-1_office_prompt_v3/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+            </tr>
+
+
+            <tr>
+                <td>
+                    <div class="score-cell">
+                        <strong>70</strong>
+                        <div class="score-bar" aria-label="Score 70 of 100"><span style="width: 70%"></span></div>
+                        <span>Strong</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="identity">
                         <span class="agent-dot" style="background:#4f46e5"></span>
                         <strong>Qoder CLI</strong>
                         <span>DeepSeek-V4-Pro</span>
@@ -2932,6 +2967,76 @@
 
                 </td>
                 <td><div class="actions"><a class="link-btn" href="evals/opencode_Hy4_preview_office_prompt_v3/summary.html">Report</a><a class="link-btn subtle" href="evals/opencode_Hy4_preview_office_prompt_v3/index.html" target="_blank" rel="noopener">Preview</a></div></td>
+            </tr>
+
+
+            <tr>
+                <td>
+                    <div class="score-cell">
+                        <strong>35</strong>
+                        <div class="score-bar" aria-label="Score 35 of 100"><span style="width: 35%"></span></div>
+                        <span>Weak</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="identity">
+                        <span class="agent-dot" style="background:#0e7490"></span>
+                        <strong>Pi Coding Agent</strong>
+                        <span>qwen3_8-flash-next-gsq-rco</span>
+                    </div>
+                </td>
+                <td><span class="provider-badge provider-local">Local (LM Studio)</span></td>
+                <td class="metric">919,491</td>
+                <td class="metric">-</td>
+                <td class="metric">-</td>
+                <td class="breakdown-cell">
+                    <div class="category-pills">
+                        <span>C 10</span>
+                        <span>F 6</span>
+                        <span>I 21</span>
+                        <span>R 5</span>
+                        <span>E 1</span>
+                    </div>
+                    <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
+                    <div><span class="flag">Runtime not verified</span><span class="flag">Missing: index.html, sim.js</span><span class="flag">No runnable HTML preview</span><span class="flag">Capped at 35: no runnable HTML preview</span></div>
+
+                </td>
+                <td><div class="actions"><a class="link-btn" href="evals/pi_qwen3_8-flash-next-gsq-rco_office_prompt_v3/summary.html">Report</a></div></td>
+            </tr>
+
+
+            <tr>
+                <td>
+                    <div class="score-cell">
+                        <strong>12</strong>
+                        <div class="score-bar" aria-label="Score 12 of 100"><span style="width: 12%"></span></div>
+                        <span>Incomplete</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="identity">
+                        <span class="agent-dot" style="background:#0e7490"></span>
+                        <strong>Pi Coding Agent</strong>
+                        <span>swift-1_5-qwen3_8-flash-next-gsq-rco-abliterated</span>
+                    </div>
+                </td>
+                <td><span class="provider-badge provider-local">Local (LM Studio)</span></td>
+                <td class="metric">3,534,752</td>
+                <td class="metric">-</td>
+                <td class="metric">-</td>
+                <td class="breakdown-cell">
+                    <div class="category-pills">
+                        <span>C 7</span>
+                        <span>F 0</span>
+                        <span>I 0</span>
+                        <span>R 5</span>
+                        <span>E 0</span>
+                    </div>
+                    <div class="evidence">summary report present, artifact files present, machine-readable result metrics present</div>
+                    <div><span class="flag">Runtime not verified</span><span class="flag">Doom loop detected</span><span class="flag">Missing: index.html, person.js, world.js, elevator.js, sim.js</span><span class="flag">No runnable HTML preview</span><span class="flag">Result flagged error</span></div>
+
+                </td>
+                <td><div class="actions"><a class="link-btn" href="evals/pi_swift-1_5-qwen3_8-flash-next-gsq-rco-abliterated_office_prompt_v3/summary.html">Report</a></div></td>
             </tr>
 
 
@@ -3598,7 +3703,7 @@
             <section class="agent-section">
                 <div class="agent-section-header">
                     <span class="agent-section-badge" style="background: #0e7490;">Pi Coding Agent</span>
-                    <span class="agent-section-count">12 evaluations</span>
+                    <span class="agent-section-count">15 evaluations</span>
                 </div>
                 <div class="eval-grid">
                 <div class="eval-card">
@@ -3628,6 +3733,21 @@
                     </div>
                     <div class="card-footer">
                         <a href="evals/pi_deepreinforce-ai_ornith-1_0-35b_elevator_prompt_v3/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-local">Kolibri-Local</span>
+                        <span class="score-badge">70</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">kolibri-1</div>
+                        <div class="prompt-row"><span class="prompt-chip">Office Prompt V3</span></div>
+                        <div class="score-bar" aria-label="Score 70 of 100"><span style="width: 70%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/pi_kolibri-1_office_prompt_v3/summary.html" class="view-btn">View Report</a>
                     </div>
                 </div>
 
@@ -3769,6 +3889,21 @@
                 <div class="eval-card">
                     <div class="card-header">
                         <span class="provider-badge provider-local">Local (LM Studio)</span>
+                        <span class="score-badge">35</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">qwen3_8-flash-next-gsq-rco</div>
+                        <div class="prompt-row"><span class="prompt-chip">Office Prompt V3</span></div>
+                        <div class="score-bar" aria-label="Score 35 of 100"><span style="width: 35%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/pi_qwen3_8-flash-next-gsq-rco_office_prompt_v3/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-local">Local (LM Studio)</span>
                         <span class="score-badge">95</span>
                     </div>
                     <div class="card-body">
@@ -3778,6 +3913,21 @@
                     </div>
                     <div class="card-footer">
                         <a href="evals/pi_swift-1_5-27b-mtp_office_prompt_v3/summary.html" class="view-btn">View Report</a>
+                    </div>
+                </div>
+
+                <div class="eval-card">
+                    <div class="card-header">
+                        <span class="provider-badge provider-local">Local (LM Studio)</span>
+                        <span class="score-badge">12</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-name">swift-1_5-qwen3_8-flash-next-gsq-rco-abliterated</div>
+                        <div class="prompt-row"><span class="prompt-chip">Office Prompt V3</span></div>
+                        <div class="score-bar" aria-label="Score 12 of 100"><span style="width: 12%"></span></div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="evals/pi_swift-1_5-qwen3_8-flash-next-gsq-rco-abliterated_office_prompt_v3/summary.html" class="view-btn">View Report</a>
                     </div>
                 </div>
                 </div>
