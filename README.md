@@ -104,6 +104,16 @@ Install the agents you wish to evaluate. Each has its own setup requirements:
 
 Once LM Studio is running and your agent is installed, you can perform an experiment.
 
+Pi and Pi Wiggum evaluations require Linux and `bwrap` (Bubblewrap). Each
+agent attempt runs with a private home, read-only system tools, network access,
+and only its writable output directory mounted at `/workspace`. Pi's model,
+settings, and authentication files are copied into the private home; previous
+runs, repository sources, and evaluator logs are hidden. Wiggum runs its
+checkers outside this boundary and supplies feedback on subsequent attempts.
+For plain Pi, the evaluator's checker scripts are also unavailable to the
+agent. Isolation fails closed if Bubblewrap cannot start and is recorded in
+`ISOLATION.JSON`. This boundary currently applies only to `pi` and `pi-wiggum`.
+
 ### Basic Command
 Run the evaluation script by specifying the model key (as it appears in `lms ls`) and the agent type:
 

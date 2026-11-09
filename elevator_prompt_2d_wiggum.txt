@@ -1,0 +1,9 @@
+Build a small browser-based 2D elevator simulation from scratch. The current directory is empty. Work only here; do not use `find` or search outside it.
+
+- Use plain HTML canvas and JavaScript to show a five-floor building and elevator.
+- Start with four passengers on different floors, leaving one floor empty.
+- Repeatedly carry a random passenger to the empty floor; their old floor becomes empty.
+
+Start with a minimal version, writing one file at a time. Avoid a long plan or one giant write.
+
+Implement the simplest working version. Let Wiggum run the checks; use each result to make the smallest useful fix, then continue until the checks pass. Do not inspect the checker scripts or other evaluation runs.

@@ -13,6 +13,13 @@ from runners import PiRunner, PiWiggumRunner
 
 
 class PiRunnerTests(unittest.TestCase):
+    def setUp(self):
+        # Parser/lifecycle fixtures run Python rather than a real isolated Pi.
+        patcher = mock.patch("runners.pi.PiIsolation")
+        isolation = patcher.start().return_value.__enter__.return_value
+        isolation.command.side_effect = lambda cmd: cmd
+        self.addCleanup(patcher.stop)
+
     def test_provider_outcome_overrides_clean_process_exit(self):
         failed_message = {
             "type": "message_end",
