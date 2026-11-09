@@ -124,9 +124,10 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 -   `--open-report`: Open `summary.html` in the default browser after the run.
 -   `--execute-generated-python`: Execute root-level Python artifacts and capture their output in `OUTPUT.TXT`. This is disabled by default.
 -   `--restore-agent-config`: Restore Vibe's original `active_model` after the run. Pi's temporary provider file is always restored or removed.
--   `--lms-context-length`: Reload the LM Studio model with an explicit context length (default: `65536`). OpenCode and other local adapters are given the same advertised context limit. Override the default with `LLM_EVAL_LOCAL_CONTEXT_LIMIT`.
+-   `--lms-reload`: Explicitly reload an already loaded LM Studio model to apply load settings. By default, reuse the existing model and its context length.
+-   `--lms-context-length`: Set context length for a new load (default: `65536`). Use `--lms-reload` to change an existing load. Override the default with `LLM_EVAL_LOCAL_CONTEXT_LIMIT`.
 -   `--lms-eval-batch-size`: Set LM Studio llama.cpp's prompt-evaluation batch size. Smaller values can reduce peak memory during prompt ingestion.
--   `--lms-flash-attention`: Enable Flash Attention when LM Studio loads a compatible llama.cpp model.
+-   `--lms-flash-attention` / `--no-lms-flash-attention`: Enable or disable Flash Attention for a new load or `--lms-reload`. Otherwise preserve LM Studio's saved setting.
 -   `--lms-cpu-kv-cache`: Keep the KV cache in system memory rather than offloading it to the GPU. On unified-memory systems this changes placement/accounting, not the total physical-memory requirement.
 -   `--max-seconds`: Stop an agent run after this total wall time (defaults: `36000` for local runs, `3600` with `--non-local`; `0` disables). An explicit value overrides either mode default. For Pi Wiggum this governs the complete evaluator-owned repair loop, and each attempt receives the time remaining in that shared limit.
 -   `--max-idle-seconds`: Stop after this long without stdout or stderr from the agent process (defaults: `3600` for local runs, `900` with `--non-local`; `0` disables). An explicit value overrides either mode default, and any output resets the inactivity timer.
@@ -160,7 +161,9 @@ OpenCode's default local limits are 65,536 context tokens and 32,768 output
 tokens. Override them with `LLM_EVAL_LOCAL_CONTEXT_LIMIT` and
 `LLM_EVAL_LOCAL_OUTPUT_LIMIT`. An explicit `--lms-context-length` takes
 precedence over `LLM_EVAL_LOCAL_CONTEXT_LIMIT` for OpenCode so the client and
-server agree on the usable context window.
+server agree on the usable context window for new loads. When reusing an
+already loaded LM Studio model, its reported context length takes precedence;
+use `--lms-reload` to apply a different context length.
 
 OpenCode results also record the finish reason, tool-call count, generated
 artifact names, and diagnostic warnings. A clean process exit is therefore
@@ -428,7 +431,9 @@ so Pi cleanup and requested Vibe restoration also happen on failure.
 OpenCode local-provider configuration discovers model IDs from `/v1/models`,
 disables concurrent title generation, and records consistent context/output
 limits. LM Studio load settings are sent through `/api/v1/models/load`; explicit
-settings cause a reload and request `echo_load_config` for diagnostic output.
+settings apply to new loads and request `echo_load_config` for diagnostic output.
+Already loaded models are reused unless `--lms-reload` is supplied; adapters use
+the loaded model's reported context length.
 
 ## Development and Tests
 

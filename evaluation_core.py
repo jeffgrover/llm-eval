@@ -319,8 +319,9 @@ def load_lms_model(
     *,
     context_length: Optional[int] = None,
     eval_batch_size: Optional[int] = None,
-    flash_attention: bool = False,
+    flash_attention: Optional[bool] = None,
     cpu_kv_cache: bool = False,
+    reload: bool = False,
 ) -> bool:
     """Loads a model into LM Studio, preferring the REST API over the CLI."""
     load_config = {}
@@ -328,8 +329,8 @@ def load_lms_model(
         load_config["context_length"] = context_length
     if eval_batch_size is not None:
         load_config["eval_batch_size"] = eval_batch_size
-    if flash_attention:
-        load_config["flash_attention"] = True
+    if flash_attention is not None:
+        load_config["flash_attention"] = flash_attention
     if cpu_kv_cache:
         load_config["offload_kv_cache_to_gpu"] = False
 
@@ -351,19 +352,24 @@ def load_lms_model(
             state = m.get("state", "")
             if model_key in model_id:
                 if state == "loaded":
-                    if load_config:
+                    if reload:
                         others_loaded.append(m)
                         print(
                             f"[*] Reloading model '{model_key}' to apply explicit "
-                            "LM Studio load settings."
+                            "LM Studio load settings (--lms-reload)."
                         )
                     else:
                         target_loaded = True
                         print(
                             f"[+] Model '{model_key}' is already loaded — skipping reload."
                         )
+                        if load_config:
+                            print("[*] Keeping existing load settings; use --lms-reload to apply changes.")
             elif state == "loaded":
                 others_loaded.append(m)
+
+        if target_loaded:
+            return True
 
         # Unload other models first
         for other in others_loaded:
@@ -375,9 +381,6 @@ def load_lms_model(
                 method="POST",
                 data={"instance_id": instance_id},
             )
-
-        if target_loaded:
-            return True  # Already loaded, nothing to do
 
         print(f"[*] Loading model '{model_key}' via REST API...")
         load_request = {"model": model_key, **load_config}

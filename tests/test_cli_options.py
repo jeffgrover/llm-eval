@@ -51,7 +51,9 @@ class CliOptionTests(unittest.TestCase):
                 self.parse("--headless", "--open-report")
 
     def test_lm_studio_load_tuning_options(self):
+        self.assertFalse(self.parse().lms_reload)
         args = self.parse(
+            "--lms-reload",
             "--lms-context-length",
             "16384",
             "--lms-eval-batch-size",
@@ -61,9 +63,12 @@ class CliOptionTests(unittest.TestCase):
         )
 
         self.assertEqual(args.lms_context_length, 16384)
+        self.assertTrue(args.lms_reload)
         self.assertEqual(args.lms_eval_batch_size, 128)
         self.assertTrue(args.lms_flash_attention)
         self.assertTrue(args.lms_cpu_kv_cache)
+        self.assertIsNone(self.parse().lms_flash_attention)
+        self.assertFalse(self.parse("--no-lms-flash-attention").lms_flash_attention)
 
     def test_local_context_defaults_high_and_supports_overrides(self):
         args = self.parse()
