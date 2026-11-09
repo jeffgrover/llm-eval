@@ -50,6 +50,21 @@ class LMStudioLoadedContextTests(unittest.TestCase):
 
 class LMStudioModelLoadingTests(unittest.TestCase):
     @patch("evaluation_core.lms_api_request")
+    def test_flash_attention_can_be_explicitly_disabled_for_new_load(self, request):
+        request.side_effect = [{"data": []}, {"status": "loaded"}]
+        self.assertTrue(load_lms_model("ripple-65b-preview", flash_attention=False))
+        self.assertFalse(request.call_args.kwargs["data"]["flash_attention"])
+
+    @patch("evaluation_core.lms_api_request")
+    def test_loaded_model_reused_even_with_default_load_settings(self, request):
+        request.return_value = {"data": [
+            {"id": "ripple-65b-preview", "state": "loaded"},
+            {"id": "other-model", "state": "loaded"},
+        ]}
+        self.assertTrue(load_lms_model("ripple-65b-preview", context_length=65536))
+        request.assert_called_once_with("/api/v0/models")
+
+    @patch("evaluation_core.lms_api_request")
     def test_explicit_settings_force_reload_and_are_sent_to_lm_studio(self, request):
         request.side_effect = [
             {
@@ -79,6 +94,7 @@ class LMStudioModelLoadingTests(unittest.TestCase):
             eval_batch_size=128,
             flash_attention=True,
             cpu_kv_cache=True,
+            reload=True,
         )
 
         self.assertTrue(loaded)

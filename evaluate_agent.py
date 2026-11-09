@@ -175,22 +175,28 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Restore agent config (e.g. vibe active_model) to its original value after the run",
     )
     parser.add_argument(
+        "--lms-reload",
+        action="store_true",
+        help="Reload an already loaded model to apply LM Studio load settings",
+    )
+    parser.add_argument(
         "--lms-context-length",
         type=int,
         help=(
-            "Force LM Studio to load the model with this context length "
-            "(default: 65536; override with LLM_EVAL_LOCAL_CONTEXT_LIMIT)"
+            "Context length for new loads (existing loads are reused unless "
+            "--lms-reload is set; default: 65536; override with LLM_EVAL_LOCAL_CONTEXT_LIMIT)"
         ),
     )
     parser.add_argument(
         "--lms-eval-batch-size",
         type=int,
-        help="Force LM Studio llama.cpp prompt-evaluation batch size",
+        help="LM Studio prompt-evaluation batch size for new loads or --lms-reload",
     )
     parser.add_argument(
         "--lms-flash-attention",
-        action="store_true",
-        help="Enable Flash Attention when loading the model in LM Studio",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable or disable Flash Attention for new loads or --lms-reload",
     )
     parser.add_argument(
         "--lms-cpu-kv-cache",
@@ -276,7 +282,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None):
-    args = build_argument_parser().parse_args(argv)
+    parser = build_argument_parser()
+    args = parser.parse_args(argv)
     local_provider = get_local_provider(args.provider)
     max_seconds = resolve_max_seconds(args.non_local, args.max_seconds)
     max_idle_seconds = resolve_max_idle_seconds(
@@ -324,7 +331,6 @@ def main(argv: Optional[List[str]] = None):
     local_context_length = resolve_lms_context_length(args.lms_context_length)
     runner.local_context_limit = local_context_length
     runner.thinking_level = args.thinking_level
-
     runner.confirm_workspace_overwrite()
 
     skip_local_model_load = False
@@ -339,7 +345,11 @@ def main(argv: Optional[List[str]] = None):
             eval_batch_size=args.lms_eval_batch_size,
             flash_attention=args.lms_flash_attention,
             cpu_kv_cache=args.lms_cpu_kv_cache,
+            reload=args.lms_reload,
         )
+        loaded_context = core.get_lms_loaded_context_length(args.model)
+        if loaded_context:
+            runner.local_context_limit = loaded_context
 
     runner.run()
 

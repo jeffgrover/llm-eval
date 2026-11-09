@@ -110,6 +110,15 @@ class PiRunner(AgentRunner):
             if self._original_settings_json is not None
             else {}
         )
+        # The temporary model catalog only contains the model under evaluation.
+        # Keep Pi's persisted selection and enabled-model scope aligned with it;
+        # otherwise stale user settings (for example llama-server/coder-next)
+        # produce a "No models match pattern" warning during startup.
+        provider_id = self.custom_provider or self.local_provider.provider_id
+        model_reference = f"{provider_id}/{self.model_name}"
+        settings["defaultProvider"] = provider_id
+        settings["defaultModel"] = self.model_name
+        settings["enabledModels"] = [model_reference]
         # Pi defaults HTTP streams to a five-minute timeout. Slow local models
         # can exceed that while continuously emitting a large file-write tool
         # call, leaving the call truncated and its artifact missing.
@@ -247,6 +256,26 @@ class PiRunner(AgentRunner):
         attempt_number: Optional[int] = None,
         timeout_seconds: Optional[float] = None,
     ) -> Dict:
+        # Apply to every attempt, including Wiggum repair prompts.
+        prompt_content = (
+            "Evaluation workspace rules (apply throughout this task):\n"
+            "- Do not use the find tool or the find shell command at all.\n"
+            "- Keep all file inspection, searches, reads, writes, and generated "
+            "files inside the current working directory. Do not traverse parent "
+            "directories, other evaluation runs, the repository, home directories, "
+            "caches, or system directories, or follow links outside this workspace.\n"
+            "- The only exception is executing the checking scripts explicitly "
+            "named in the task, at their exact supplied paths, against this "
+            "workspace (for example, node ../../static_check.js . and "
+            "node ../../runtime_check.js .). Do not read, modify, or search for "
+            "these scripts or their dependencies. If the task says the evaluator "
+            "owns validation, do not execute those scripts either.\n"
+            "- Do not search for browsers, Playwright, packages, or other tools, "
+            "and do not install dependencies. If a checker reports a missing "
+            "dependency or browser, report that limitation and continue with "
+            "the implementation and available workspace checks.\n\n"
+            + prompt_content
+        )
         cmd = self._build_pi_command()
         env = self.get_env_vars()
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
