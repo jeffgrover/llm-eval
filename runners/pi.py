@@ -26,6 +26,7 @@ from evaluation_core import (
 )
 from evaluation_metrics import PI_RESULT_FILENAME, PI_WIGGUM_RESULT_FILENAME
 from runner_events import extract_pi_tool_call, parse_pi_event
+from pi_isolation import PiIsolation
 
 class PiRunner(AgentRunner):
     supports_custom_provider = True
@@ -264,12 +265,9 @@ class PiRunner(AgentRunner):
             "files inside the current working directory. Do not traverse parent "
             "directories, other evaluation runs, the repository, home directories, "
             "caches, or system directories, or follow links outside this workspace.\n"
-            "- The only exception is executing the checking scripts explicitly "
-            "named in the task, at their exact supplied paths, against this "
-            "workspace (for example, node ../../static_check.js . and "
-            "node ../../runtime_check.js .). Do not read, modify, or search for "
-            "these scripts or their dependencies. If the task says the evaluator "
-            "owns validation, do not execute those scripts either.\n"
+            "- The evaluator runs the provided checkers outside your sandbox. "
+            "They are not accessible here. Create the implementation and finish "
+            "your attempt so the evaluator can check it.\n"
             "- Do not search for browsers, Playwright, packages, or other tools, "
             "and do not install dependencies. If a checker reports a missing "
             "dependency or browser, report that limitation and continue with "
@@ -312,7 +310,9 @@ class PiRunner(AgentRunner):
         chat_mode = "a" if append_chat else "w"
         with open(chat_log_path, chat_mode, encoding="utf-8") as log_file, open(
             raw_jsonl_path, "w", encoding="utf-8"
-        ) as raw_file:
+        ) as raw_file, PiIsolation(self.work_dir) as isolation:
+            cmd = isolation.command(cmd)
+            print("[*] Pi isolation enabled: private home and /workspace only.")
             if append_chat and attempt_number is not None:
                 header = f"\n\n===== PI WIGGUM ATTEMPT {attempt_number:03d} =====\n"
                 safe_stdout_write(header)
