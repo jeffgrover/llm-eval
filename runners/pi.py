@@ -223,18 +223,26 @@ class PiRunner(AgentRunner):
                 print(f"[-] Evaluation failed: {metrics['error']}")
 
     def _build_pi_command(self) -> List[str]:
-        cmd = ["pi", "--mode", "json", "--print", "--no-session"]
+        cmd = [
+            "pi", "--mode", "json", "--print", "--no-session",
+            "--no-context-files",
+        ]
 
         thinking_level = getattr(self, "thinking_level", None)
         if thinking_level:
             cmd += ["--thinking", thinking_level]
 
         if self.non_local:
-            # Cloud mode: parse "provider/model" to split provider and model,
-            # otherwise let pi use its configured defaults from settings.json.
-            # Note: pi provider names can differ from simple names (e.g.
-            # "google-gemini-cli" for OAuth vs "google" for API key).
-            if "/" in self.model_name:
+            # An explicit --provider wins; OpenRouter model IDs themselves
+            # contain a slash (for example, "google/gemini-4-carbon").
+            if self.custom_provider:
+                provider = self.custom_provider
+                model_id = self.model_name
+                if model_id.startswith(f"{provider}/"):
+                    model_id = model_id[len(provider) + 1:]
+                cmd += ["--provider", provider, "--model", model_id]
+            # Without --provider, retain the provider/model shorthand.
+            elif "/" in self.model_name:
                 provider, model_id = self.model_name.split("/", 1)
                 cmd += ["--provider", provider, "--model", model_id]
             else:
@@ -275,7 +283,6 @@ class PiRunner(AgentRunner):
             + prompt_content
         )
         cmd = self._build_pi_command()
-        env = self.get_env_vars()
         chat_log_path = self.work_dir / CHAT_SESSION_FILENAME
         raw_jsonl_path = self.work_dir / raw_jsonl_filename
 
@@ -312,7 +319,16 @@ class PiRunner(AgentRunner):
             raw_jsonl_path, "w", encoding="utf-8"
         ) as raw_file, PiIsolation(self.work_dir) as isolation:
             cmd = isolation.command(cmd)
-            print("[*] Pi isolation enabled: private home and /workspace only.")
+            env = isolation.environment(self.get_env_vars())
+            workspace_label = (
+                "/workspace"
+                if isolation.backend == "bubblewrap"
+                else str(self.work_dir)
+            )
+            print(
+                f"[*] Pi isolation enabled ({isolation.backend}): "
+                f"private home; writable workspace: {workspace_label}."
+            )
             if append_chat and attempt_number is not None:
                 header = f"\n\n===== PI WIGGUM ATTEMPT {attempt_number:03d} =====\n"
                 safe_stdout_write(header)
