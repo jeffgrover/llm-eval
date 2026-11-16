@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apex Tower — 3D Office Building Simulation</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <canvas id="gl-canvas"></canvas>
+
+  <!-- Top Bar: Title, Clock, Weather/Light, Speed Controls -->
+  <header class="hud-top">
+    <div class="brand-card glass">
+      <div class="brand-dot"></div>
+      <div>
+        <h1>Apex Tower</h1>
+        <p class="subtitle">Live 3D Office &amp; Elevator Simulation</p>
+      </div>
+    </div>
+
+    <div class="time-card glass">
+      <div class="clock-block">
+        <span id="sim-time" class="clock-value">08:15 AM</span>
+        <span id="sim-phase" class="phase-badge">Morning Arrival</span>
+      </div>
+      <div class="divider"></div>
+      <div class="speed-controls" title="Simulation Speed">
+        <button class="btn-chip" data-speed="0" id="btn-pause">Pause</button>
+        <button class="btn-chip active" data-speed="1">1x</button>
+        <button class="btn-chip" data-speed="3">3x</button>
+        <button class="btn-chip" data-speed="8">8x</button>
+        <button class="btn-chip" data-speed="20">20x</button>
+      </div>
+      <div class="divider"></div>
+      <div class="jump-controls" title="Jump to Time of Day">
+        <button class="btn-chip" data-jump="8.2">Morning</button>
+        <button class="btn-chip" data-jump="10.5">Meetings</button>
+        <button class="btn-chip" data-jump="12.2">Lunch</button>
+        <button class="btn-chip" data-jump="17.3">Rush Out</button>
+        <button class="btn-chip" data-jump="20.5">Night</button>
+      </div>
+    </div>
+
+    <div class="stats-card glass">
+      <div class="stat">
+        <span class="stat-label">In Building</span>
+        <span class="stat-value" id="stat-inside">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Working</span>
+        <span class="stat-value" id="stat-working">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Meetings</span>
+        <span class="stat-value" id="stat-meetings">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Elevators</span>
+        <span class="stat-value" id="stat-elevators">F1 / F1</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left Panel: View Mode, Camera Presets & Floor Selector -->
+  <aside class="hud-left glass">
+    <div class="panel-section">
+      <h3>Facade &amp; View</h3>
+      <div class="btn-group">
+        <button class="btn-chip active" data-view="glass">Glass</button>
+        <button class="btn-chip" data-view="cutaway">Cutaway</button>
+        <button class="btn-chip" data-view="xray">X-Ray</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Camera</h3>
+      <div class="btn-grid">
+        <button class="btn-chip active" data-cam="overview">Overview</button>
+        <button class="btn-chip" data-cam="street">Street</button>
+        <button class="btn-chip" data-cam="elevators">Elevators</button>
+        <button class="btn-chip" data-cam="rooftop">Rooftop</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Focus Floor</h3>
+      <div class="floor-list" id="floor-selector">
+        <button class="floor-btn active" data-floor="0">All Floors</button>
+        <button class="floor-btn" data-floor="6"><span>F6</span> Executive &amp; Terrace</button>
+        <button class="floor-btn" data-floor="5"><span>F5</span> Finance &amp; Breakroom</button>
+        <button class="floor-btn" data-floor="4"><span>F4</span> Sales &amp; Conf Room</button>
+        <button class="floor-btn" data-floor="3"><span>F3</span> Design Studio</button>
+        <button class="floor-btn" data-floor="2"><span>F2</span> Engineering</button>
+        <button class="floor-btn" data-floor="1"><span>F1</span> Lobby &amp; Cafe</button>
+      </div>
+    </div>
+
+    <div class="panel-section controls-help">
+      <h3>Controls</h3>
+      <p><strong>Drag:</strong> Orbit &nbsp; <strong>Right-Drag:</strong> Pan</p>
+      <p><strong>Scroll:</strong> Zoom &nbsp; <strong>Click:</strong> Inspect</p>
+    </div>
+  </aside>
+
+  <!-- Right Panel: Elevator Status & Selected Entity Inspector -->
+  <aside class="hud-right">
+    <div class="elevator-panel glass">
+      <h3>Elevator Bank</h3>
+      <div class="elev-row" id="elev-a-card">
+        <div class="elev-badge">A</div>
+        <div class="elev-info">
+          <div class="elev-top">
+            <span class="elev-floor" id="elev-a-floor">F1</span>
+            <span class="elev-dir" id="elev-a-dir">IDLE</span>
+          </div>
+          <div class="elev-meta" id="elev-a-meta">0/6 riders &bull; Doors Closed</div>
+        </div>
+      </div>
+      <div class="elev-row" id="elev-b-card">
+        <div class="elev-badge">B</div>
+        <div class="elev-info">
+          <div class="elev-top">
+            <span class="elev-floor" id="elev-b-floor">F1</span>
+            <span class="elev-dir" id="elev-b-dir">IDLE</span>
+          </div>
+          <div class="elev-meta" id="elev-b-meta">0/6 riders &bull; Doors Closed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inspector-panel glass" id="inspector-panel">
+      <div class="inspector-header">
+        <div>
+          <h3 id="insp-name">Click a Worker</h3>
+          <p id="insp-role" class="insp-sub">or an Elevator Car to inspect</p>
+        </div>
+        <button class="btn-close" id="insp-close" title="Clear Selection">&times;</button>
+      </div>
+      <div id="insp-body" class="insp-body hidden">
+        <div class="insp-row">
+          <span>Location</span>
+          <strong id="insp-loc">—</strong>
+        </div>
+        <div class="insp-row">
+          <span>Activity</span>
+          <strong id="insp-state">—</strong>
+        </div>
+        <div class="insp-row">
+          <span>Destination</span>
+          <strong id="insp-dest">—</strong>
+        </div>
+        <div class="needs-bars">
+          <div class="need-item">
+            <label>Energy <span id="val-energy">100%</span></label>
+            <div class="bar"><div class="bar-fill energy" id="bar-energy"></div></div>
+          </div>
+          <div class="need-item">
+            <label>Focus <span id="val-focus">100%</span></label>
+            <div class="bar"><div class="bar-fill focus" id="bar-focus"></div></div>
+          </div>
+          <div class="need-item">
+            <label>Caffeine <span id="val-caffeine">50%</span></label>
+            <div class="bar"><div class="bar-fill caffeine" id="bar-caffeine"></div></div>
+          </div>
+        </div>
+        <button class="btn-follow" id="btn-follow">Follow Camera</button>
+      </div>
+    </div>
+
+    <div class="activity-feed glass">
+      <h3>Building Log</h3>
+      <ul id="event-log"></ul>
+    </div>
+  </aside>
+
+  <!-- Classic scripts only (file:// compatible, no ES modules) -->
+  <script src="js/math.js"></script>
+  <script src="js/webgl.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

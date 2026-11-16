@@ -1,0 +1,17 @@
+{
+  "input_tokens": 13663,
+  "output_tokens": 9552,
+  "reasoning_tokens": 1343,
+  "total_tokens": 23215,
+  "cache_read_tokens": 26624,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 5,
+  "finish_reasons": [
+    "stop"
+  ],
+  "provider_id": "omlx",
+  "model_id": "gemma-4-12B-it-qat-OptiQ-4bit",
+  "status": "success",
+  "is_error": false
+}

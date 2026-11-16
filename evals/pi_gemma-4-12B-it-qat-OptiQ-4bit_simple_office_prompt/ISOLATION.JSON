@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "backend": "seatbelt",
+  "workspace": "/Users/jeffgrover/Code/llm-eval/evals/pi_gemma-4-12B-it-qat-OptiQ-4bit_simple_office_prompt",
+  "home": "private",
+  "checkers": "evaluator only"
+}

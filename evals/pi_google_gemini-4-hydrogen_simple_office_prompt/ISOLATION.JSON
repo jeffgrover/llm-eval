@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "backend": "seatbelt",
+  "workspace": "/Users/jeffgrover/Code/llm-eval/evals/pi_google_gemini-4-hydrogen_simple_office_prompt",
+  "home": "private",
+  "checkers": "evaluator only"
+}
