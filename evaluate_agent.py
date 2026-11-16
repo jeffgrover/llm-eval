@@ -167,7 +167,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--provider",
-        help="Local provider (e.g., omlx or llama-server) or custom OpenCode/Vibe/Gemini provider",
+        help="Local provider (e.g., omlx or llama-server) or custom Pi/OpenCode/Vibe/Gemini provider",
     )
     parser.add_argument(
         "--restore-agent-config",
