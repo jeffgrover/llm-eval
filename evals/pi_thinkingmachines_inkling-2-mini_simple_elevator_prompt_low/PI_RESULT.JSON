@@ -1,0 +1,32 @@
+{
+  "input_tokens": 81437,
+  "output_tokens": 18571,
+  "reasoning_tokens": 4646,
+  "total_tokens": 100008,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 7,
+  "finish_reasons": [
+    "toolUse"
+  ],
+  "thinking_level": "low",
+  "provider_id": "lmstudio",
+  "model_id": "thinkingmachines/inkling-2-mini",
+  "status": "error",
+  "is_error": true,
+  "error": "Run stopped after reaching 100,008 accumulated tokens (limit 100,000).",
+  "terminal_reason": "token_limit",
+  "termination": {
+    "reason": "token_limit",
+    "message": "Run stopped after reaching 100,008 accumulated tokens (limit 100,000).",
+    "evidence": {
+      "observed": 100008,
+      "limit": 100000,
+      "metric": "accumulated tokens"
+    }
+  },
+  "warnings": [
+    "Run terminated by safety guardrail: Run stopped after reaching 100,008 accumulated tokens (limit 100,000)."
+  ]
+}
