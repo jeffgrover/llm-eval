@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Elevator Building Simulation</title>
+<style>
+  html, body { margin:0; padding:0; height:100%; background:#10131a; overflow:hidden; font-family: Georgia, serif; }
+  #scene { display:block; width:100vw; height:100vh; }
+  #hud {
+    position:fixed; top:14px; left:14px; color:#e8e4d8; background:rgba(16,19,26,0.72);
+    border:1px solid rgba(232,228,216,0.25); border-radius:10px; padding:12px 16px; max-width:320px;
+    pointer-events:none; backdrop-filter: blur(4px); z-index:2;
+  }
+  #hud h1 { font-size:18px; margin:0 0 6px 0; letter-spacing:1px; color:#f5d67b; }
+  #status { font-size:13px; line-height:1.45; min-height:36px; }
+  #floors { margin-top:8px; font-size:12px; line-height:1.7; color:#c9c4b6; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="hud">
+  <h1>ELEVATOR BUILDING</h1>
+  <div id="status">Starting…</div>
+  <div id="floors"></div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Configuration ----------
+  var FLOORS = 5;                       // floors, index 0 = ground
+  var FLOOR_H = 2.6;
+  var BUILD_W = 7.0;
+  var BUILD_D = 4.0;
+  var SHAFT_X0 = BUILD_W / 2 + 0.35;    // shaft left edge (world x)
+  var SHAFT_W = 2.1;
+  var CAR_H = 2.05;
+  var PASSENGERS = [
+    { name: 'Alice', color: '#e2574c' },
+    { name: 'Bob',   color: '#3f8fe0' },
+    { name: 'Cleo',  color: '#43b581' },
+    { name: 'Dan',   color: '#a06cd5' }
+  ];
+
+  // ---------- State ----------
+  var floorOccupant = [0, 1, 2, 3];     // passenger index per occupied floor (null = empty)
+  var emptyFloor = 4;                   // the one empty floor
+  var carY = 0;                         // current car base height (world y)
+  var targetCarY = 0;
+  var doorOpen = 0;                     // 0 closed .. 1 open
+  var phase = 'pick';
+  var phaseT = 0;
+  var currentPassenger = -1;
+  var fromFloor = -1, toFloor = -1;
+  var statusText = '';
+  var lastTime = null;
+
+  // ---------- Canvas / projection ----------
+  var canvas = document.getElementById('scene');
+  var ctx = canvas.getContext('2d');
+  function resize() {
+    canvas.width = Math.floor(window.innerWidth * devicePixelRatio);
+    canvas.height = Math.floor(window.innerHeight * devicePixelRatio);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  var YAW = -0.62, PITCH = 0.42;
+  var viewScale = 40, viewCX = 0, viewCY = 0;
+
+  function projectPoint(x, y, z) {
+    var x1 = x * Math.cos(YAW) - z * Math.sin(YAW);
+    var z1 = x * Math.sin(YAW) + z * Math.cos(YAW);
+    var y1 = y * Math.cos(PITCH) - z1 * Math.sin(PITCH);
+    return { sx: viewCX + x1 * viewScale, sy: viewCY - y1 * viewScale };
+  }
+
+  function drawPoly(points, fill, stroke) {
+    ctx.beginPath();
+    for (var i = 0; i < points.length; i++) {
+      var p = projectPoint(points[i].x, points[i].y, points[i].z);
+      if (i === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+
+  function faceColor(base, light) {
+    var r = Math.max(0, Math.min(255, Math.round(base[0] * (1 + light))));
+    var g = Math.max(0, Math.min(255, Math.round(base[1] * (1 + light))));
+    var b = Math.max(0, Math.min(255, Math.round(base[2] * (1 + light))));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function box(x0, y0, z0, x1, y1, z1, base) {
+    drawPoly([{x:x0,y:y1,z:z0},{x:x1,y:y1,z:z0},{x:x1,y:y1,z:z1},{x:x0,y:y1,z:z1}], faceColor(base, 0.28));
+    drawPoly([{x:x0,y:y0,z:z1},{x:x1,y:y0,z:z1},{x:x1,y:y1,z:z1},{x:x0,y:y1,z:z1}], faceColor(base, 0.05));
+    drawPoly([{x:x1,y:y0,z:z0},{x:x1,y:y0,z:z1},{x:x1,y:y1,z:z1},{x:x1,y:y1,z:z0}], faceColor(base, -0.18));
+  }
+
+  // ---------- Geometry constants ----------
+  var W = BUILD_W / 2, D = BUILD_D / 2;
+  var TOTAL_H = FLOORS * FLOOR_H;
+
+  function drawBuilding() {
+    // back wall
+    drawPoly([{x:-W,y:0,z:-D},{x:W,y:0,z:-D},{x:W,y:TOTAL_H,z:-D},{x:-W,y:TOTAL_H,z:-D}], '#2a3040');
+    // side columns
+    box(-W - 0.25, 0, -D, -W + 0.05, TOTAL_H, D, [70, 78, 96]);
+    box(W - 0.05, 0, -D, W + 0.25, TOTAL_H, D, [70, 78, 96]);
+    // floor plates and roof
+    for (var i = 0; i <= FLOORS; i++) {
+      var y = i * FLOOR_H;
+      box(-W - 0.25, y - 0.18, -D, W + 0.25, y, D, [96, 104, 128]);
+    }
+    // shaft back panel and front rails
+    var sx1 = SHAFT_X0 + SHAFT_W;
+    drawPoly([{x:SHAFT_X0,y:0,z:-D},{x:sx1,y:0,z:-D},{x:sx1,y:TOTAL_H,z:-D},{x:SHAFT_X0,y:TOTAL_H,z:-D}], '#232936');
+    box(SHAFT_X0 - 0.12, 0, D - 0.18, SHAFT_X0 + 0.02, TOTAL_H, D, [58, 64, 82]);
+    box(sx1 - 0.02, 0, D - 0.18, sx1 + 0.12, TOTAL_H, D, [58, 64, 82]);
+    // floor number labels on back wall
+    ctx.fillStyle = '#8f96a8';
+    ctx.font = 'bold 15px Georgia';
+    ctx.textAlign = 'center';
+    for (var f = 0; f < FLOORS; f++) {
+      var p = projectPoint(-W + 0.55, f * FLOOR_H + 1.35, -D + 0.02);
+      ctx.fillText(String(f + 1), p.sx, p.sy);
+    }
+  }
+
+  function drawPassengerFigure(x, yBase, z, color, scale, alpha) {
+    var p = projectPoint(x, yBase, z);
+    var s = viewScale * 0.42 * (scale || 1);
+    ctx.save();
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(p.sx - s * 0.42, p.sy);
+    ctx.lineTo(p.sx + s * 0.42, p.sy);
+    ctx.lineTo(p.sx + s * 0.30, p.sy - s * 1.15);
+    ctx.lineTo(p.sx - s * 0.30, p.sy - s * 1.15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy - s * 1.45, s * 0.30, 0, Math.PI * 2);
+    ctx.fillStyle = '#f0d9b5';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDoorPanel(xa, xb, y0, y1, z, isLeft, openAmount) {
+    var halfW = Math.abs(xb - xa);
+    var slide = halfW * openAmount;
+    var xA, xB;
+    if (isLeft) { xA = xa; xB = xb - slide; }
+    else { xA = xa + slide; xB = xb; }
+    if (xB <= xA + 0.02) return;
+    drawPoly([{x:xA,y:y0+0.05,z:z},{x:xB,y:y0+0.05,z:z},{x:xB,y:y1-0.12,z:z},{x:xA,y:y1-0.12,z:z}], '#c8b06a');
+  }
+
+  function drawCar(carBaseY, openAmount, passengerIndex, alpha) {
+    var sx0 = SHAFT_X0 + 0.12, sx1 = SHAFT_X0 + SHAFT_W - 0.12;
+    var y0 = carBaseY + 0.06, y1 = carBaseY + CAR_H;
+    box(sx0, y0, -D + 0.25, sx1, y1, D - 0.35, [52, 58, 74]);
+    // door panels on front face
+    drawDoorPanel(sx0, (sx0 + sx1) / 2, y0, y1, D - 0.34, true, openAmount);
+    drawDoorPanel((sx0 + sx1) / 2, sx1, y0, y1, D - 0.34, false, openAmount);
+    // passenger inside car
+    if (passengerIndex >= 0 && alpha > 0) {
+      var px = (sx0 + sx1) / 2;
+      drawPassengerFigure(px, y0 + 0.05, D - 1.15, PASSENGERS[passengerIndex].color, 0.9, alpha * (1 - openAmount * 0.3));
+    }
+    // top light strip
+    drawPoly([{x:sx0+0.08,y:y1-0.06,z:D-0.36},{x:sx1-0.08,y:y1-0.06,z:D-0.36},{x:sx1-0.08,y:y1-0.16,z:D-0.36},{x:sx0+0.08,y:y1-0.16,z:D-0.36}], '#f5d67b');
+  }
+
+  // ---------- Simulation logic ----------
+  function occupiedFloors() {
+    var list = [];
+    for (var f = 0; f < FLOORS; f++) if (floorOccupant[f] != null && floorOccupant[f] !== -1) list.push(f);
+    return list;
+  }
+
+  function setStatus(t) { statusText = t; }
+
+  function startPick() {
+    var occ = occupiedFloors();
+    fromFloor = occ[Math.floor(Math.random() * occ.length)];
+    currentPassenger = floorOccupant[fromFloor];
+    toFloor = emptyFloor;
+    phase = 'moveToPickup';
+    targetCarY = fromFloor * FLOOR_H;
+    setStatus(PASSENGERS[currentPassenger].name + ' (floor ' + (fromFloor + 1) + ') is being called…');
+  }
+
+  function onArrive() {
+    if (phase === 'moveToPickup') { phase = 'doorsOpen'; phaseT = 0; setStatus(PASSENGERS[currentPassenger].name + ' boards the elevator…'); }
+    else if (phase === 'moveToDropoff') { phase = 'doorsOpen2'; phaseT = 0; setStatus(PASSENGERS[currentPassenger].name + ' arrives at floor ' + (toFloor + 1) + '…'); }
+  }
+
+  function updatePhases(dt) {
+    if (phase === 'pick') { startPick(); phaseT = 0; return; }
+
+    if (phase === 'moveToPickup' || phase === 'moveToDropoff') {
+      var diff = targetCarY - carY;
+      var speed = 7.5 * dt;
+      if (Math.abs(diff) <= speed) { carY = targetCarY; onArrive(); }
+      else carY += Math.sign(diff) * speed;
+      return;
+    }
+
+    if (phase === 'doorsOpen' || phase === 'doorsOpen2') {
+      doorOpen = Math.min(1, doorOpen + dt * 3);
+      if (doorOpen >= 1 && phaseT > 0.35) {
+        if (phase === 'doorsOpen') { phase = 'board'; phaseT = 0; }
+        else { phase = 'exitPassenger'; phaseT = 0; setStatus(PASSENGERS[currentPassenger].name + ' steps out…'); }
+      }
+      return;
+    }
+
+    if (phase === 'board') {
+      doorOpen = Math.min(1, doorOpen + dt * 3); // keep doors open while walking in
+      if (phaseT > 0.7) {
+        floorOccupant[fromFloor] = null;
+        phase = 'closeDoors'; phaseT = 0;
+        setStatus(PASSENGERS[currentPassenger].name + ' rides to floor ' + (toFloor + 1) + '…');
+      }
+      return;
+    }
+
+    if (phase === 'closeDoors') {
+      doorOpen = Math.max(0, doorOpen - dt * 3);
+      if (doorOpen <= 0 && phaseT > 0.2) {
+        phase = 'moveToDropoff'; targetCarY = toFloor * FLOOR_H; phaseT = 0;
+      }
+      return;
+    }
+
+    if (phase === 'exitPassenger') {
+      doorOpen = Math.min(1, doorOpen + dt * 3); // keep doors open while walking out
+      if (phaseT > 0.7) {
+        floorOccupant[toFloor] = currentPassenger;
+        emptyFloor = fromFloor;
+        phase = 'closeDoors2'; phaseT = 0; doorOpen = Math.max(doorOpen, 0.01);
+        setStatus(PASSENGERS[currentPassenger].name + ' is now on floor ' + (toFloor + 1) + '.');
+      }
+      return;
+    }
+
+    if (phase === 'closeDoors2') {
+      doorOpen = Math.max(0, doorOpen - dt * 3);
+      if (doorOpen <= 0 && phaseT > 0.15) { phase = 'pick'; phaseT = 0; }
+      return;
+    }
+  }
+
+  // ---------- Rendering ----------
+  function drawBackground() {
+    var g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, '#141824');
+    g.addColorStop(1, '#0b0e14');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function draw() {
+    var w = canvas.width, h = canvas.height;
+    viewScale = Math.min(w / (BUILD_W + SHAFT_W + 5), h / (TOTAL_H + 4));
+    viewCX = w * 0.44;
+    viewCY = h * 0.62;
+
+    drawBackground();
+    drawBuilding();
+
+    // passengers standing in hallway
+    for (var f = 0; f < FLOORS; f++) {
+      var pi = floorOccupant[f];
+      if (pi == null || pi === -1) continue;
+      if (phase === 'board' && f === fromFloor && pi === currentPassenger) {
+        // walking toward the elevator shaft
+        var t = Math.min(1, phaseT / 0.7);
+        var xStart = -W + 1.6, xEnd = SHAFT_X0 + SHAFT_W / 2;
+        drawPassengerFigure(xStart + (xEnd - xStart) * t, f * FLOOR_H, 0.4, PASSENGERS[pi].color, 1, 1 - t * 0.25);
+      } else {
+        drawPassengerFigure(-W + 1.6, f * FLOOR_H, 0.4, PASSENGERS[pi].color, 1, 1);
+      }
+    }
+
+    // exiting passenger walking from car toward hallway spot
+    if (phase === 'exitPassenger' && toFloor >= 0) {
+      var t2 = Math.min(1, phaseT / 0.7);
+      var xStart2 = SHAFT_X0 + SHAFT_W / 2, xEnd2 = -W + 1.6;
+      drawPassengerFigure(xStart2 + (xEnd2 - xStart2) * t2, toFloor * FLOOR_H, 0.4, PASSENGERS[currentPassenger].color, 1, Math.min(1, phaseT / 0.25 + 0.3));
+    }
+
+    // elevator car with passenger inside when riding or doors open at dropoff
+    var showInCar = (phase === 'closeDoors' || phase === 'moveToDropoff' || phase === 'doorsOpen2') ||
+                    (phase === 'board' && phaseT > 0.55);
+    drawCar(carY, doorOpen, showInCar ? currentPassenger : -1, 1);
+
+    // HUD floor list
+    var hudFloors = document.getElementById('floors');
+    var html = '';
+    for (var f2 = FLOORS - 1; f2 >= 0; f2--) {
+      var pi2 = floorOccupant[f2];
+      if (pi2 == null || pi2 === -1) {
+        html += '<div>Floor ' + (f2 + 1) + ' — <em style="color:#8f96a8">empty</em></div>';
+      } else {
+        var c = PASSENGERS[pi2].color;
+        html += '<div>Floor ' + (f2 + 1) + ' — <span class="dot" style="background:' + c + '"></span>' + PASSENGERS[pi2].name + '</div>';
+      }
+    }
+    hudFloors.innerHTML = html;
+    document.getElementById('status').textContent = statusText;
+  }
+
+  // ---------- Main loop ----------
+  function frame(ts) {
+    if (lastTime == null) lastTime = ts;
+    var dt = Math.min(0.05, (ts - lastTime) / 1000);
+    lastTime = ts;
+    phaseT += dt;
+    updatePhases(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  setStatus('Starting…');
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
