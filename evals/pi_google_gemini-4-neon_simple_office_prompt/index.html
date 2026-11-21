@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apex Tower — 3D Office Building Simulation</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Classic UMD Three.js r128 (works directly from file:// with no ES modules or build step) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- Top Navigation & Time HUD -->
+  <header id="top-bar" class="hud-panel">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-title">APEX TOWER</div>
+        <div class="brand-sub">Live 3D Office Simulation</div>
+      </div>
+    </div>
+
+    <div class="clock-cluster">
+      <div class="time-display">
+        <span id="sim-clock">08:15</span>
+        <span id="sim-phase" class="phase-badge">Morning Arrival</span>
+      </div>
+      <div class="speed-controls" role="group" aria-label="Simulation speed">
+        <button id="btn-pause" class="ctrl-btn" title="Pause / Resume (Space)">⏸</button>
+        <button class="ctrl-btn speed-btn active" data-speed="1">1×</button>
+        <button class="ctrl-btn speed-btn" data-speed="3">3×</button>
+        <button class="ctrl-btn speed-btn" data-speed="8">8×</button>
+        <button class="ctrl-btn speed-btn" data-speed="20">20×</button>
+      </div>
+      <div class="time-presets">
+        <button class="chip-btn" data-time="8.0" title="Morning Rush (08:00)">🌅 8:00</button>
+        <button class="chip-btn" data-time="10.5" title="Mid-Morning Work (10:30)">☀️ 10:30</button>
+        <button class="chip-btn" data-time="12.25" title="Lunch Rush (12:15)">🍽 12:15</button>
+        <button class="chip-btn" data-time="16.75" title="Golden Hour (16:45)">🌇 16:45</button>
+        <button class="chip-btn" data-time="19.5" title="Evening Lights (19:30)">🌙 19:30</button>
+      </div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi-item">
+        <span class="kpi-val" id="kpi-inside">0</span>
+        <span class="kpi-lbl">In Building</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-val" id="kpi-meetings">0</span>
+        <span class="kpi-lbl">Meetings</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-val" id="kpi-wait">0s</span>
+        <span class="kpi-lbl">Elev Wait</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-val" id="kpi-coffee">0</span>
+        <span class="kpi-lbl">Coffees</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left Controls Panel -->
+  <aside id="left-panel" class="hud-panel">
+    <div class="panel-section">
+      <div class="section-title">View Mode</div>
+      <div class="segmented" id="view-mode-group">
+        <button class="seg-btn active" data-mode="cutaway">Cutaway</button>
+        <button class="seg-btn" data-mode="glass">Full Glass</button>
+        <button class="seg-btn" data-mode="isolate">Isolate</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Floors <span class="hint">(Click to focus)</span></div>
+      <div id="floor-list" class="floor-list"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Camera Presets</div>
+      <div class="preset-grid">
+        <button class="preset-btn" data-cam="hero">Exterior</button>
+        <button class="preset-btn" data-cam="cutaway">Cutaway</button>
+        <button class="preset-btn" data-cam="lobby">Lobby</button>
+        <button class="preset-btn" data-cam="shafts">Elevators</button>
+        <button class="preset-btn" data-cam="rooftop">Rooftop</button>
+        <button class="preset-btn" data-cam="street">Street</button>
+      </div>
+    </div>
+
+    <div class="panel-section toggles-section">
+      <label class="toggle-row">
+        <input type="checkbox" id="toggle-labels" checked />
+        <span>Worker Activity Badges</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="toggle-auto-orbit" />
+        <span>Slow Cinematic Orbit</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="toggle-shadows" checked />
+        <span>Soft Sun Shadows</span>
+      </label>
+    </div>
+
+    <div class="controls-help">
+      Drag: Orbit · Right-Drag: Pan · Scroll: Zoom · Click worker or elevator to inspect
+    </div>
+  </aside>
+
+  <!-- Right Live Telemetry & Inspector Panel -->
+  <aside id="right-panel" class="hud-panel">
+    <div class="panel-section">
+      <div class="section-title">Elevator Bank</div>
+      <div id="elevator-widgets" class="elevator-widgets"></div>
+    </div>
+
+    <div class="panel-section" id="inspector-section">
+      <div class="section-title">
+        <span>Inspector</span>
+        <button id="btn-clear-inspect" class="mini-btn hidden">Clear</button>
+      </div>
+      <div id="inspector-body" class="inspector-empty">
+        Click any worker or elevator cab in the 3D view to inspect and follow them.
+      </div>
+    </div>
+
+    <div class="panel-section feed-section">
+      <div class="section-title">Live Office Feed</div>
+      <div id="activity-feed" class="activity-feed"></div>
+    </div>
+  </aside>
+
+  <!-- Floating 2D screen-space labels container -->
+  <div id="labels-layer"></div>
+
+  <!-- Fallback message if Three.js fails to load -->
+  <div id="error-overlay" class="hidden">
+    <div class="error-card">
+      <h2>3D Renderer Unavailable</h2>
+      <p id="error-message">Unable to initialize WebGL or load Three.js.</p>
+    </div>
+  </div>
+
+  <!-- Classic scripts in dependency order -->
+  <script src="js/config.js"></script>
+  <script src="js/textures.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/environment.js"></script>
+  <script src="js/building.js"></script>
+  <script src="js/elevator.js"></script>
+  <script src="js/worker.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
