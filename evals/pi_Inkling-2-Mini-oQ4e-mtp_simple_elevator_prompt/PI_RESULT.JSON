@@ -1,0 +1,17 @@
+{
+  "input_tokens": 21296,
+  "output_tokens": 21760,
+  "reasoning_tokens": 8565,
+  "total_tokens": 43056,
+  "cache_read_tokens": 196183,
+  "cache_write_tokens": 0,
+  "cost_usd": 0.0,
+  "num_turns": 13,
+  "finish_reasons": [
+    "stop"
+  ],
+  "provider_id": "omlx",
+  "model_id": "Inkling-2-Mini-oQ4e-mtp",
+  "status": "success",
+  "is_error": false
+}

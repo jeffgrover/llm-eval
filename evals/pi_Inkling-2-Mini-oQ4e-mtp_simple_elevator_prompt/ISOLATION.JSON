@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "backend": "seatbelt",
+  "workspace": "/Users/md/Code/llm-eval/evals/pi_Inkling-2-Mini-oQ4e-mtp_simple_elevator_prompt",
+  "home": "private",
+  "checkers": "evaluator only"
+}
