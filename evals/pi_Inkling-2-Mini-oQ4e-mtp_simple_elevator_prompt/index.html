@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elevator Building Simulation</title>
+<style>
+  :root {
+    --bg: #0e1420;
+    --panel: #17202f;
+    --panel-2: #1e2a3d;
+    --text: #e8edf5;
+    --muted: #93a1b8;
+    --accent: #ffc857;
+    --green: #59d98c;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(1200px 800px at 50% -10%, #1b2740 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 16px 28px;
+    overflow: hidden;
+  }
+  header { text-align: center; margin-bottom: 10px; }
+  h1 {
+    font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+    margin: 0 0 4px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  h1 .em { color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin: 0; }
+  #hud {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    margin: 6px 0 10px;
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid #2a3a55;
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    display: flex; gap: 8px; align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+  }
+  .chip .k { color: var(--muted); text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.12em; }
+  .chip .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chip .v.green { color: var(--green); }
+  .chip .v.amber { color: var(--accent); }
+  #canvasWrap {
+    position: relative;
+    width: min(1180px, 96vw);
+    height: min(72vh, 780px);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #2a3a55;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.03);
+    background: #0b101c;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+  #statusLine {
+    position: absolute; left: 12px; bottom: 10px;
+    background: rgba(10, 16, 28, 0.72);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    pointer-events: none;
+    max-width: calc(100% - 24px);
+  }
+  #statusLine strong { color: var(--text); font-weight: 600; }
+  #controls { margin-top: 10px; display: flex; gap: 10px; }
+  button {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid #32445f; border-radius: 9px;
+    padding: 8px 16px; font-size: 0.85rem; cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+  button:hover { background: #26344d; }
+  button:active { transform: translateY(1px); }
+  footer { color: var(--muted); font-size: 0.72rem; margin-top: 10px; text-align: center; }
+</style>
+</head>
+<body>
+  <header>
+    <h1><span class="em">3D</span> Elevator Building Simulation</h1>
+    <p class="subtitle">Five floors &middot; four passengers &middot; one empty floor &middot; randomized movement</p>
+  </header>
+
+  <div id="hud" aria-live="polite">
+    <div class="chip"><span class="k">Empty floor</span><span class="v green" id="emptyFloor">F5</span></div>
+    <div class="chip"><span class="k">Cabin</span><span class="v amber" id="cabinFloor">F5</span></div>
+    <div class="chip"><span class="k">Passengers</span><span class="v" id="paxCount">4</span></div>
+    <div class="chip"><span class="k">Status</span><span class="v" id="phase">Idle</span></div>
+  </div>
+
+  <div id="canvasWrap">
+    <canvas id="scene" aria-label="Animated 3D elevator building"></canvas>
+    <div id="statusLine"><strong>Simulation</strong> running — a random passenger is sent to the empty floor, then their old floor becomes empty.</div>
+  </div>
+
+  <div id="controls">
+    <button id="pauseBtn" type="button">Pause</button>
+    <button id="resetBtn" type="button">Reset</button>
+  </div>
+
+  <footer>Open this page directly from a file:// URL — no build step, no network, no modules.</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------- config */
+  var FLOORS = 5;          // five floors
+  var FLOOR_H = 2.4;       // vertical spacing per floor
+  var BUILD_W = 6.0;       // building footprint width  (x)
+  var BUILD_D = 4.0;       // building footprint depth  (z)
+  var SLAB_T = 0.22;       // floor slab thickness
+  var SHAFT_X0 = 3.35, SHAFT_X1 = 4.75;
+  var SHAFT_Z0 = -1.35, SHAFT_Z1 = 1.35;
+  var CABIN_PAD = 0.12;
+  var CABIN_H = 1.95;
+  var SPEED = 3.4;         // cabin vertical speed (units / second)
+
+  var COLORS = {
+    slab: "#8d99ae", slabEdge: "#6b7686",
+    wall: "#3d4a63", wallDark: "#333e52",
+    column: "#55637d",
+    roof: "#2c3650",
+    shaft: "#24304a",
+    cabin: "#aeb9c9", cabinSide: "#8e9bad",
+    glass: "#1c2736",
+    door: "#d8c26a", doorDark: "#b09c4e",
+    window: "#ffd97a",
+    empty: "#59d98c"
+  };
+
+  var PAX_COLORS = ["#ff6b6b", "#4dabf7", "#ffd43b", "#b197fc"];
+
+  /* ------------------------------------------------------------- state */
+  var sim;
+
+  function resetSim() {
+    sim = {
+      // four passengers, one per floor on floors 1..4 (index 0..3); floor 5 (index 4) is empty
+      passengers: [
+        { id: 0, color: PAX_COLORS[0], floor: 0, x: -1.7, z: 0.45, state: "standing" },
+        { id: 1, color: PAX_COLORS[1], floor: 1, x: 0.1,  z: -0.35, state: "standing" },
+        { id: 2, color: PAX_COLORS[2], floor: 2, x: 1.5,  z: 0.55, state: "standing" },
+        { id: 3, color: PAX_COLORS[3], floor: 3, x: -0.7, z: -0.55, state: "standing" }
+      ],
+      emptyFloor: 4,
+      cabinBottom: 4 * FLOOR_H + SLAB_T / 2,
+      phase: "wait",        // wait -> moveToPax -> doorsOpen -> moveToEmpty -> doorsOpen2 -> doorsClose -> wait
+      phaseT: 0,
+      phaseDur: 1.4,
+      doorT: 0,             // 0 closed, 1 fully open
+      pax: null,            // passenger currently being moved
+      moveFrom: 0,
+      moveTarget: 0,
+      running: true,
+      t: 0
+    };
+  }
+
+  /* ------------------------------------------------------------- canvas */
+  var canvas = document.getElementById("scene");
+  var ctx = canvas.getContext("2d");
+  var wrap = document.getElementById("canvasWrap");
+  var W = 0, H = 0, DPR = 1;
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = wrap.clientWidth;
+    H = wrap.clientHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  /* ---------------------------------------------------------- math utils */
+  function vsub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+  function vdot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+  function vcross(a, b) {
+    return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+  }
+  function vnorm(v) { var l = Math.hypot(v.x, v.y, v.z) || 1; return { x: v.x / l, y: v.y / l, z: v.z / l }; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+  /* ------------------------------------------------------ color helpers */
+  function hexRgb(hex) {
+    var h = hex.replace("#", "");
+    return { r: parseInt(h.substr(0, 2), 16), g: parseInt(h.substr(2, 2), 16), b: parseInt(h.substr(4, 2), 16) };
+  }
+  function shade(hex, f, alpha) {
+    var c = hexRgb(hex);
+    var r = clamp(Math.round(c.r * f), 0, 255);
+    var g = clamp(Math.round(c.g * f), 0, 255);
+    var b = clamp(Math.round(c.b * f), 0, 255);
+    if (alpha === undefined || alpha >= 1) return "rgb(" + r + "," + g + "," + b + ")";
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
+
+  /* -------------------------------------------------- camera & projection */
+  function cameraBasis(angle, dist, height, target) {
+    var camPos = { x: target.x + Math.sin(angle) * dist, y: height, z: target.z + Math.cos(angle) * dist };
+    var forward = vnorm(vsub(target, camPos));
+    var right = vnorm(vcross(forward, { x: 0, y: 1, z: 0 }));
+    var up = vcross(right, forward);
+    return { camPos: camPos, forward: forward, right: right, up: up };
+  }
+
+  function project(p, cam, fovDeg, cw, ch) {
+    var v = vsub(p, cam.camPos);
+    var vx = vdot(v, cam.right);
+    var vy = vdot(v, cam.up);
+    var vz = vdot(v, cam.forward);
+    if (vz < 0.25) return null;
+    var f = (ch / 2) / Math.tan((fovDeg * Math.PI / 180) / 2);
+    return { x: cw / 2 + (vx / vz) * f, y: ch / 2 - (vy / vz) * f, z: vz };
+  }
+
+  /* ---------------------------------------------------------- scene build */
+  function addBox(faces, cx, cy, cz, sx, sy, sz, color, opts) {
+    opts = opts || {};
+    var hx = sx / 2, hy = sy / 2, hz = sz / 2;
+    var x0 = cx - hx, x1 = cx + hx, y0 = cy - hy, y1 = cy + hy, z0 = cz - hz, z1 = cz + hz;
+    var defs = [
+      { n: { x: 0, y: 1, z: 0 },  pts: [{ x: x0, y: y1, z: z0 }, { x: x1, y: y1, z: z0 }, { x: x1, y: y1, z: z1 }, { x: x0, y: y1, z: z1 }] },
+      { n: { x: 0, y: -1, z: 0 }, pts: [{ x: x0, y: y0, z: z1 }, { x: x1, y: y0, z: z1 }, { x: x1, y: y0, z: z0 }, { x: x0, y: y0, z: z0 }] },
+      { n: { x: 1, y: 0, z: 0 },  pts: [{ x: x1, y: y0, z: z0 }, { x: x1, y: y1, z: z0 }, { x: x1, y: y1, z: z1 }, { x: x1, y: y0, z: z1 }] },
+      { n: { x: -1, y: 0, z: 0 }, pts: [{ x: x0, y: y0, z: z1 }, { x: x0, y: y1, z: z1 }, { x: x0, y: y1, z: z0 }, { x: x0, y: y0, z: z0 }] },
+      { n: { x: 0, y: 0, z: 1 },  pts: [{ x: x0, y: y0, z: z1 }, { x: x1, y: y0, z: z1 }, { x: x1, y: y1, z: z1 }, { x: x0, y: y1, z: z1 }] },
+      { n: { x: 0, y: 0, z: -1 }, pts: [{ x: x0, y: y0, z: z0 }, { x: x0, y: y1, z: z0 }, { x: x1, y: y1, z: z0 }, { x: x1, y: y0, z: z0 }] }
+    ];
+    for (var i = 0; i < defs.length; i++) {
+      var d = defs[i];
+      if (opts.skipBack && opts.skipBack.indexOf(d.n.x + "," + d.n.y + "," + d.n.z) !== -1) continue;
+      faces.push({ normal: d.n, pts: d.pts, color: color, alpha: opts.alpha !== undefined ? opts.alpha : 1, glow: !!opts.glow });
+    }
+  }
+
+  function faceCenter(f) {
+    var c = { x: 0, y: 0, z: 0 };
+    for (var i = 0; i < f.pts.length; i++) { c.x += f.pts[i].x / 4; c.y += f.pts[i].y / 4; c.z += f.pts[i].z / 4; }
+    return c;
+  }
+
+  function addFigure(faces, x, z, floorIdx, color, baseYOverride) {
+    var base = (baseYOverride !== undefined) ? baseYOverride : (floorIdx * FLOOR_H + SLAB_T / 2);
+    addBox(faces, x, base + 0.60, z, 0.52, 1.05, 0.40, color, {});
+    addBox(faces, x, base + 1.32, z, 0.34, 0.30, 0.34, "#f2c9a0", {});
+  }
+
+  /* -------------------------------------------------------- render frame */
+  function render(t) {
+    var camAngle = 0.42 + Math.sin(t * 0.14) * 0.16;
+    var cam = cameraBasis(camAngle, 15.5, 10.6, { x: 0.75, y: 5.7, z: 0 });
+    var fov = 38;
+    ctx.clearRect(0, 0, W, H);
+
+    // backdrop gradient
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, "#131c2e");
+    grad.addColorStop(0.6, "#0d1422");
+    grad.addColorStop(1, "#0a0f1a");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    var faces = [];
+    var totalH = FLOORS * FLOOR_H;
+
+    // ---- ground slab
+    addBox(faces, 0.75, -0.16, 0, 11.6, 0.32, 6.4, "#1a2334", {});
+
+    // ---- floor slabs (5 floors + roof slab)
+    for (var i = 0; i < FLOORS; i++) {
+      var y = i * FLOOR_H;
+      addBox(faces, 0, y, 0, BUILD_W, SLAB_T, BUILD_D, i === sim.emptyFloor ? "#7d8fa6" : COLORS.slab, {});
+      // thin edge accent on the front lip
+      addBox(faces, 0, y, BUILD_D / 2 + 0.02, BUILD_W, SLAB_T * 0.9, 0.06, "#5c6a82", {});
+    }
+    addBox(faces, 0, totalH, 0, BUILD_W + 0.3, SLAB_T, BUILD_D + 0.3, COLORS.roof, {});
+
+    // ---- back wall + side walls
+    addBox(faces, 0, totalH / 2, -BUILD_D / 2 - 0.1, BUILD_W + 0.2, totalH, 0.2, COLORS.wall, {});
+    addBox(faces, -BUILD_W / 2 - 0.1, totalH / 2, 0, 0.2, totalH, BUILD_D + 0.4, COLORS.wallDark, {});
+    // right side: low parapet only (shaft side stays open)
+    addBox(faces, BUILD_W / 2 + 0.05, 0.9, 0, 0.22, 1.8, BUILD_D, COLORS.wallDark, {});
+
+    // ---- columns (front-left, front-right)
+    addBox(faces, -BUILD_W / 2 + 0.15, totalH / 2, BUILD_D / 2 - 0.1, 0.34, totalH, 0.34, COLORS.column, {});
+    addBox(faces, BUILD_W / 2 - 0.15, totalH / 2, BUILD_D / 2 - 0.1, 0.34, totalH, 0.34, COLORS.column, {});
+
+    // ---- windows on back wall (warm glow)
+    for (var w = 0; w < FLOORS; w++) {
+      for (var wx = 0; wx < 3; wx++) {
+        var winX = -1.9 + wx * 1.9;
+        addBox(faces, winX, w * FLOOR_H + 1.45, -BUILD_D / 2 + 0.06, 1.15, 1.05, 0.07, COLORS.window, { glow: true });
+      }
+    }
+
+    // ---- elevator shaft frame (right side)
+    var shaftW = SHAFT_X1 - SHAFT_X0;
+    var shaftCX = (SHAFT_X0 + SHAFT_X1) / 2;
+    // back panel of shaft
+    addBox(faces, shaftCX, totalH / 2, SHAFT_Z0 - 0.12, shaftW + 0.25, totalH + 0.3, 0.18, COLORS.shaft, {});
+    // side pillars
+    addBox(faces, SHAFT_X0 + 0.1, totalH / 2, SHAFT_Z0 + 0.1, 0.2, totalH + 0.3, 0.24, COLORS.shaft, {});
+    addBox(faces, SHAFT_X1 - 0.1, totalH / 2, SHAFT_Z0 + 0.1, 0.2, totalH + 0.3, 0.24, COLORS.shaft, {});
+    addBox(faces, SHAFT_X0 + 0.1, totalH / 2, SHAFT_Z1 - 0.1, 0.2, totalH + 0.3, 0.24, COLORS.shaft, {});
+    addBox(faces, SHAFT_X1 - 0.1, totalH / 2, SHAFT_Z1 - 0.1, 0.2, totalH + 0.3, 0.24, COLORS.shaft, {});
+    // shaft top cap
+    addBox(faces, shaftCX, totalH + 0.22, 0, shaftW + 0.35, 0.24, SHAFT_Z1 - SHAFT_Z0 + 0.3, COLORS.roof, {});
+    // floor guide ticks on shaft
+    for (var g = 0; g < FLOORS; g++) {
+      addBox(faces, SHAFT_X0 + 0.1, g * FLOOR_H + SLAB_T / 2 + 0.04, (SHAFT_Z0 + SHAFT_Z1) / 2, 0.14, 0.08, SHAFT_Z1 - SHAFT_Z0 - 0.5, "#c8a24b", {});
+    }
+
+    // ---- empty-floor highlight (translucent green slab glow)
+    var emptyY = sim.emptyFloor * FLOOR_H + SLAB_T / 2;
+    var pulse = 0.30 + 0.14 * Math.sin(t * 4);
+    addBox(faces, 0, emptyY + 0.03, 0, BUILD_W - 0.4, 0.05, BUILD_D - 0.4, COLORS.empty, { alpha: pulse, glow: true });
+
+    // ---- passengers standing on floors
+    for (var p = 0; p < sim.passengers.length; p++) {
+      var pax = sim.passengers[p];
+      if (pax.state === "standing") {
+        addFigure(faces, pax.x, pax.z, pax.floor, pax.color);
+      }
+    }
+
+    // ---- elevator cabin
+    var cb = sim.cabinBottom;
+    var cabinCX = shaftCX;
+    var cabinCZ = (SHAFT_Z0 + SHAFT_Z1) / 2;
+    var cabinW = shaftW - 2 * CABIN_PAD;
+    var cabinD = (SHAFT_Z1 - SHAFT_Z0) - 2 * CABIN_PAD;
+    var cabinY = cb + CABIN_H / 2;
+    addBox(faces, cabinCX, cabinY, cabinCZ, cabinW, CABIN_H, cabinD, COLORS.cabin, {});
+    // cabin roof cap
+    addBox(faces, cabinCX, cb + CABIN_H + 0.05, cabinCZ, cabinW + 0.1, 0.1, cabinD + 0.1, COLORS.cabinSide, {});
+    // glass front
+    var glassZ = cabinCZ + cabinD / 2 + 0.03;
+    addBox(faces, cabinCX, cabinY, glassZ, cabinW - 0.1, CABIN_H - 0.25, 0.05, COLORS.glass, { alpha: 0.78 });
+    // passenger inside cabin
+    if (sim.pax && sim.pax.state === "inCabin") {
+      addFigure(faces, cabinCX, cabinCZ + 0.1, 0, sim.pax.color, cb + 0.06);
+    }
+    // sliding door panels (front)
+    var doorOpenX = (cabinW / 2 - 0.28) * sim.doorT;
+    var doorW = cabinW / 2 - 0.02;
+    addBox(faces, cabinCX - doorW / 2 - doorOpenX, cb + CABIN_H / 2 - 0.02, glassZ + 0.05, doorW, CABIN_H - 0.2, 0.07, COLORS.door, {});
+    addBox(faces, cabinCX + doorW / 2 + doorOpenX, cb + CABIN_H / 2 - 0.02, glassZ + 0.05, doorW, CABIN_H - 0.2, 0.07, COLORS.doorDark, {});
+
+    // ---------------- sort & draw
+    var viewDirCam = { x: 0, y: 0, z: 0 };
+    var visible = [];
+    for (var f = 0; f < faces.length; f++) {
+      var fc = faceCenter(faces[f]);
+      var toCam = vsub(cam.camPos, fc);
+      var d = vdot(faces[f].normal, toCam);
+      if (d <= 0) continue;
+      var depth = vdot(vsub(fc, cam.camPos), cam.forward);
+      faces[f].depth = depth;
+      visible.push(faces[f]);
+    }
+    visible.sort(function (a, b) { return b.depth - a.depth; });
+
+    var light = vnorm({ x: -0.45, y: 0.85, z: 0.55 });
+    for (var i2 = 0; i2 < visible.length; i2++) {
+      var face = visible[i2];
+      var pts2 = [];
+      var ok = true;
+      for (var j = 0; j < face.pts.length; j++) {
+        var sp = project(face.pts[j], cam, fov, W, H);
+        if (!sp) { ok = false; break; }
+        pts2.push(sp);
+      }
+      if (!ok) continue;
+      var lit = 0.42 + 0.58 * Math.max(0, vdot(face.normal, light));
+      if (face.glow) lit = Math.max(lit, 0.92);
+      ctx.beginPath();
+      ctx.moveTo(pts2[0].x, pts2[0].y);
+      for (var j2 = 1; j2 < pts2.length; j2++) ctx.lineTo(pts2[j2].x, pts2[j2].y);
+      ctx.closePath();
+      ctx.fillStyle = shade(face.color, lit, face.alpha);
+      ctx.fill();
+      if (face.alpha >= 1) {
+        ctx.strokeStyle = shade(face.color, lit * 0.55, 1);
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+      }
+    }
+
+    // ---------------- floor labels + empty marker (screen-space text)
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    for (var fl = 0; fl < FLOORS; fl++) {
+      var lp = project({ x: -BUILD_W / 2 + 0.35, y: fl * FLOOR_H + 0.55, z: -BUILD_D / 2 + 0.15 }, cam, fov, W, H);
+      if (lp) {
+        ctx.font = "700 13px 'Segoe UI', system-ui, sans-serif";
+        ctx.fillStyle = "rgba(232,237,245,0.85)";
+        ctx.fillText("F" + (fl + 1), lp.x, lp.y);
+      }
+    }
+    var ep = project({ x: 0.4, y: emptyY + 1.55, z: 0 }, cam, fov, W, H);
+    if (ep) {
+      var pulseA = 0.55 + 0.35 * Math.sin(t * 4);
+      ctx.font = "800 14px 'Segoe UI', system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(89,217,140," + pulseA.toFixed(3) + ")";
+      ctx.fillText("EMPTY FLOOR", ep.x, ep.y);
+    }
+    ctx.textAlign = "left";
+  }
+
+  /* -------------------------------------------------------- simulation */
+  function currentFloorY(floorIdx) { return floorIdx * FLOOR_H + SLAB_T / 2; }
+
+  function choosePax() {
+    var idx = Math.floor(Math.random() * sim.passengers.length);
+    sim.pax = sim.passengers[idx];
+  }
+
+  function setPhase(name, dur) {
+    sim.phase = name;
+    sim.phaseT = 0;
+    sim.phaseDur = dur;
+  }
+
+  function update(dt) {
+    sim.t += dt;
+    if (!sim.running) return;
+
+    sim.phaseT += dt;
+    var p = sim.phaseT / sim.phaseDur;
+
+    switch (sim.phase) {
+      case "wait":
+        sim.doorT = Math.max(0, sim.doorT - dt * 3);
+        if (p >= 1) {
+          choosePax();
+          sim.moveFrom = sim.cabinBottom;
+          sim.moveTarget = currentFloorY(sim.pax.floor);
+          var dist = Math.abs(sim.moveTarget - sim.moveFrom);
+          setPhase("moveToPax", Math.max(0.45, dist / SPEED));
+        }
+        break;
+
+      case "moveToPax":
+        sim.cabinBottom = lerp(sim.moveFrom, sim.moveTarget, easeInOut(clamp(p, 0, 1)));
+        if (p >= 1) setPhase("doorsOpen", 0.55);
+        break;
+
+      case "doorsOpen":
+        sim.doorT = clamp(p, 0, 1);
+        if (p >= 1) {
+          sim.pax.state = "inCabin";
+          sim.moveFrom = sim.cabinBottom;
+          sim.moveTarget = currentFloorY(sim.emptyFloor);
+          var dist2 = Math.abs(sim.moveTarget - sim.moveFrom);
+          setPhase("moveToEmpty", Math.max(0.45, dist2 / SPEED));
+        }
+        break;
+
+      case "moveToEmpty":
+        sim.cabinBottom = lerp(sim.moveFrom, sim.moveTarget, easeInOut(clamp(p, 0, 1)));
+        if (p >= 1) setPhase("doorsOpen2", 0.55);
+        break;
+
+      case "doorsOpen2":
+        sim.doorT = clamp(p, 0, 1);
+        if (p >= 1) {
+          // passenger exits at the empty floor; their old floor becomes empty
+          var oldFloor = sim.pax.floor;
+          sim.pax.floor = sim.emptyFloor;
+          sim.pax.state = "standing";
+          sim.emptyFloor = oldFloor;
+          sim.pax = null;
+          setPhase("doorsClose", 0.45);
+        }
+        break;
+
+      case "doorsClose":
+        sim.doorT = 1 - clamp(p, 0, 1);
+        if (p >= 1) setPhase("wait", 1.5);
+        break;
+    }
+  }
+
+  /* ------------------------------------------------------------- loop */
+  var last = performance.now();
+  var elEmpty = document.getElementById("emptyFloor");
+  var elCabin = document.getElementById("cabinFloor");
+  var elPhase = document.getElementById("phase");
+  var elPax = document.getElementById("paxCount");
+  var statusLine = document.getElementById("statusLine");
+
+  function phaseLabel() {
+    switch (sim.phase) {
+      case "wait": return "Idle";
+      case "moveToPax": return "Cabin → passenger (F" + (sim.pax ? sim.pax.floor + 1 : "?") + ")";
+      case "doorsOpen": return "Doors opening";
+      case "moveToEmpty": return "Cabin → empty floor (F" + (sim.emptyFloor + 1) + ")";
+      case "doorsOpen2": return "Passenger exits";
+      case "doorsClose": return "Doors closing";
+    }
+    return "Idle";
+  }
+
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    render(sim.t);
+
+    var cabinFloorIdx = Math.round((sim.cabinBottom - SLAB_T / 2) / FLOOR_H);
+    elEmpty.textContent = "F" + (sim.emptyFloor + 1);
+    elCabin.textContent = "F" + (cabinFloorIdx + 1);
+    elPax.textContent = String(sim.passengers.length);
+    elPhase.textContent = sim.running ? phaseLabel() : "Paused";
+    var paxText = "";
+    if (sim.pax && sim.pax.state === "inCabin") {
+      paxText = " · Cabin carries F" + (sim.pax.floor + 1) + " passenger";
+    }
+    statusLine.innerHTML = "<strong>Empty floor F" + (sim.emptyFloor + 1) + "</strong>" +
+      " · Cabin on F" + (cabinFloorIdx + 1) + paxText +
+      " · Waiting for next passenger";
+
+    requestAnimationFrame(frame);
+  }
+
+  /* ------------------------------------------------------------- wiring */
+  document.getElementById("pauseBtn").addEventListener("click", function () {
+    sim.running = !sim.running;
+    this.textContent = sim.running ? "Pause" : "Resume";
+  });
+  document.getElementById("resetBtn").addEventListener("click", function () {
+    resetSim();
+    sim.running = true;
+    document.getElementById("pauseBtn").textContent = "Pause";
+  });
+
+  resetSim();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
