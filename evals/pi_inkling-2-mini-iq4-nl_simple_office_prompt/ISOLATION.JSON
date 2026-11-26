@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "backend": "bubblewrap",
+  "workspace": "/workspace",
+  "home": "private",
+  "checkers": "evaluator only"
+}
