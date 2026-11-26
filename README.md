@@ -104,18 +104,35 @@ Install the agents you wish to evaluate. Each has its own setup requirements:
 
 Once LM Studio is running and your agent is installed, you can perform an experiment.
 
-Pi and Pi Wiggum evaluations use Bubblewrap on Linux and the built-in macOS
-Seatbelt launcher at `/usr/bin/sandbox-exec` on macOS; no additional package
-is needed. Each agent attempt has a private home and
-writable output directory, read-only system tools, and network access. Pi's
-model, settings, and authentication files are copied into the private home;
-previous runs, repository sources, and evaluator logs are hidden. Wiggum runs
-its checkers outside this boundary and supplies feedback on subsequent
-attempts. For plain Pi, the evaluator's checker scripts are also unavailable to
-the agent. Isolation fails closed if the platform sandbox cannot start and is
-recorded in `ISOLATION.JSON`. Apple's `sandbox-exec` is deprecated and may be
-removed in a future macOS release. This boundary currently applies only to
-`pi` and `pi-wiggum`.
+Pi and Pi Wiggum evaluations use Bubblewrap on Linux, the built-in macOS
+Seatbelt launcher at `/usr/bin/sandbox-exec` on macOS, and a dedicated
+non-admin local Windows sandbox user (`llm-eval-sandbox`) via
+`CreateProcessWithLogonW`, NTFS ACLs, and a kill-on-close Windows Job Object on
+Windows. Each agent attempt has a private home and writable output directory,
+read-only system tools, and network access (including `localhost` for LM Studio,
+oMLX, and llama-server). Pi's model, settings, and authentication files are
+copied into the private home; previous runs, repository sources, and evaluator
+logs are hidden. Wiggum runs its checkers outside this boundary and supplies
+feedback on subsequent attempts. For plain Pi, the evaluator's checker scripts
+are also unavailable to the agent. Isolation fails closed if the platform
+sandbox cannot start and is recorded in `ISOLATION.JSON`. Apple's `sandbox-exec`
+is deprecated and may be removed in a future macOS release. This boundary
+currently applies only to `pi` and `pi-wiggum`.
+
+On Windows, run this one-time setup from an Administrator terminal before your
+first `pi` or `pi-wiggum` evaluation (day-to-day evaluations run as a normal
+non-admin user):
+
+```powershell
+python windows_sandbox.py setup
+```
+
+This creates the hidden, non-admin `llm-eval-sandbox` local account, stores its
+random password encrypted with current-user Windows DPAPI in
+`%LOCALAPPDATA%\llm-eval\windows-sandbox.json`, and pre-grants read/execute
+access to Pi's runtime files. Check readiness anytime with
+`python windows_sandbox.py status`, or remove the account and configuration
+from an Administrator terminal with `python windows_sandbox.py teardown`.
 
 ### Basic Command
 Run the evaluation script by specifying the model key (as it appears in `lms ls`) and the agent type:

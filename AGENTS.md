@@ -9,6 +9,8 @@ A benchmarking framework for evaluating agentic CLI tools (Codex, Gemini CLI, Mi
 - `evaluation_metrics.py` - Result/log token and cost normalization
 - `evaluation_report.py` - HTML summary rendering and artifact previews
 - `runner_events.py` - Pure vendor event normalization used by runner loops and fixture tests
+- `pi_isolation.py` - Cross-platform filesystem boundary for Pi runs (Linux Bubblewrap, macOS Seatbelt, Windows sandbox user)
+- `windows_sandbox.py` - Native Windows sandbox backend (hidden non-admin local user, DPAPI credentials, NTFS ACLs, Job Object launcher)
 - `runners/` - One adapter module per agent CLI
 - `generate_index.py` - Dashboard generator that aggregates all evaluation results into `index.html`, computes deterministic prompt-specific scores, and renders comparison tabs plus the by-agent catalog
 - `tests/fixtures/runner_events/` - Representative agent JSON/JSONL streams for parser contract tests

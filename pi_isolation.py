@@ -1,12 +1,15 @@
 """Filesystem boundary for Pi benchmark attempts."""
 
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Sequence
+
+import windows_sandbox
 
 
 class PiIsolation:
@@ -39,8 +42,14 @@ class PiIsolation:
 
     def __init__(self, work_dir: Path):
         self.work_dir = work_dir.resolve()
+        self._win_config: Optional[windows_sandbox.WindowsSandboxConfig] = None
+        self._win_config_path: Optional[Path] = None
+        self._win_modified_paths: List[Path] = []
+        self._windows_path_entries: List[str] = []
 
     def __enter__(self):
+        win_recursive_roots: List[Path] = []
+        win_single_paths: List[Path] = []
         if sys.platform.startswith("linux"):
             self.backend = "bubblewrap"
             self.bwrap = shutil.which("bwrap")
@@ -53,8 +62,21 @@ class PiIsolation:
                 raise RuntimeError(
                     "Pi evaluations on macOS require /usr/bin/sandbox-exec (Seatbelt)."
                 )
+        elif sys.platform == "win32":
+            self.backend = "windows-sandbox-user"
+            self._win_config_path = windows_sandbox.get_config_path()
+            self._win_config = windows_sandbox.load_config(self._win_config_path)
+            windows_sandbox.validate_sandbox_config(self._win_config)
+            (
+                win_recursive_roots,
+                win_single_paths,
+                self._windows_path_entries,
+            ) = windows_sandbox.discover_windows_runtime_layout()
         else:
-            raise RuntimeError("Pi evaluations require Linux/bubblewrap or macOS/Seatbelt.")
+            raise RuntimeError(
+                "Pi evaluations require Linux/bubblewrap, macOS/Seatbelt, "
+                "or Windows/sandbox user."
+            )
 
         self.temporary = tempfile.TemporaryDirectory(prefix="llm-eval-pi-")
         self.home = Path(self.temporary.name).resolve()
@@ -77,28 +99,53 @@ class PiIsolation:
             if self.backend == "seatbelt":
                 self._write_isolation_metadata()
                 self._write_seatbelt_profile()
+            elif self.backend == "windows-sandbox-user":
+                for subdir in (
+                    Path("AppData") / "Roaming",
+                    Path("AppData") / "Local",
+                    Path("Temp"),
+                    Path(".cache"),
+                    Path(".config"),
+                ):
+                    (self.home / subdir).mkdir(parents=True, exist_ok=True)
+                self._write_isolation_metadata()
+                self._configure_windows_acls(win_recursive_roots, win_single_paths)
 
-            probe_binary = "/usr/bin/true" if self.backend == "seatbelt" else "/bin/true"
+            if self.backend == "windows-sandbox-user":
+                probe_cmd = ["cmd.exe", "/d", "/c", "exit", "0"]
+                probe_env = self.environment(os.environ.copy())
+                probe_timeout = 15
+            else:
+                probe_cmd = ["/usr/bin/true" if self.backend == "seatbelt" else "/bin/true"]
+                probe_env = None
+                probe_timeout = 10
+
             probe = subprocess.run(
-                self.command([probe_binary]),
+                self.command(probe_cmd),
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=probe_timeout,
                 cwd=self.work_dir,
+                env=probe_env,
             )
             if probe.returncode:
+                detail = (probe.stderr or probe.stdout).strip()
                 raise RuntimeError(
-                    f"Pi isolation cannot start: {probe.stderr.strip()}"
+                    f"Pi isolation cannot start: {detail}"
                 )
             if self.backend == "bubblewrap":
                 self._write_isolation_metadata()
             return self
         except BaseException:
+            self._cleanup_windows_acls()
             self.temporary.cleanup()
             raise
 
     def __exit__(self, *exc):
-        self.temporary.cleanup()
+        try:
+            self._cleanup_windows_acls()
+        finally:
+            self.temporary.cleanup()
 
     def _write_isolation_metadata(self) -> None:
         metadata = {
@@ -114,6 +161,10 @@ class PiIsolation:
 
     def environment(self, env: Dict[str, str]) -> Dict[str, str]:
         """Set the private runtime paths that bubblewrap otherwise provides."""
+        if self.backend == "windows-sandbox-user":
+            return windows_sandbox.apply_private_home_env(
+                env, self.home, path_entries=self._windows_path_entries
+            )
         if self.backend != "seatbelt":
             return env
 
@@ -130,6 +181,21 @@ class PiIsolation:
         return env
 
     def command(self, cmd: List[str]) -> List[str]:
+        if self.backend == "windows-sandbox-user":
+            launcher = Path(__file__).resolve().with_name("windows_sandbox.py")
+            args = [
+                sys.executable,
+                str(launcher),
+                "exec",
+                "--cwd",
+                str(self.work_dir),
+                "--home",
+                str(self.home),
+            ]
+            if self._win_config_path is not None:
+                args.extend(["--config", str(self._win_config_path)])
+            args.extend(["--", *cmd])
+            return args
         if self.backend == "seatbelt":
             return [
                 str(self.sandbox_exec),
@@ -297,3 +363,80 @@ class PiIsolation:
         self.profile_path = self.home / "seatbelt.sb"
         self.profile_path.write_text("\n".join(profile) + "\n", encoding="utf-8")
         self._seatbelt_parameters = params
+
+    def _configure_windows_acls(
+        self,
+        recursive_roots: Sequence[Path],
+        single_paths: Sequence[Path],
+    ) -> None:
+        assert self._win_config is not None
+        sandbox_sid = self._win_config.sid
+        current_sid = windows_sandbox.get_current_user_sid()
+        inherit_all = (
+            windows_sandbox.OBJECT_INHERIT_ACE | windows_sandbox.CONTAINER_INHERIT_ACE
+        )
+
+        # Ensure the evaluator user keeps full inherited rights on files created
+        # by the sandbox user, even inside tempfile directories that use OWNER RIGHTS.
+        for writable_dir in (self.home, self.work_dir):
+            if not windows_sandbox.has_allow_ace(
+                writable_dir,
+                (current_sid,),
+                windows_sandbox.FILE_ALL_ACCESS,
+                required_inherit=inherit_all,
+            ):
+                windows_sandbox.grant_dacl(
+                    writable_dir,
+                    current_sid,
+                    windows_sandbox.FILE_ALL_ACCESS,
+                    inherit_all,
+                )
+
+        # Allow non-inheriting stat/traverse-only metadata checks on ancestors
+        # of the workspace and private home (needed by Node.js realpathSync).
+        ancestor_grants = windows_sandbox.ensure_ancestor_stat_grants(
+            sandbox_sid, (self.home, self.work_dir)
+        )
+        self._win_modified_paths.extend(ancestor_grants)
+
+        # Grant Modify without FILE_DELETE_CHILD or WRITE_DAC on workspace and home.
+        windows_sandbox.grant_dacl(
+            self.home,
+            sandbox_sid,
+            windows_sandbox.FILE_MODIFY_NO_DELETE_CHILD,
+            inherit_all,
+        )
+        windows_sandbox.grant_dacl(
+            self.work_dir,
+            sandbox_sid,
+            windows_sandbox.FILE_MODIFY_NO_DELETE_CHILD,
+            inherit_all,
+        )
+        self._win_modified_paths.append(self.work_dir)
+
+        # Deny all access to evaluator-owned logs and metadata inside the workspace.
+        for path in self.work_dir.iterdir():
+            if path.is_file() and self._is_protected_workspace_path(path):
+                windows_sandbox.deny_dacl(
+                    path,
+                    sandbox_sid,
+                    windows_sandbox.FILE_ALL_ACCESS,
+                    windows_sandbox.NO_INHERITANCE,
+                )
+                self._win_modified_paths.append(path)
+
+        windows_sandbox.ensure_runtime_rx_grants(
+            sandbox_sid, recursive_roots, single_paths
+        )
+
+    def _cleanup_windows_acls(self) -> None:
+        if self._win_config is None or not self._win_modified_paths:
+            return
+        sandbox_sid = self._win_config.sid
+        # Revoke protected-file DENY ACEs before revoking the workspace ALLOW ACE.
+        for path in reversed(self._win_modified_paths):
+            try:
+                windows_sandbox.revoke_dacl(path, sandbox_sid)
+            except OSError:
+                pass
+        self._win_modified_paths.clear()
