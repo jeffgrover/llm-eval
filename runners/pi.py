@@ -345,7 +345,10 @@ class PiRunner(AgentRunner):
                 encoding="utf-8",
                 errors="replace",
                 bufsize=1,
-                shell=(sys.platform == "win32"),  # pi is a .cmd on Windows
+                shell=(
+                    sys.platform == "win32"
+                    and getattr(isolation, "backend", None) != "windows-sandbox-user"
+                ),  # pi.cmd is resolved directly by windows_sandbox.py on Windows
                 start_new_session=os.name != "nt",
             )
             line_queue: queue.Queue[Optional[str]] = queue.Queue()
