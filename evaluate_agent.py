@@ -38,6 +38,10 @@ from run_safety import (
     DEFAULT_DOOM_LOOP_REPEATS,
     DEFAULT_LOCAL_MAX_IDLE_SECONDS,
     DEFAULT_LOCAL_MAX_SECONDS,
+    DEFAULT_LOCAL_MAX_TURNS,
+    DEFAULT_LOCAL_MAX_TOTAL_TOKENS,
+    DEFAULT_LOCAL_MAX_COST_USD,
+    DEFAULT_LOCAL_DOOM_LOOP_REPEATS,
     DEFAULT_MAX_COST_USD,
     DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS,
     DEFAULT_NON_LOCAL_MAX_SECONDS,
@@ -118,9 +122,17 @@ def resolve_lms_context_length(configured_context_length: Optional[int]) -> int:
     """Resolve the local context and keep LM Studio and agents in sync."""
     if configured_context_length is not None:
         return configured_context_length
-    return core.get_env_int(
-        "LLM_EVAL_LOCAL_CONTEXT_LIMIT", core.DEFAULT_LOCAL_CONTEXT_LIMIT
-    )
+    env_context_length = core.get_env_int("LLM_EVAL_LOCAL_CONTEXT_LIMIT", 0)
+    if env_context_length > 0:
+        return env_context_length
+    return core.DEFAULT_LOCAL_CONTEXT_LIMIT
+
+
+def resolve_run_limit(configured, non_local, local_default, non_local_default):
+    """Choose a mode-specific default while preserving explicit zero overrides."""
+    if configured is not None:
+        return configured
+    return non_local_default if non_local else local_default
 
 
 # --- Main ---
@@ -233,31 +245,31 @@ def build_argument_parser() -> argparse.ArgumentParser:
     safety_group.add_argument(
         "--max-turns",
         type=int,
-        default=DEFAULT_MAX_TURNS,
-        help=f"Stop after this many turns; 0 disables (default: {DEFAULT_MAX_TURNS})",
+        default=None,
+        help=f"Stop after this many turns; 0 disables (local default: {DEFAULT_LOCAL_MAX_TURNS}; non-local: {DEFAULT_MAX_TURNS})",
     )
     safety_group.add_argument(
         "--max-total-tokens",
         type=int,
-        default=DEFAULT_MAX_TOTAL_TOKENS,
+        default=None,
         help=(
             "Stop after this many accumulated input/output tokens; 0 disables "
-            f"(default: {DEFAULT_MAX_TOTAL_TOKENS})"
+            f"(local default: {DEFAULT_LOCAL_MAX_TOTAL_TOKENS}; non-local: {DEFAULT_MAX_TOTAL_TOKENS})"
         ),
     )
     safety_group.add_argument(
         "--max-cost-usd",
         type=float,
-        default=DEFAULT_MAX_COST_USD,
-        help=f"Stop at this reported cost; 0 disables (default: {DEFAULT_MAX_COST_USD:g})",
+        default=None,
+        help=f"Stop at this reported cost; 0 disables (local default: {DEFAULT_LOCAL_MAX_COST_USD:g}; non-local: {DEFAULT_MAX_COST_USD:g})",
     )
     safety_group.add_argument(
         "--doom-loop-repeats",
         type=int,
-        default=DEFAULT_DOOM_LOOP_REPEATS,
+        default=None,
         help=(
             "Stop after a short tool cycle repeats this many times; 0 disables "
-            f"(default: {DEFAULT_DOOM_LOOP_REPEATS})"
+            f"(local default: {DEFAULT_LOCAL_DOOM_LOOP_REPEATS}; non-local: {DEFAULT_DOOM_LOOP_REPEATS})"
         ),
     )
     safety_group.add_argument(
@@ -307,6 +319,22 @@ def main(argv: Optional[List[str]] = None):
         print(f"[-] Prompt file not found: {args.prompt_file}")
         sys.exit(1)
 
+    max_turns = resolve_run_limit(
+        args.max_turns, args.non_local, DEFAULT_LOCAL_MAX_TURNS, DEFAULT_MAX_TURNS
+    )
+    max_total_tokens = resolve_run_limit(
+        args.max_total_tokens, args.non_local,
+        DEFAULT_LOCAL_MAX_TOTAL_TOKENS, DEFAULT_MAX_TOTAL_TOKENS,
+    )
+    doom_loop_repeats = resolve_run_limit(
+        args.doom_loop_repeats, args.non_local,
+        DEFAULT_LOCAL_DOOM_LOOP_REPEATS, DEFAULT_DOOM_LOOP_REPEATS,
+    )
+    max_cost_usd = resolve_run_limit(
+        args.max_cost_usd, args.non_local,
+        DEFAULT_LOCAL_MAX_COST_USD, DEFAULT_MAX_COST_USD,
+    )
+
     runner = runner_cls(
         args.agent,
         args.model,
@@ -320,10 +348,10 @@ def main(argv: Optional[List[str]] = None):
         safety_limits=RunSafetyLimits(
             max_seconds=max_seconds,
             max_idle_seconds=max_idle_seconds,
-            max_turns=args.max_turns,
-            max_total_tokens=args.max_total_tokens,
-            max_cost_usd=args.max_cost_usd,
-            doom_loop_repeats=args.doom_loop_repeats,
+            max_turns=max_turns,
+            max_total_tokens=max_total_tokens,
+            max_cost_usd=max_cost_usd,
+            doom_loop_repeats=doom_loop_repeats,
             doom_loop_max_cycle_length=args.doom_loop_max_cycle_length,
             doom_loop_min_calls=args.doom_loop_min_calls,
         ),

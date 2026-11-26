@@ -66,10 +66,10 @@ class PiRunner(AgentRunner):
         configured_output_limit = get_env_int(
             "LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT
         )
-        # Leave room for the prompt and tool results. Advertising a 32K output
-        # budget against a 48K server context lets reasoning consume the entire
-        # remaining context and truncates file-write arguments mid-JSON.
-        output_limit = min(configured_output_limit, max(4096, context_limit // 3))
+        # Do not impose an additional fraction-of-context response cap: long
+        # reasoning models can use the full configured output allowance. The
+        # server's context window still bounds prompt plus generated tokens.
+        output_limit = min(configured_output_limit, context_limit)
 
         config = {
             "providers": {

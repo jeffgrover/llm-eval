@@ -47,7 +47,7 @@ DEFAULT_LOCAL_CONTEXT_LIMIT = 65536
 # Reasoning models (e.g. Qwen 3.8) spend internal thinking tokens out of the
 # response budget, so 16K can be consumed entirely by reasoning before any
 # visible output or tool call is produced.
-DEFAULT_LOCAL_OUTPUT_LIMIT = 32768
+DEFAULT_LOCAL_OUTPUT_LIMIT = 131072
 
 
 def get_omlx_api_key() -> str:

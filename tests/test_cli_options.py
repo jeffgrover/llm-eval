@@ -7,12 +7,17 @@ from evaluate_agent import (
     resolve_lms_context_length,
     resolve_max_idle_seconds,
     resolve_max_seconds,
+    resolve_run_limit,
 )
 from evaluation_core import DEFAULT_LOCAL_CONTEXT_LIMIT
 from run_safety import (
     DEFAULT_DOOM_LOOP_REPEATS,
     DEFAULT_LOCAL_MAX_IDLE_SECONDS,
     DEFAULT_LOCAL_MAX_SECONDS,
+    DEFAULT_LOCAL_MAX_TURNS,
+    DEFAULT_LOCAL_MAX_TOTAL_TOKENS,
+    DEFAULT_LOCAL_DOOM_LOOP_REPEATS,
+    DEFAULT_MAX_TOTAL_TOKENS,
     DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS,
     DEFAULT_NON_LOCAL_MAX_SECONDS,
     DEFAULT_MAX_TURNS,
@@ -112,8 +117,11 @@ class CliOptionTests(unittest.TestCase):
             ),
             DEFAULT_NON_LOCAL_MAX_IDLE_SECONDS,
         )
-        self.assertEqual(args.max_turns, DEFAULT_MAX_TURNS)
-        self.assertEqual(args.doom_loop_repeats, DEFAULT_DOOM_LOOP_REPEATS)
+        self.assertEqual(resolve_run_limit(args.max_turns, False, DEFAULT_LOCAL_MAX_TURNS, DEFAULT_MAX_TURNS), 0)
+        self.assertEqual(resolve_run_limit(args.max_total_tokens, False, DEFAULT_LOCAL_MAX_TOTAL_TOKENS, DEFAULT_MAX_TOTAL_TOKENS), 0)
+        self.assertEqual(resolve_run_limit(args.doom_loop_repeats, False, DEFAULT_LOCAL_DOOM_LOOP_REPEATS, DEFAULT_DOOM_LOOP_REPEATS), 0)
+        self.assertEqual(resolve_run_limit(args.max_turns, True, DEFAULT_LOCAL_MAX_TURNS, DEFAULT_MAX_TURNS), 200)
+        self.assertEqual(resolve_run_limit(0, False, DEFAULT_LOCAL_MAX_TURNS, DEFAULT_MAX_TURNS), 0)
 
     def test_run_safety_options_are_configurable(self):
         args = self.parse(
