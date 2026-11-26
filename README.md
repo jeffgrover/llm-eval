@@ -138,16 +138,16 @@ Run the evaluation script by specifying the model key (as it appears in `lms ls`
 -   `--execute-generated-python`: Execute root-level Python artifacts and capture their output in `OUTPUT.TXT`. This is disabled by default.
 -   `--restore-agent-config`: Restore Vibe's original `active_model` after the run. Pi's temporary provider file is always restored or removed.
 -   `--lms-reload`: Explicitly reload an already loaded LM Studio model to apply load settings. By default, reuse the existing model and its context length.
--   `--lms-context-length`: Set context length for a new load (default: `65536`). Use `--lms-reload` to change an existing load. Override the default with `LLM_EVAL_LOCAL_CONTEXT_LIMIT`.
+-   `--lms-context-length`: Set context length for a new load (default: `65536`). Use `--lms-reload` to change an existing load. Override the default with `LLM_EVAL_LOCAL_CONTEXT_LIMIT`. For external servers, set this to the context actually configured on the server.
 -   `--lms-eval-batch-size`: Set LM Studio llama.cpp's prompt-evaluation batch size. Smaller values can reduce peak memory during prompt ingestion.
 -   `--lms-flash-attention` / `--no-lms-flash-attention`: Enable or disable Flash Attention for a new load or `--lms-reload`. Otherwise preserve LM Studio's saved setting.
 -   `--lms-cpu-kv-cache`: Keep the KV cache in system memory rather than offloading it to the GPU. On unified-memory systems this changes placement/accounting, not the total physical-memory requirement.
--   `--max-seconds`: Stop an agent run after this total wall time (defaults: `36000` for local runs, `3600` with `--non-local`; `0` disables). An explicit value overrides either mode default. For Pi Wiggum this governs the complete evaluator-owned repair loop, and each attempt receives the time remaining in that shared limit.
--   `--max-idle-seconds`: Stop after this long without stdout or stderr from the agent process (defaults: `3600` for local runs, `900` with `--non-local`; `0` disables). An explicit value overrides either mode default, and any output resets the inactivity timer.
--   `--max-turns`: Stop after this many streamed assistant turns (default `200`; `0` disables).
--   `--max-total-tokens`: Stop after this many accumulated input/output tokens when live usage is available (default `5000000`; `0` disables).
--   `--max-cost-usd`: Stop at this reported live cost (default `$10`; `0` disables).
--   `--doom-loop-repeats`: Stop a short repeating tool cycle after this many repetitions (default `12`; `0` disables).
+-   `--max-seconds`: Stop an agent run after this total wall time (local default `0`, non-local default `3600`; `0` disables). For Pi Wiggum this governs the complete repair loop.
+-   `--max-idle-seconds`: Stop after this long without stdout or stderr (local default `0`, non-local default `900`; `0` disables). Any output resets the inactivity timer.
+-   `--max-turns`: Stop after this many streamed assistant turns (local default `0`, non-local default `200`; `0` disables).
+-   `--max-total-tokens`: Stop after this many accumulated input/output tokens when live usage is available (local default `0`, non-local default `5000000`; `0` disables).
+-   `--max-cost-usd`: Stop at this reported live cost (local default `0`, non-local default `$10`; `0` disables).
+-   `--doom-loop-repeats`: Stop a short repeating tool cycle after this many repetitions (local default `0`, non-local default `12`; `0` disables).
 -   `--doom-loop-max-cycle-length`: Longest repeating tool sequence to inspect (default `4`).
 -   `--doom-loop-min-calls`: Minimum consecutive tool calls required before declaring a loop (default `24`).
 
@@ -170,8 +170,25 @@ LLM_EVAL_LOCAL_OUTPUT_LIMIT=2048 ./evaluate_agent.py \
   --lms-eval-batch-size 64
 ```
 
-OpenCode's default local limits are 65,536 context tokens and 32,768 output
-tokens. Override them with `LLM_EVAL_LOCAL_CONTEXT_LIMIT` and
+Pi's per-response output ceiling is the smaller of `LLM_EVAL_LOCAL_OUTPUT_LIMIT`
+(default `131072`) and the advertised context. Prompt, output, and tool calls
+share the server's context window. Set `LLM_EVAL_LOCAL_CONTEXT_LIMIT` to the
+actual context of a separately managed server. For example, a server configured
+for 128K can use `LLM_EVAL_LOCAL_CONTEXT_LIMIT=131072`; a smaller server needs
+its own value. LM Studio managed loads use the reported loaded context when
+available. A 64K fallback is used where the actual limit cannot be discovered.
+
+Pi's own auto-compaction settings control when prior turns are summarized.
+Default Pi settings reserve about 16K tokens and retain about 20K recent tokens,
+but compaction happens between turns and a single long response can hit the
+server's remaining context first. Check the generated report for an output
+limit or compaction event and confirm the server has enough memory for the
+configured context. Local evaluator limits are disabled by default; set the
+options above when a bounded experiment is desired.
+
+OpenCode defaults to 65,536 context tokens. Its output limit is the smaller of
+the configured output allowance (131,072 by default) and the context window.
+Override them with `LLM_EVAL_LOCAL_CONTEXT_LIMIT` and
 `LLM_EVAL_LOCAL_OUTPUT_LIMIT`. An explicit `--lms-context-length` takes
 precedence over `LLM_EVAL_LOCAL_CONTEXT_LIMIT` for OpenCode so the client and
 server agree on the usable context window for new loads. When reusing an
@@ -185,8 +202,10 @@ calls, or claims completion without producing artifact files.
 
 ### Runaway-agent safeguards
 
-Normal evaluations have a hard wall-clock ceiling, a reset-on-output inactivity
-limit, live turn/token/cost ceilings, and a repeated tool-cycle detector. The detector normalizes tool name
+Evaluations can use a hard wall-clock ceiling, a reset-on-output inactivity
+limit, live turn/token/cost ceilings, and a repeated tool-cycle detector. These
+limits are disabled by default for local runs and enabled for non-local runs.
+The detector normalizes tool name
 and target (for example `read:elevator.js` and `edit:elevator.js`) while ignoring
 changing file contents, then stops short cycles that repeat exactly at the tail
 of the event stream. The tool-cycle check is enabled for structured adapters
@@ -306,7 +325,7 @@ calls, finish reasons, selected provider/model, CLI version, artifacts, and
 warnings in `CRUSH_RESULT.JSON`. These counters feed both `summary.html` and the
 central dashboard. Current Crush has substantial system/tool prompt overhead;
 in validation, an 8,192-token local context failed before the one-line user
-prompt could run, so use at least the evaluator's 32K default.
+prompt could run, so use an appropriately sized context; the fallback is 64K.
 
 ### Qoder CLI
 

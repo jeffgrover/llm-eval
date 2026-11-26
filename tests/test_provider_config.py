@@ -26,7 +26,7 @@ from run_safety import RunSafetyLimits
 
 class LocalProviderConfigTests(unittest.TestCase):
     @patch("runners.pi.get_lms_loaded_context_length", return_value=48128)
-    def test_pi_custom_model_follows_loaded_context_with_output_headroom(self, _loaded):
+    def test_pi_custom_model_follows_loaded_context_and_bounds_output(self, _loaded):
         with tempfile.TemporaryDirectory() as temp_dir:
             home = Path(temp_dir)
             runner = PiRunner(
@@ -50,7 +50,7 @@ class LocalProviderConfigTests(unittest.TestCase):
                 )
                 model = config["providers"]["lmstudio"]["models"][0]
                 self.assertEqual(model["contextWindow"], 48128)
-                self.assertEqual(model["maxTokens"], 16042)
+                self.assertEqual(model["maxTokens"], 48128)
                 self.assertTrue(model["reasoning"])
                 self.assertTrue(model["compat"]["supportsReasoningEffort"])
                 self.assertNotIn("thinkingLevelMap", model)

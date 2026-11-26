@@ -111,8 +111,9 @@ class CrushRunner(AgentRunner):
                     f"context: {context_limit}"
                 )
         context_limit = context_limit or DEFAULT_LOCAL_CONTEXT_LIMIT
-        output_limit = get_env_int(
-            "LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT
+        output_limit = min(
+            get_env_int("LLM_EVAL_LOCAL_OUTPUT_LIMIT", DEFAULT_LOCAL_OUTPUT_LIMIT),
+            context_limit,
         )
         provider_id = self._provider_id()
         selected_model = {"provider": provider_id, "model": self.model_name}

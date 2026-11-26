@@ -38,6 +38,7 @@ class CrushRunnerTests(unittest.TestCase):
             )
             model = config["providers"]["lmstudio"]["models"][0]
             self.assertEqual(model["context_window"], 24576)
+            self.assertEqual(model["default_max_tokens"], 24576)
             self.assertEqual(model["id"], "org/test-model")
             self.assertIn("write", config["permissions"]["allowed_tools"])
             self.assertTrue(config["options"]["disable_default_providers"])
