@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Tower — Live Office Simulation</title>
+<style>
+  html, body { margin:0; padding:0; height:100%; background:#0b0e14; overflow:hidden;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif; }
+  #view { position:absolute; inset:0; display:block; cursor:grab; }
+  #view:active { cursor:grabbing; }
+  #hud { position:absolute; top:18px; left:20px; color:#f2f4f8; pointer-events:none; z-index:5;
+    user-select:none; }
+  #clock { font-size:46px; font-weight:300; letter-spacing:2px; line-height:1;
+    text-shadow:0 2px 16px rgba(0,0,0,.6); font-variant-numeric:tabular-nums; }
+  #phase { margin-top:6px; font-size:13px; font-weight:600; letter-spacing:2.4px; text-transform:uppercase;
+    color:#ffc98a; text-shadow:0 1px 8px rgba(0,0,0,.65); }
+  #stats { margin-top:14px; display:flex; gap:18px; font-size:12.5px; letter-spacing:.4px;
+    color:#d5ddee; opacity:.95; text-shadow:0 1px 6px rgba(0,0,0,.7); }
+  #stats b { color:#ffdf9e; font-weight:600; }
+  #hint { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); color:#8fa4c0;
+    font-size:11.5px; letter-spacing:.8px; background:rgba(8,12,20,.45); padding:7px 16px;
+    border-radius:30px; border:1px solid rgba(140,160,190,.15); pointer-events:none; z-index:5;
+    backdrop-filter:blur(5px); }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hud">
+  <div id="clock">07:00</div>
+  <div id="phase">MORNING CHECK-IN</div>
+  <div id="stats"><span><b>25</b> workers</span><span>elevator floor <b id="el">0</b></span><span id="light">lights <b>DAY</b></span></div>
+</div>
+<div id="hint">drag to orbit &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; double-click to reset view</div>
+
+<script src="js/engine.js?v=depth-mask-fix"></script>
+<script src="js/world.js"></script>
+<script src="js/characters.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
